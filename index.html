@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Fitting Bay — Golf Club Fitting Calculator</title>
+<meta name="description" content="A free, static golf club fitting tool. Enter your height, wrist-to-floor and swing data and get lie angle, shaft flex, club length, driver loft, wedge bounce, grip size, putter specs and a full 14-club build sheet.">
+<link rel="stylesheet" href="css/styles.css?v=4">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="#top">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="7" r="4.6" stroke="#34c07a" stroke-width="1.6"/>
+        <circle cx="10.3" cy="5.6" r=".85" fill="#34c07a"/><circle cx="13.4" cy="6.4" r=".85" fill="#34c07a"/>
+        <circle cx="11.4" cy="8.7" r=".85" fill="#34c07a"/>
+        <path d="M12 11.6V19M8.4 21.2h7.2" stroke="#d9b168" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+      <span>The Fitting <i>Bay</i></span>
+    </a>
+    <nav class="site-nav">
+      <a href="#fit">Fitting tool</a>
+      <a href="#chart">Colour code chart</a>
+      <a href="#library">Reference library</a>
+      <a href="#sources">Sources</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ================= HERO ================= -->
+  <div class="hero">
+    <div class="wrap">
+      <p class="eyebrow">Static club fitting, done properly</p>
+      <h1>Find out what clubs<br>actually <span>fit you</span>.</h1>
+      <p class="lede">Answer twelve questions about your body, your swing and your ball flight. You get back a
+        complete build sheet: lie angle, club length, shaft flex and weight, driver loft, wedge bounce, grip size,
+        putter specs and a 14-club set makeup with estimated yardage gaps — plus the reasoning behind every number.</p>
+      <div class="hero-stats">
+        <div><b>2 min</b><span>To complete</span></div>
+        <div><b>1 tape measure</b><span>All you need</span></div>
+        <div><b>Free</b><span>No email, no account</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= WIZARD ================= -->
+  <section id="fit">
+    <div class="wrap">
+      <div id="wizardSection">
+        <div class="panel wizard">
+          <div class="wizard-top">
+            <div class="step-meta">
+              <h2 id="stepTitle" style="margin:0">Your measurements</h2>
+              <div class="count"><span id="stepNum">1</span> / <span id="stepTotal">8</span></div>
+            </div>
+            <div class="progress-track" id="progress"></div>
+          </div>
+
+          <form id="fitForm" novalidate>
+
+            <!-- STEP 1 -->
+            <div class="step active" data-title="Your measurements" data-help="These two numbers drive the two most important specs in the bag — club length and lie angle. Take them seriously; wrist-to-floor is the measurement people most often get wrong.">
+              <p class="help" data-role="help"></p>
+              <div style="margin-bottom:20px">
+                <div class="unit-toggle">
+                  <label><input type="radio" name="units" value="imperial" checked><span>Inches</span></label>
+                  <label><input type="radio" name="units" value="metric"><span>Centimetres</span></label>
+                </div>
+              </div>
+              <div class="field-grid">
+                <div class="field" data-unit="imperial">
+                  <label for="heightFt">Height</label>
+                  <div class="dual">
+                    <input type="number" id="heightFt" min="3" max="8" step="1" placeholder="5 ft" inputmode="numeric" aria-label="Height, feet">
+                    <input type="number" id="heightIn" min="0" max="11.5" step="0.5" placeholder="10 in" inputmode="decimal" aria-label="Height, inches">
+                  </div>
+                  <p class="hint">Feet and inches. Measure in the shoes you play in — golf shoes add roughly ½".</p>
+                </div>
+                <div class="field" data-unit="metric" hidden>
+                  <label for="heightCm">Height (cm)</label>
+                  <input type="number" id="heightCm" min="120" max="230" step="0.5" placeholder="178" inputmode="decimal">
+                  <p class="hint">Measure in the shoes you play in.</p>
+                </div>
+
+                <div class="field">
+                  <label for="wtf">Wrist-to-floor <span class="pill brass">key</span></label>
+                  <input type="number" id="wtf" step="0.1" placeholder="34" inputmode="decimal">
+                  <p class="hint" id="wtfHint">Inches. Stand straight on a hard floor, shoulders relaxed, arms hanging
+                    naturally at your sides. Measure from the <b>crease of your wrist</b> straight down to the floor.
+                    Get someone else to do it — reaching down yourself changes the answer.</p>
+                </div>
+              </div>
+              <div class="note">Both numbers move the result. Height sets your club <em>length</em>; height and
+                wrist-to-floor together set your <em>lie angle</em>. A ½" error in wrist-to-floor is enough to change
+                your lie recommendation by a full degree.</div>
+            </div>
+
+            <!-- STEP 2 -->
+            <div class="step" data-title="Your hands" data-help="Grip size is the cheapest meaningful change you can make to a set of clubs, and the one most golfers have wrong.">
+              <p class="help" data-role="help"></p>
+              <div class="field-grid">
+                <div class="field">
+                  <label for="handLength">Hand length</label>
+                  <input type="number" id="handLength" step="0.1" placeholder="7.5" inputmode="decimal">
+                  <p class="hint" id="handHint">Inches, from the crease of your wrist to the tip of your middle finger.
+                    Keep the tape flat against your palm — do not curve it over the fingertip or around the heel pad.</p>
+                </div>
+                <div class="field">
+                  <label for="gloveSize">Glove size <span class="tiny">(cross-check)</span></label>
+                  <select id="gloveSize">
+                    <option value="">Not sure</option>
+                    <option value="S">Small</option>
+                    <option value="M">Medium</option>
+                    <option value="ML">Medium–Large</option>
+                    <option value="L">Large</option>
+                    <option value="XL">Extra Large</option>
+                    <option value="XXL">XXL</option>
+                  </select>
+                  <p class="hint">Used as a sanity check on the measurement, and as a fallback if you skip it.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- STEP 3 -->
+            <div class="step" data-title="About you" data-help="Age and joint health change shaft material and grip size more than most people expect.">
+              <p class="help" data-role="help"></p>
+              <div class="field-grid">
+                <div class="field">
+                  <label for="age">Age</label>
+                  <input type="number" id="age" min="6" max="105" step="1" placeholder="42" inputmode="numeric">
+                  <p class="hint">Used for shaft weight, material and grip size.</p>
+                </div>
+                <div class="field">
+                  <label>Standard set specs</label>
+                  <div class="opts">
+                    <label class="opt"><input type="radio" name="gender" value="male" checked><span>Men's</span></label>
+                    <label class="opt"><input type="radio" name="gender" value="female"><span>Women's</span></label>
+                  </div>
+                  <p class="hint">Women's stock clubs are typically 1" shorter and lighter than men's. This only sets
+                    the baseline the adjustments are applied to.</p>
+                </div>
+                <div class="field field-wide">
+                  <label>Joint pain, arthritis or a history of hand/elbow/wrist trouble?</label>
+                  <div class="opts">
+                    <label class="opt"><input type="radio" name="joints" value="no" checked><span>No</span></label>
+                    <label class="opt"><input type="radio" name="joints" value="yes"><span>Yes<em>Pushes the fit toward graphite and larger, softer grips</em></span></label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- STEP 4 -->
+            <div class="step" data-title="Your game" data-help="Skill level sets the head category, and it also calibrates how much of your carry distance comes from clubhead speed versus strike quality.">
+              <p class="help" data-role="help"></p>
+              <div class="field-grid">
+                <div class="field field-wide">
+                  <label>Standard of play</label>
+                  <div class="opts">
+                    <label class="opt"><input type="radio" name="skill" value="beginner"><span>Beginner<em>New, or 100+ most rounds</em></span></label>
+                    <label class="opt"><input type="radio" name="skill" value="high"><span>High<em>Roughly 19–28</em></span></label>
+                    <label class="opt"><input type="radio" name="skill" value="mid" checked><span>Mid<em>Roughly 10–18</em></span></label>
+                    <label class="opt"><input type="radio" name="skill" value="low"><span>Low<em>Roughly 5–9</em></span></label>
+                    <label class="opt"><input type="radio" name="skill" value="scratch"><span>Scratch<em>4 or better</em></span></label>
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="handicap">Handicap index <span class="tiny">(optional)</span></label>
+                  <input type="number" id="handicap" min="-5" max="54" step="0.1" placeholder="14.2" inputmode="decimal">
+                  <p class="hint">If you have one, it overrides the band above for the head-type recommendation.</p>
+                </div>
+                <div class="field">
+                  <label for="pwLoft">Your pitching wedge loft <span class="tiny">(optional)</span></label>
+                  <input type="number" id="pwLoft" min="38" max="50" step="0.5" placeholder="44" inputmode="decimal">
+                  <p class="hint">Printed in the spec table for your iron set. Modern game-improvement PWs are
+                    often 43–44°, players irons 46°. Everything about your wedge gapping starts here.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- STEP 5 -->
+            <div class="step" data-title="Your speed" data-help="Fill in whatever you actually know. A measured clubhead speed beats a carry distance; a carry distance beats a guess. Leave them all blank and the tool will estimate from your age, gender and skill — and will say so.">
+              <p class="help" data-role="help"></p>
+              <div class="field-grid">
+                <div class="field">
+                  <label for="ironCarry">7-iron carry distance</label>
+                  <input type="number" id="ironCarry" min="40" max="230" step="1" placeholder="150" inputmode="numeric">
+                  <p class="hint">Yards <b>in the air</b>, on a good strike — not your best ever, and not including roll.</p>
+                </div>
+                <div class="field">
+                  <label for="ironSpeed">7-iron clubhead speed</label>
+                  <input type="number" id="ironSpeed" min="30" max="120" step="0.5" placeholder="78" inputmode="decimal">
+                  <p class="hint">mph. From a launch monitor or simulator. The best single input you can give.</p>
+                </div>
+                <div class="field">
+                  <label for="driverSpeed">Driver clubhead speed</label>
+                  <input type="number" id="driverSpeed" min="40" max="145" step="0.5" placeholder="96" inputmode="decimal">
+                  <p class="hint">mph. Clubhead speed, not ball speed. Takes priority over everything else here.</p>
+                </div>
+                <div class="field">
+                  <label for="driverCarry">Driver carry distance</label>
+                  <input type="number" id="driverCarry" min="80" max="360" step="1" placeholder="230" inputmode="numeric">
+                  <p class="hint">Yards in the air. Used only if nothing above is filled in.</p>
+                </div>
+              </div>
+              <div class="note warn">Most golfers over-estimate their carry distance by 15–20 yards, because they
+                remember their best shot and count the roll. Being honest here changes your shaft flex.</div>
+            </div>
+
+            <!-- STEP 6 -->
+            <div class="step" data-title="Your ball flight" data-help="Your miss pattern and trajectory drive driver loft, head bias, shaft profile, grip size and the dynamic lie check.">
+              <p class="help" data-role="help"></p>
+              <div class="field-grid">
+                <div class="field field-wide">
+                  <label>Your usual shot shape or miss</label>
+                  <div class="opts">
+                    <label class="opt"><input type="radio" name="shotShape" value="slice"><span>Slice<em>Starts left-ish, curves hard right</em></span></label>
+                    <label class="opt"><input type="radio" name="shotShape" value="fade"><span>Fade<em>Gentle left-to-right</em></span></label>
+                    <label class="opt"><input type="radio" name="shotShape" value="straight" checked><span>Straight<em>No consistent curve</em></span></label>
+                    <label class="opt"><input type="radio" name="shotShape" value="draw"><span>Draw<em>Gentle right-to-left</em></span></label>
+                    <label class="opt"><input type="radio" name="shotShape" value="hook"><span>Hook<em>Curves hard left</em></span></label>
+                    <label class="opt"><input type="radio" name="shotShape" value="pull"><span>Pull<em>Straight, but left of target</em></span></label>
+                    <label class="opt"><input type="radio" name="shotShape" value="push"><span>Push<em>Straight, but right of target</em></span></label>
+                  </div>
+                  <p class="hint">Right-handed golfers: read these as written. Left-handed: swap left and right.</p>
+                </div>
+                <div class="field field-wide">
+                  <label>Your natural trajectory with irons</label>
+                  <div class="opts">
+                    <label class="opt"><input type="radio" name="trajectory" value="low"><span>Low<em>Struggle to get it up, shots run out</em></span></label>
+                    <label class="opt"><input type="radio" name="trajectory" value="mid" checked><span>Mid<em>Normal window</em></span></label>
+                    <label class="opt"><input type="radio" name="trajectory" value="high"><span>High<em>Ballooning, loses distance in wind</em></span></label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- STEP 7 -->
+            <div class="step" data-title="Your swing and your turf" data-help="Angle of attack and turf conditions decide wedge bounce and grind — the specs that separate a wedge you trust from one you fight.">
+              <p class="help" data-role="help"></p>
+              <div class="field-grid">
+                <div class="field field-wide">
+                  <label>Your divots with a mid iron</label>
+                  <div class="opts">
+                    <label class="opt"><input type="radio" name="attack" value="steep"><span>Deep divots<em>Steep angle of attack, you dig</em></span></label>
+                    <label class="opt"><input type="radio" name="attack" value="neutral" checked><span>Shallow divots<em>Neutral — a bruise on the turf</em></span></label>
+                    <label class="opt"><input type="radio" name="attack" value="shallow"><span>No divot<em>You sweep or pick it clean</em></span></label>
+                  </div>
+                </div>
+                <div class="field">
+                  <label>Swing tempo</label>
+                  <div class="opts">
+                    <label class="opt"><input type="radio" name="tempo" value="smooth"><span>Smooth</span></label>
+                    <label class="opt"><input type="radio" name="tempo" value="moderate" checked><span>Moderate</span></label>
+                    <label class="opt"><input type="radio" name="tempo" value="aggressive"><span>Aggressive</span></label>
+                  </div>
+                  <p class="hint">Think about your transition from the top, not how fast you walk.</p>
+                </div>
+                <div class="field">
+                  <label>Turf you usually play</label>
+                  <div class="opts">
+                    <label class="opt"><input type="radio" name="turf" value="soft"><span>Soft / lush</span></label>
+                    <label class="opt"><input type="radio" name="turf" value="normal" checked><span>Normal</span></label>
+                    <label class="opt"><input type="radio" name="turf" value="firm"><span>Firm / links</span></label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- STEP 8 -->
+            <div class="step" data-title="What you want from the bag" data-help="Last two questions. These break ties between head types and putter styles.">
+              <p class="help" data-role="help"></p>
+              <div class="field-grid">
+                <div class="field field-wide">
+                  <label>If you could only have one, which matters most?</label>
+                  <div class="opts">
+                    <label class="opt"><input type="radio" name="priority" value="forgiveness" checked><span>Forgiveness<em>Make the bad ones playable</em></span></label>
+                    <label class="opt"><input type="radio" name="priority" value="distance"><span>Distance<em>Ball speed above all</em></span></label>
+                    <label class="opt"><input type="radio" name="priority" value="accuracy"><span>Accuracy<em>Narrow the dispersion</em></span></label>
+                    <label class="opt"><input type="radio" name="priority" value="workability"><span>Workability<em>Shape it on demand</em></span></label>
+                  </div>
+                </div>
+                <div class="field field-wide">
+                  <label>Your putting stroke</label>
+                  <div class="opts">
+                    <label class="opt"><input type="radio" name="strokeArc" value="straight"><span>Straight back, straight through</span></label>
+                    <label class="opt"><input type="radio" name="strokeArc" value="slight" checked><span>Slight arc</span></label>
+                    <label class="opt"><input type="radio" name="strokeArc" value="strong"><span>Strong arc</span></label>
+                  </div>
+                  <p class="hint">If you have never checked: put a chalk line down and putt along it. Almost everyone
+                    who thinks they are straight-back-straight-through has a slight arc.</p>
+                </div>
+              </div>
+            </div>
+
+            <p class="err" id="formErr" role="alert"></p>
+
+            <div class="step-nav">
+              <button type="button" class="btn btn-ghost" id="backBtn" disabled>Back</button>
+              <div class="spacer"></div>
+              <button type="button" class="btn btn-primary" id="nextBtn">Continue</button>
+              <button type="submit" class="btn btn-brass" id="submitBtn" hidden>Build my spec sheet</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- ================= RESULTS ================= -->
+      <div id="results" aria-live="polite">
+        <div class="section-head no-print" style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-top:8px">
+          <div style="flex:1;min-width:260px">
+            <p class="eyebrow" style="margin-bottom:.4rem">Your build sheet</p>
+            <h2 style="margin:0">Here is what fits you</h2>
+          </div>
+          <button type="button" class="btn btn-ghost" id="printBtn">Print / save as PDF</button>
+          <button type="button" class="btn btn-ghost" id="editBtn">Change my answers</button>
+        </div>
+        <div id="resultsBody"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= FULL CHART ================= -->
+  <section id="chart">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">The chart everything starts from</p>
+        <h2>The colour code chart</h2>
+        <p class="lede">Plot your height along the bottom and your wrist-to-floor up the side. Where they meet is your
+          static lie angle; the band along the top gives your club length. This is a faithful reconstruction of the
+          published PING Colour Code Chart — every band is exactly 1" of wrist-to-floor tall, and the recommendation
+          runs from 4° flat to 5° upright in 1° steps.</p>
+      </div>
+      <div class="panel" style="padding:22px">
+        <div id="chartFull"></div>
+        <p class="tiny" style="margin-top:14px">Your position is marked once you complete the fitting above.
+          PING, the colour code system and the chart design are trademarks of Karsten Manufacturing Corporation.
+          This is an independent reconstruction for reference, not an official PING tool.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= REFERENCE LIBRARY ================= -->
+  <section id="library">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Everything the calculator uses</p>
+        <h2>Reference library</h2>
+        <p class="lede">The tables, thresholds and reasoning behind every recommendation, so you can check the working
+          and argue with it.</p>
+      </div>
+
+      <details class="ref" open>
+        <summary><span class="tag">01</span> How to take the measurements</summary>
+        <div class="ref-body">
+          <h4>Wrist-to-floor</h4>
+          <p>Stand upright on a hard, flat floor in the shoes you play in. Let your arms hang completely relaxed at
+            your sides — do not stretch down, do not shrug up. Measure from the <b>crease where your palm meets your
+            wrist</b> straight down to the floor. Have someone else read the tape: bending to look at it yourself
+            changes your posture and typically adds an inch.</p>
+          <p>Typical range is 27"–40" (69–102 cm). This measurement is the reason two golfers of the same height can
+            need lie angles two degrees apart — it captures arm length, which height alone cannot.</p>
+          <h4>Hand length (for grip size)</h4>
+          <p>Palm up, measure from the crease of your wrist to the tip of your middle finger. Keep the tape flat on
+            the palm. Do not wrap it over the fingertip or around the heel of your hand.</p>
+          <h4>Height</h4>
+          <p>Back to a wall, heels down, looking straight ahead. Measure in golf shoes if you can, or add ½" if you
+            cannot — the chart assumes you are standing as you stand over the ball.</p>
+        </div>
+      </details>
+
+      <details class="ref">
+        <summary><span class="tag">02</span> Lie angle — the colour codes, and what a degree is worth</summary>
+        <div class="ref-body">
+          <p>Lie angle is the angle between the shaft and the ground when the sole sits flat. If it is wrong, the sole
+            is not flat at impact, the effective loft twists, and the ball starts offline before the face angle gets a
+            say.</p>
+          <p><b>Rule of thumb: every 1° of lie error moves the ball about 4 yards offline on a 150-yard shot.</b>
+            The effect grows as loft grows and shaft length shrinks, which is why wedges and short irons punish a lie
+            error hardest and a driver barely notices one.</p>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Code</th><th>Lie vs standard</th><th>Miss it produces if this is <em>wrong</em> for you</th></tr></thead>
+              <tbody id="codeTable"></tbody>
+            </table>
+          </div>
+          <div class="note"><b>Too upright</b> → the toe sits up, the face points left at impact → <b>high pulls and
+            hooks</b>. <b>Too flat</b> → the heel sits up, the face points right → <b>low pushes and slices</b>.
+            That relationship is what a fitter is reading on a lie board.</div>
+          <p class="small" style="margin-top:14px">Static charts get you a starting point. A dynamic fit — hitting off
+            a lie board with impact tape on the sole — gets you the answer, because your posture and shaft droop at
+            impact are not visible in a tape measurement. The two commonly differ by one colour code.</p>
+        </div>
+      </details>
+
+      <details class="ref">
+        <summary><span class="tag">03</span> Club length by height</summary>
+        <div class="ref-body">
+          <p>Length comes from height. This is the band structure printed along the top and bottom of the colour code
+            chart:</p>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Height</th><th>Height (cm)</th><th class="num">Length adjustment</th></tr></thead>
+              <tbody>
+                <tr><td>5'0" – 5'1"</td><td>151–155</td><td class="num">−1½"</td></tr>
+                <tr><td>5'2" – 5'3"</td><td>156–160</td><td class="num">−1"</td></tr>
+                <tr><td>5'4" – 5'6"</td><td>161–168</td><td class="num">−½"</td></tr>
+                <tr><td>5'7" – 6'0"</td><td>169–183</td><td class="num"><b>Standard</b></td></tr>
+                <tr><td>6'1" – 6'3"</td><td>184–191</td><td class="num">+½"</td></tr>
+                <tr><td>6'4" – 6'5"</td><td>192–196</td><td class="num">+1"</td></tr>
+                <tr><td>6'6" – 6'7"</td><td>197–201</td><td class="num">+1½"</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="small" style="margin-top:14px">A second, independent opinion comes from wrist-to-floor alone:
+            under 32" suggests −1", 32"–34" suggests −½", 34"–36" is standard, 36"–37.5" suggests +½", above 37.5"
+            suggests +1". When the two disagree it means your arms are long or short for your height, and the tool
+            says so rather than hiding it.</p>
+          <div class="note">Changing length changes lie. Every 1" you add makes a club play roughly <b>1° flatter</b>
+            in effect (the hands sit further from the body), and every 1" you take off plays roughly 1° more upright.
+            A good builder accounts for that; a cheap "just cut them down" job does not.</div>
+        </div>
+      </details>
+
+      <details class="ref">
+        <summary><span class="tag">04</span> Shaft flex, weight and material</summary>
+        <div class="ref-body">
+          <h4>Flex by driver clubhead speed</h4>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Driver speed</th><th>Flex</th><th>Rough driver carry</th></tr></thead>
+              <tbody>
+                <tr><td>Under 72 mph</td><td>L — Ladies</td><td>Under 150 yd</td></tr>
+                <tr><td>72–83 mph</td><td>A — Senior / Light</td><td>150–185 yd</td></tr>
+                <tr><td>84–96 mph</td><td>R — Regular</td><td>185–220 yd</td></tr>
+                <tr><td>97–104 mph</td><td>S — Stiff</td><td>220–250 yd</td></tr>
+                <tr><td>105 mph and up</td><td>X — Extra Stiff</td><td>250 yd+</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h4 style="margin-top:20px">Flex by 7-iron carry, if you have no launch monitor</h4>
+          <p class="small">Roughly: 130–145 yd → A; 145–160 yd → R; 160–175 yd → S; 175 yd+ → X. Less reliable than a
+            speed reading, because carry distance mixes clubhead speed with how well you strike it.</p>
+          <h4 style="margin-top:20px">Weight matters more than the letter</h4>
+          <p>Flex is not standardised. One brand's S plays like another brand's R, and the same shaft in two weights
+            behaves like two different shafts. Weight is what drives your tempo, your ability to find the centre of
+            the face, and your consistency swing to swing.</p>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Shaft</th><th>Typical weight range</th><th>Suits</th></tr></thead>
+              <tbody>
+                <tr><td>Driver graphite</td><td>40–80 g</td><td>Lighter for slower/smoother; heavier for fast, aggressive transitions</td></tr>
+                <tr><td>Iron graphite</td><td>50–105 g</td><td>7-iron speed under 70 mph, age 60+, joint issues, or deliberate weight reduction</td></tr>
+                <tr><td>Iron steel</td><td>95–130 g</td><td>7-iron speed 70 mph and up; more feedback and a tighter dispersion</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="small" style="margin-top:14px">Tempo overrides the chart at the edges. A fast, aggressive
+            transition loads a shaft like extra speed does; a slow, smooth one unloads it. If you are within a few mph
+            of a flex boundary, tempo decides which side you land on.</p>
+          <p class="small">It is common and correct to play one flex softer in irons than in the driver. Iron shafts
+            load differently and the shorter length makes the same flex play stiffer.</p>
+        </div>
+      </details>
+
+      <details class="ref">
+        <summary><span class="tag">05</span> Driver — loft, length and launch conditions</summary>
+        <div class="ref-body">
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Driver speed</th><th class="num">Starting loft</th><th>Target launch</th><th>Target spin</th></tr></thead>
+              <tbody>
+                <tr><td>Under 75 mph</td><td class="num">12°–13.5°</td><td>15°–17°</td><td>2,800–3,400 rpm</td></tr>
+                <tr><td>75–85 mph</td><td class="num">11.5°–12.5°</td><td>14°–16°</td><td>2,600–3,200 rpm</td></tr>
+                <tr><td>85–95 mph</td><td class="num">10.5°–11.5°</td><td>13°–16°</td><td>2,400–2,900 rpm</td></tr>
+                <tr><td>95–105 mph</td><td class="num">9.5°–10.5°</td><td>12°–15°</td><td>2,100–2,600 rpm</td></tr>
+                <tr><td>105 mph +</td><td class="num">8.5°–9.5°</td><td>10°–14°</td><td>1,700–2,300 rpm</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="note" style="margin-top:16px"><b>Angle of attack changes everything.</b> Two golfers at the same
+            speed can need three degrees of different loft. Hitting <em>down</em> on the driver costs launch and adds
+            spin — you need more loft to compensate. Hitting <em>up</em> (+3° to +5° is the tour ideal) adds launch
+            for free, so you can play less loft and get more carry from the same speed.</div>
+          <h4 style="margin-top:20px">Length</h4>
+          <p>Stock drivers ship at 45.5"–45.75". Tour average is closer to 44.5"–45". Shortening a driver costs
+            roughly 2–3 yards of theoretical distance and usually returns more than that in centre-face contact,
+            because the face is only about 4" wide and it is much easier to find the middle of it with a shorter club.
+            If you are choosing between the two, take the shorter one.</p>
+        </div>
+      </details>
+
+      <details class="ref">
+        <summary><span class="tag">06</span> Iron head categories</summary>
+        <div class="ref-body">
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Category</th><th>Typical handicap</th><th>Character</th></tr></thead>
+              <tbody>
+                <tr><td>Players / muscle-back</td><td>0–4</td><td>Minimal offset, thin topline, small head. Maximum feedback and workability, no forgiveness.</td></tr>
+                <tr><td>Players cavity</td><td>0–9</td><td>Compact but perimeter weighted. Feedback with a safety net.</td></tr>
+                <tr><td>Players distance</td><td>5–18</td><td>Compact look, hollow body or forged face, strong lofts. Distance in a clean package.</td></tr>
+                <tr><td>Game improvement</td><td>12–27</td><td>Wide sole, low CG, real offset. Gets the ball up and rescues the heel and thin strikes.</td></tr>
+                <tr><td>Super game improvement</td><td>25+</td><td>Maximum sole width, hybrid-like long irons, most offset. Built to make a bad strike playable.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="small" style="margin-top:14px">Offset is the quiet variable here. More offset gives the face a
+            fraction more time to square up and moves the CG back — genuinely helpful if you miss right, mildly
+            annoying if you miss left.</p>
+        </div>
+      </details>
+
+      <details class="ref">
+        <summary><span class="tag">07</span> Grip sizing</summary>
+        <div class="ref-body">
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Hand length</th><th>Glove (men's)</th><th>Grip size</th><th class="num">Diameter vs standard</th></tr></thead>
+              <tbody>
+                <tr><td>Under 6.9"</td><td>Small</td><td>Undersize</td><td class="num">−1/64"</td></tr>
+                <tr><td>6.9" – 7.6"</td><td>M / ML</td><td>Standard</td><td class="num">baseline</td></tr>
+                <tr><td>7.6" – 8.25"</td><td>L / XL</td><td>Midsize</td><td class="num">+1/16"</td></tr>
+                <tr><td>Over 8.25"</td><td>XL / XXL</td><td>Jumbo / Oversize</td><td class="num">+1/8"</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="note" style="margin-top:16px">Grip size is a ball-flight tool, not just a comfort one.
+            <b>Bigger grips</b> quieten the hands and slow face rotation — they help a hook. <b>Smaller grips</b> let
+            the hands release — they help a slice. If your measurement and your miss disagree, the miss usually wins.</div>
+          <p class="small" style="margin-top:14px">Build-up tape adds diameter at the butt but not much in the
+            lower-hand area, so two wraps is not the same as a true midsize grip. And grip weight counts: going from a
+            50 g grip to a 66 g midsize changes swing weight by about two points.</p>
+        </div>
+      </details>
+
+      <details class="ref">
+        <summary><span class="tag">08</span> Wedges — loft gapping, bounce and grind</summary>
+        <div class="ref-body">
+          <h4>Gapping</h4>
+          <p>Space your wedges <b>4–6° apart</b>, which is roughly 10–15 yards. Start from your actual pitching wedge
+            loft, not from a nominal "PW". If your set PW is 43°, a 56° sand wedge leaves a 13° hole — you need
+            something around 48° and 52° in between.</p>
+          <h4 style="margin-top:20px">Bounce</h4>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Bounce</th><th>Suits</th><th>Fails when</th></tr></thead>
+              <tbody>
+                <tr><td>Low, 4–8°</td><td>Shallow attack angle, firm turf, tight lies, links golf</td><td>Soft turf or a steep swing — the leading edge digs</td></tr>
+                <tr><td>Mid, 8–12°</td><td>Neutral attack angle, normal turf. The safest default.</td><td>Extremes in either direction</td></tr>
+                <tr><td>High, 12°+</td><td>Steep attack angle, deep divots, soft turf, soft sand</td><td>Very tight, firm lies — the sole bounces into the ball and you thin it</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h4 style="margin-top:20px">Grind</h4>
+          <p>Grind is where material has been removed from the heel, toe or trailing edge of the sole. More relief
+            lets you open the face without the leading edge lifting off the turf, which is what makes flop shots and
+            short-sided lobs possible. Less relief gives you a wider, more supportive sole. If you are not routinely
+            opening the face, a full or mid sole will serve you better than a heavily ground one.</p>
+        </div>
+      </details>
+
+      <details class="ref">
+        <summary><span class="tag">09</span> Set makeup and gapping the top of the bag</summary>
+        <div class="ref-body">
+          <p>You are allowed 14 clubs. The job is to cover every distance from your wedge floor to your driver with
+            even gaps, and the place that always goes wrong is the top of the bag.</p>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Driver speed</th><th>Longest iron worth carrying</th><th>Fill the rest with</th></tr></thead>
+              <tbody>
+                <tr><td>Under 82 mph</td><td>7-iron</td><td>3W/5W/7W plus 4H, 5H, 6H</td></tr>
+                <tr><td>82–92 mph</td><td>6-iron</td><td>3W, 5W, 4H, 5H</td></tr>
+                <tr><td>92–102 mph</td><td>5-iron</td><td>3W, 5W or 3H, 4H</td></tr>
+                <tr><td>102 mph +</td><td>4-iron (or a driving iron)</td><td>3W, 5W or 3H</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="note" style="margin-top:16px">The honest test for any long iron: from a flat fairway lie, do you
+            hit it well at least half the time? If not, that slot belongs to a hybrid or a fairway wood. A hybrid
+            launches higher, holds greens better and is far easier out of rough — the only thing you give up is the
+            ability to flight it down.</div>
+        </div>
+      </details>
+
+      <details class="ref">
+        <summary><span class="tag">10</span> Putter fitting</summary>
+        <div class="ref-body">
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Height</th><th class="num">Putter length</th><th class="num">Typical lie</th></tr></thead>
+              <tbody>
+                <tr><td>Under 5'2"</td><td class="num">32"</td><td class="num">69°</td></tr>
+                <tr><td>5'2" – 5'5"</td><td class="num">32.5"</td><td class="num">69°</td></tr>
+                <tr><td>5'5" – 5'8"</td><td class="num">33"</td><td class="num">70°</td></tr>
+                <tr><td>5'8" – 5'11"</td><td class="num">34"</td><td class="num">70°</td></tr>
+                <tr><td>5'11" – 6'2"</td><td class="num">34.5"</td><td class="num">70°</td></tr>
+                <tr><td>6'2" – 6'5"</td><td class="num">35"</td><td class="num">71°</td></tr>
+                <tr><td>Over 6'5"</td><td class="num">35.5"</td><td class="num">71°</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="small" style="margin-top:14px">Adjust for arm length: long arms for your height means your hands
+            hang lower, which means a shorter putter. Most off-the-rack putters are 34"–35" because that is what sells,
+            not because that is what fits — a lot of golfers are playing a putter an inch too long and standing too
+            upright to compensate.</p>
+          <h4 style="margin-top:20px">Head style and toe hang</h4>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Stroke</th><th>Toe hang</th><th>Head</th></tr></thead>
+              <tbody>
+                <tr><td>Straight back, straight through</td><td>Face-balanced (0°)</td><td>High-MOI mallet</td></tr>
+                <tr><td>Slight arc</td><td>20°–35°</td><td>Mid-mallet or wide blade</td></tr>
+                <tr><td>Strong arc</td><td>45°+</td><td>Heel-shafted blade</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="small" style="margin-top:14px">The check that beats every chart: set up comfortably, let your arms
+            hang, and look at the sole. It should sit flat. If the toe is in the air the putter is too long or too
+            upright for you, and a toe-up putter pushes putts right.</p>
+        </div>
+      </details>
+
+      <details class="ref">
+        <summary><span class="tag">11</span> Golf ball selection</summary>
+        <div class="ref-body">
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Driver speed</th><th>Ball</th><th class="num">Compression</th></tr></thead>
+              <tbody>
+                <tr><td>Under 85 mph</td><td>2-piece, low compression, soft cover</td><td class="num">35–65</td></tr>
+                <tr><td>85–95 mph</td><td>3-piece mid compression, ionomer or soft urethane</td><td class="num">65–85</td></tr>
+                <tr><td>95–105 mph</td><td>3-piece tour urethane</td><td class="num">85–95</td></tr>
+                <tr><td>105 mph +</td><td>3- or 4-piece firm tour urethane</td><td class="num">95–105</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="small" style="margin-top:14px">Compression matters less than the marketing suggests, but cover
+            material matters a lot. Urethane spins more around the greens <em>and</em> curves more in the air. If you
+            are fighting a slice, a firmer ionomer cover is doing you a favour.</p>
+        </div>
+      </details>
+
+      <details class="ref">
+        <summary><span class="tag">12</span> Standard specifications reference</summary>
+        <div class="ref-body">
+          <p class="small">There is no industry standard, so these vary by a quarter-inch and a degree between brands.
+            They are the baseline this tool applies your adjustments to.</p>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Club</th><th class="num">Men's length</th><th class="num">Women's length</th><th class="num">Typical lie</th></tr></thead>
+              <tbody id="stdTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </details>
+
+      <details class="ref">
+        <summary><span class="tag">13</span> What this tool cannot do</summary>
+        <div class="ref-body">
+          <p>This is a <b>static</b> fitting. It measures your body and asks about your tendencies. That is genuinely
+            how a professional fitting starts, and for length, lie, grip size and set makeup it gets most golfers to
+            within one increment of the right answer.</p>
+          <p>What it cannot see:</p>
+          <ul style="color:var(--ink-2)">
+            <li><b>Your posture and shaft droop at impact.</b> Only a lie board and impact tape reveal these, and they
+              are why a dynamic fit can land a full colour code away from the static one.</li>
+            <li><b>Your actual launch, spin and dispersion.</b> Shaft profile — where a shaft is stiff along its
+              length, and its torque — matters as much as the letter on it, and only a launch monitor can read it.</li>
+            <li><b>Whether your ball flight is a swing fault or an equipment fault.</b> A slice caused by an open
+              clubface will not be fixed by an upright lie angle. Equipment can reduce a curve; it cannot remove the
+              cause.</li>
+            <li><b>Anything about a swing that is actively changing.</b> If you are mid-rebuild with a coach, fit the
+              swing you will have, not the one you have this month.</li>
+          </ul>
+          <p style="margin-top:12px">Use this to walk into a fitting knowing what to ask for, and to sanity-check what
+            you are told.</p>
+        </div>
+      </details>
+
+    </div>
+  </section>
+
+  <!-- ================= SOURCES ================= -->
+  <section id="sources">
+    <div class="wrap narrow">
+      <h2>Sources and provenance</h2>
+      <p class="small muted">The lie and length chart is a reconstruction of the published PING Colour Code Chart
+        (© PING 2017), measured directly from the chart artwork and validated against three independently published
+        worked examples. Speed and distance ratios are anchored to published TrackMan tour and amateur averages.
+        Flex, bounce, grind, grip, putter and ball guidance is the consensus of the published fitting guides listed
+        below.</p>
+      <ul class="small muted">
+        <li><a href="https://ping.com/en-us/fitting/color-code-chart" target="_blank" rel="noopener">PING — Fitting Colour Code Chart</a></li>
+        <li><a href="https://www.tgw.com/golf-guide/how-to-read-the-ping-color-code-chart/" target="_blank" rel="noopener">TGW — How to read the PING colour code chart</a></li>
+        <li><a href="https://blog.golftown.com/en/golf-equipment/ping-colour-code/" target="_blank" rel="noopener">Golf Town — PING codes and their meaning</a></li>
+        <li><a href="https://takomogolf.com/pages/fitting-tool" target="_blank" rel="noopener">Takomo — Free iron fitting tool</a> and <a href="https://takomogolf.com/blogs/articles/golf-iron-fitting" target="_blank" rel="noopener">iron fitting guide</a></li>
+        <li><a href="https://mygolfspy.com/news-opinion/instruction/golf-driver-shaft-flex-chart-find-the-right-flex-for-your-swing-speed/" target="_blank" rel="noopener">MyGolfSpy — Driver shaft flex chart</a> and <a href="https://mygolfspy.com/news-opinion/instruction/golf-grip-size-chart-what-size-do-you-need/" target="_blank" rel="noopener">grip size chart</a></li>
+        <li><a href="https://www.mitchellgolf.com/golf-grip-size-guide/" target="_blank" rel="noopener">Mitchell Golf — Grip size guide</a> and <a href="https://www.mitchellgolf.com/wp-content/uploads/2017/05/measuring-bending.pdf" target="_blank" rel="noopener">loft, lie and face angles (PDF)</a></li>
+        <li><a href="https://www.vokey.com/nav/wedgegrinds.aspx" target="_blank" rel="noopener">Vokey — Wedge grinds explained</a></li>
+        <li><a href="https://www.hirekogolf.com/hireko-standard-length-golf-club-chart" target="_blank" rel="noopener">Hireko — Standard golf club length chart</a></li>
+        <li><a href="https://www.golfdigest.com/story/fairway-woods-hybrids-long-ironsthe-clubfitting-keys-to-figuring-out-the-puzzle-of-your-long-game" target="_blank" rel="noopener">Golf Digest — Fairway woods, hybrids and long irons</a></li>
+        <li><a href="https://truespecgolf.com/blog/2017/05/02/putter-fitting-101/" target="_blank" rel="noopener">True Spec — Putter fitting 101</a></li>
+      </ul>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p><b>The Fitting Bay</b> — an independent static club-fitting calculator. Not affiliated with, endorsed by or
+      connected to PING, Karsten Manufacturing, Takomo, Titleist or any equipment manufacturer. Brand and product
+      names are the trademarks of their respective owners and are referenced for identification only.</p>
+    <p>Recommendations are a starting point, not a prescription. Nothing here replaces hitting balls in front of a
+      qualified fitter with a launch monitor.</p>
+  </div>
+</footer>
+
+<script src="js/fitting-engine.js?v=4"></script>
+<script src="js/app.js?v=4"></script>
+</body>
+</html>
