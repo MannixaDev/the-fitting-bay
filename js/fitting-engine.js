@@ -172,20 +172,76 @@
   /* The Bay Scale. Symmetric, 11 steps, warm for flat through our signature
      green at level to cool for upright. Index 0 == LEVEL == standard lie. */
   var BAY_SCALE = [
-    { i: -5, code: 'F5', deg: -5, label: '5° Flat',    hex: '#7A2E1F', ink: '#FFFFFF' },
-    { i: -4, code: 'F4', deg: -4, label: '4° Flat',    hex: '#A84324', ink: '#FFFFFF' },
-    { i: -3, code: 'F3', deg: -3, label: '3° Flat',    hex: '#C7622A', ink: '#FFFFFF' },
-    { i: -2, code: 'F2', deg: -2, label: '2° Flat',    hex: '#E08A34', ink: '#1B1B1B' },
-    { i: -1, code: 'F1', deg: -1, label: '1° Flat',    hex: '#EFBB50', ink: '#1B1B1B' },
-    { i:  0, code: 'LEVEL', deg: 0, label: 'Standard', hex: '#34C07A', ink: '#08130D' },
-    { i:  1, code: 'U1', deg:  1, label: '1° Upright', hex: '#3FC0B4', ink: '#08130D' },
-    { i:  2, code: 'U2', deg:  2, label: '2° Upright', hex: '#3AA5D9', ink: '#08130D' },
-    { i:  3, code: 'U3', deg:  3, label: '3° Upright', hex: '#4F7FE0', ink: '#FFFFFF' },
-    { i:  4, code: 'U4', deg:  4, label: '4° Upright', hex: '#7B62D9', ink: '#FFFFFF' },
-    { i:  5, code: 'U5', deg:  5, label: '5° Upright', hex: '#A85BC9', ink: '#FFFFFF' }
+    { i: -5, code: 'F5', deg: -5, label: '5° Flat',    hex: '#7A2E1F', ink: '#FFFFFF', name: 'Rust' },
+    { i: -4, code: 'F4', deg: -4, label: '4° Flat',    hex: '#A84324', ink: '#FFFFFF', name: 'Ember' },
+    { i: -3, code: 'F3', deg: -3, label: '3° Flat',    hex: '#C7622A', ink: '#FFFFFF', name: 'Copper' },
+    { i: -2, code: 'F2', deg: -2, label: '2° Flat',    hex: '#E08A34', ink: '#1B1B1B', name: 'Amber' },
+    { i: -1, code: 'F1', deg: -1, label: '1° Flat',    hex: '#EFBB50', ink: '#1B1B1B', name: 'Gold' },
+    { i:  0, code: 'LEVEL', deg: 0, label: 'Standard', hex: '#34C07A', ink: '#08130D', name: 'Fairway' },
+    { i:  1, code: 'U1', deg:  1, label: '1° Upright', hex: '#3FC0B4', ink: '#08130D', name: 'Teal' },
+    { i:  2, code: 'U2', deg:  2, label: '2° Upright', hex: '#3AA5D9', ink: '#08130D', name: 'Sky' },
+    { i:  3, code: 'U3', deg:  3, label: '3° Upright', hex: '#4F7FE0', ink: '#FFFFFF', name: 'Cobalt' },
+    { i:  4, code: 'U4', deg:  4, label: '4° Upright', hex: '#7B62D9', ink: '#FFFFFF', name: 'Indigo' },
+    { i:  5, code: 'U5', deg:  5, label: '5° Upright', hex: '#A85BC9', ink: '#FFFFFF', name: 'Violet' }
   ];
 
   var SCALE_MIN = -5, SCALE_MAX = 5;
+
+  /* ---------------------------------------------------------------------
+     THE COLOUR FIELD
+     ---------------------------------------------------------------------
+     The scale was always continuous — a player is +1.3 degrees, not merely
+     "U1" — and hard band edges were an artefact of a chart that had to be
+     printed. So colour is interpolated across the whole range: two players a
+     tenth of a degree apart get visibly different colours, which is the
+     truth of it.
+
+     The reference is ours. Pantone's library is licensed and enforced, and
+     borrowing a proprietary colour system to escape a proprietary chart
+     would be a poor trade.
+     ------------------------------------------------------------------ */
+  function hexToRgb(h) {
+    return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+  }
+  function rgbToHex(c) {
+    return '#' + c.map(function (v) {
+      var n = Math.round(Math.max(0, Math.min(255, v))).toString(16);
+      return n.length < 2 ? '0' + n : n;
+    }).join('').toUpperCase();
+  }
+
+  function colourAt(deviation) {
+    var d = Math.max(SCALE_MIN, Math.min(SCALE_MAX, deviation));
+    var lo = Math.floor(d), hi = Math.ceil(d), t = d - lo;
+    var a = hexToRgb(codeByIndex(lo).hex), b = hexToRgb(codeByIndex(hi).hex);
+    return rgbToHex([0, 1, 2].map(function (k) { return a[k] + (b[k] - a[k]) * t; }));
+  }
+
+  /* Readable ink for an arbitrary background, by relative luminance. */
+  function inkFor(hex) {
+    var c = hexToRgb(hex).map(function (v) {
+      var x = v / 255;
+      return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4);
+    });
+    var L = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+    return L > 0.36 ? '#0B1310' : '#FFFFFF';
+  }
+
+  /**
+   * Your colour, named and referenced. "Teal 63" plus the hex.
+   * The reference runs 00 at 5 degrees flat to 100 at 5 degrees upright.
+   */
+  function swatchFor(deviation) {
+    var d = Math.max(SCALE_MIN, Math.min(SCALE_MAX, deviation));
+    var hex = colourAt(d);
+    var base = codeByIndex(Math.round(d));
+    var ref = Math.round(((d - SCALE_MIN) / (SCALE_MAX - SCALE_MIN)) * 100);
+    var padded = ref < 10 ? '0' + ref : String(ref);
+    return {
+      hex: hex, ink: inkFor(hex), name: base.name, ref: padded,
+      label: base.name + ' ' + padded, code: base.code
+    };
+  }
 
   function codeByIndex(k) {
     k = Math.max(SCALE_MIN, Math.min(SCALE_MAX, k));
@@ -209,6 +265,7 @@
     var neighbour = (borderline && clamped === k) ? codeByIndex(k + (offset > 0 ? 1 : -1)) : null;
     return {
       code: code,
+      swatch: swatchFor(delta),
       preciseDegrees: Math.round(delta * 10) / 10,
       bandOffset: Math.round(offset * 100) / 100,
       borderline: borderline,
@@ -1935,6 +1992,8 @@
     units: U,
     levelCentre: levelCentre,
     scale: BAY_SCALE,
+    colourAt: colourAt,
+    swatchFor: swatchFor,
     scaleRange: [SCALE_MIN, SCALE_MAX],
     staticLie: staticLie,
     staticLength: staticLength,

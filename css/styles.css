@@ -679,3 +679,16 @@ details.result-group > summary:hover { background: rgba(255,255,255,.02); }
 
 /* ---------- Bay Scale chart ---------- */
 .scale-chart { width: 100%; height: auto; display: block; }
+
+/* ---------- your colour ---------- */
+.swatch-line {
+  display: flex; align-items: center; gap: 10px; margin-top: 14px;
+  padding: 10px 12px; background: var(--bg); border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+.swatch-dot { width: 26px; height: 26px; border-radius: 7px; flex: none; box-shadow: inset 0 0 0 1px rgba(255,255,255,.18); }
+.swatch-line b { font-size: .95rem; letter-spacing: -.01em; }
+.swatch-line i {
+  font-style: normal; margin-left: auto; font-size: .78rem; color: var(--ink-3);
+  font-family: var(--mono);
+}

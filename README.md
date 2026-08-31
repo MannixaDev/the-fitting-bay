@@ -70,6 +70,28 @@ prioritised, costed list of which of your clubs is wrong and what it costs to pu
 filtered to a budget — and the yardage table describes your clubs rather than a generic set. Say
 you are starting fresh and the step is skipped entirely.
 
+## The colour field
+
+The chart is a continuous colour field rather than discrete bands, because **the scale was always
+continuous** — a player is `+1.3°`, not merely "U1" — and hard band edges were an artefact of a
+chart that had to be printed. Two players a fraction of a degree apart now look different, which is
+the truth of it.
+
+Colour follows the **deviation**, not the raw measurement, so the field is built from slices offset
+along the reference curve. Sit on the line at any height and you are the same green.
+
+Every fit therefore has a colour, named and referenced: **`Teal 63`**, hex `#3EB9BD`. The name comes
+from the nearest code (Rust, Ember, Copper, Amber, Gold, Fairway, Teal, Sky, Cobalt, Indigo,
+Violet) and the number runs 00–100 across the whole scale. Ink colour is chosen by relative
+luminance so the chip stays readable on any shade.
+
+`FIELD` in `renderChart` is the single constant controlling intensity — currently `0.62`. Below
+about `0.4` the axis labels start winning and the point is lost.
+
+**The reference is deliberately ours.** Pantone's library is licensed and actively enforced — Adobe
+removed it from Photoshop in 2022 over licensing. Escaping one proprietary system by adopting
+another, and paying for it, would have been a poor trade.
+
 ## Answering less than everything
 
 A beginner cannot honestly answer half of these questions, and a tool that requires them to try is

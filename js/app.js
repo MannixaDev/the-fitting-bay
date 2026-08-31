@@ -612,11 +612,17 @@
     var y = function (w) { return padT + (w1 - w) / (w1 - w0) * ph; };
     var inY = function (v) { return v >= padT - 1 && v <= padT + ph + 1; };
 
-    /* One polyline sampled along the reference curve, offset by `off`. */
-    function curvePts(off) {
+    /* One polyline sampled along the reference curve, offset by `off`. The
+       gradient slices can be sampled coarsely — they are filled shapes, not
+       lines, so nobody sees the facets. */
+    function curvePts(off, step) {
       var p = [];
-      for (var h = h0; h <= h1 + 0.001; h += 0.5) p.push(x(h) + ',' + y(G.levelCentre(h) + off));
+      for (var h = h0; h <= h1 + 0.001; h += (step || 0.5)) p.push(x(h) + ',' + y(G.levelCentre(h) + off));
       return p.join(' ');
+    }
+    function band(lo, hi, fill, step) {
+      return '<polygon points="' + curvePts(lo, step) + ' ' +
+        curvePts(hi, step).split(' ').reverse().join(' ') + '" fill="' + fill + '" shape-rendering="crispEdges"/>';
     }
 
     var s = [];
@@ -635,24 +641,35 @@
 
     s.push('<g clip-path="url(#sc' + uid + ')">');
 
-    /* ---- the one band you are in ---- */
-    if (code) {
-      s.push('<polygon points="' + curvePts(code.i - 0.5) + ' ' +
-        curvePts(code.i + 0.5).split(' ').reverse().join(' ') + '" fill="' + code.hex + '" opacity=".13"/>');
-    }
+    /* ---- the colour field ----------------------------------------------
+       Colour follows the DEVIATION, not the raw measurement, so the field is
+       built from slices offset along the reference curve. Sit on the line at
+       any height and you are the same green.
 
-    /* ---- contours between codes ---- */
+       FIELD is the one number to change if this wants to be louder or
+       quieter. 1 is fully saturated; below about 0.4 the axis labels start
+       winning and the point is lost. */
+    var FIELD = 0.62;
+    var slice = big ? 0.2 : 0.3;
+    var sample = big ? 1 : 1.5;
+
+    s.push('<g opacity="' + FIELD + '">');
+    s.push(band(-20, SMIN, G.scale[0].hex, sample));
+    for (var d = SMIN; d < SMAX - 0.0001; d += slice) {
+      s.push(band(d, d + slice, G.colourAt(d + slice / 2), sample));
+    }
+    s.push(band(SMAX, 20, G.scale[G.scale.length - 1].hex, sample));
+    s.push('</g>');
+
+    /* ---- contours between codes: dark over colour, so they recede ---- */
     if (big) {
       for (var k = SMIN; k < SMAX; k++) {
-        var edge = k + 0.5;
-        var levelEdge = (k === -1 || k === 0);
-        s.push('<polyline points="' + curvePts(edge) + '" fill="none" stroke="#ffffff" stroke-opacity="' +
-          (levelEdge ? '.16' : '.08') + '" stroke-width="1" stroke-dasharray="' + (levelEdge ? 'none' : '5 6') + '"/>');
+        s.push('<polyline points="' + curvePts(k + 0.5) + '" fill="none" stroke="#0d1210" stroke-opacity=".3" stroke-width="1"/>');
       }
     }
 
     /* ---- the reference curve itself ---- */
-    s.push('<polyline points="' + curvePts(0) + '" fill="none" stroke="#34c07a" stroke-width="' +
+    s.push('<polyline points="' + curvePts(0) + '" fill="none" stroke="#ffffff" stroke-opacity=".92" stroke-width="' +
       (big ? 2.6 : 2) + '" stroke-linecap="round"/>');
     s.push('</g>');
 
@@ -670,7 +687,7 @@
         if (!inY(yy)) return;
         var here = code && c.i === code.i;
         s.push('<text x="' + (padL + pw + 10) + '" y="' + (yy + 3.5) + '" font-size="11" font-family="' + F + '" ' +
-          'font-weight="' + (here ? '800' : '600') + '" fill="' + (here ? c.hex : axis) + '">' + esc(c.code) + '</text>');
+          'font-weight="' + (here ? '800' : '600') + '" fill="' + (here ? '#e8eeea' : axis) + '">' + esc(c.code) + '</text>');
       });
       s.push('<text x="' + (padL + pw + 10) + '" y="' + (padT - 10) + '" font-size="9" letter-spacing="1" font-family="' + F + '" fill="' + axis + '">CODE</text>');
     }
@@ -678,7 +695,8 @@
     /* ---- label the reference line where there is room ---- */
     var lx = big ? x(64) : x(63);
     s.push('<text x="' + lx + '" y="' + (y(G.levelCentre(big ? 64 : 63)) - 9) + '" font-size="' + (big ? 11.5 : 10) +
-      '" font-weight="700" font-family="' + F + '" fill="#34c07a">LEVEL' + (big ? ' — standard lie' : '') + '</text>');
+      '" font-weight="800" font-family="' + F + '" fill="#ffffff" stroke="#0d1210" stroke-width="3" paint-order="stroke" ' +
+      'stroke-linejoin="round">LEVEL' + (big ? ' — standard lie' : '') + '</text>');
 
     /* ---- axes ---- */
     s.push('<g font-size="' + (big ? 10.5 : 9) + '" font-family="' + F + '" fill="' + axis + '">');
@@ -702,12 +720,12 @@
       var delta = G.staticLie(playerH, playerW).preciseDegrees;
       var tick = big ? 7 : 5;
 
-      s.push('<g stroke="' + code.hex + '" stroke-width="' + (big ? 1.8 : 1.5) + '">');
+      s.push('<g stroke="#ffffff" stroke-width="' + (big ? 1.8 : 1.5) + '">');
       s.push('<line x1="' + px + '" y1="' + pyYou + '" x2="' + px + '" y2="' + pyRef + '"/>');
       s.push('<line x1="' + (px - tick) + '" y1="' + pyRef + '" x2="' + (px + tick) + '" y2="' + pyRef + '"/>');
       s.push('</g>');
 
-      s.push('<circle cx="' + px + '" cy="' + pyYou + '" r="' + (big ? 7 : 5.5) + '" fill="#0d1210" stroke="' + code.hex + '" stroke-width="3"/>');
+      s.push('<circle cx="' + px + '" cy="' + pyYou + '" r="' + (big ? 7 : 5.5) + '" fill="#0d1210" stroke="#ffffff" stroke-width="3"/>');
       s.push('<circle cx="' + px + '" cy="' + pyYou + '" r="' + (big ? 2.4 : 2) + '" fill="#f4f7f5"/>');
 
       /* annotation, flipped to whichever side has room */
@@ -716,10 +734,10 @@
       var anchor = left ? 'end' : 'start';
       var ay = (pyYou + pyRef) / 2;
       s.push('<text x="' + ax + '" y="' + (ay - 2) + '" text-anchor="' + anchor + '" font-size="' + (big ? 13 : 11.5) +
-        '" font-weight="800" font-family="' + F + '" fill="' + code.hex + '">' +
+        '" font-weight="800" font-family="' + F + '" fill="#ffffff" stroke="#0d1210" stroke-width="3.5" paint-order="stroke" stroke-linejoin="round">' +
         (delta > 0 ? '+' : '') + delta.toFixed(1) + '&#176;</text>');
       s.push('<text x="' + ax + '" y="' + (ay + (big ? 14 : 12)) + '" text-anchor="' + anchor + '" font-size="' + (big ? 11 : 10) +
-        '" font-weight="700" font-family="' + F + '" fill="' + code.hex + '">' + esc(code.code) + '</text>');
+        '" font-weight="700" font-family="' + F + '" fill="#ffffff" stroke="#0d1210" stroke-width="3.5" paint-order="stroke" stroke-linejoin="round">' + esc(code.code) + '</text>');
       if (big) {
         s.push('<text x="' + ax + '" y="' + (ay + 29) + '" text-anchor="' + anchor + '" font-size="10" font-family="' + F +
           '" fill="' + axis + '">from the line</text>');
@@ -761,9 +779,12 @@
     var v = [];
     v.push('<div class="panel verdict"><div class="verdict-main">');
     v.push('<p class="eyebrow" style="margin-bottom:.7rem">Static fit &mdash; irons</p>');
-    v.push('<div class="dot-badge"><span class="code-chip" style="background:' + c.hex + ';color:' + c.ink + '">' + esc(c.code) + '</span>' +
-      '<span><b>' + esc(c.label) + ' lie angle</b><em>Bay Scale ' + esc(c.code) + ' · measured deviation ' +
-      (r.lie.preciseDegrees > 0 ? '+' : '') + r.lie.preciseDegrees + '°</em></span></div>');
+    /* The chip carries the player's exact interpolated colour, not the band
+       colour — two people in the same code are not quite the same shade. */
+    var sw = r.lie.swatch;
+    v.push('<div class="dot-badge"><span class="code-chip" style="background:' + sw.hex + ';color:' + sw.ink + '">' + esc(c.code) + '</span>' +
+      '<span><b>' + esc(c.label) + ' lie angle</b><em>' + esc(sw.label) + ' · ' + esc(sw.hex) +
+      ' · measured deviation ' + (r.lie.preciseDegrees > 0 ? '+' : '') + r.lie.preciseDegrees + '°</em></span></div>');
     v.push('<div class="spec-row">');
     v.push('<div class="spec-cell"><span>Lie angle</span><b>' + esc(c.label) + '</b><i>7-iron: ' + (62 + c.deg).toFixed(1) + '&deg;</i></div>');
     v.push('<div class="spec-cell"><span>Length</span><b>' + esc(U.fmtAdj(r.length.adj)) + '</b><i>7-iron: ' + U.fmtIn(specFor(r, '7-iron').length, 2) + '</i></div>');
@@ -785,6 +806,8 @@
     v.push('<div class="note">' + esc(r.lengthAgreement.text) + '</div>');
     v.push('</div>');
     v.push('<div class="verdict-chart"><h4>Where you sit on the chart</h4><div id="miniChart"></div>' +
+      '<div class="swatch-line"><span class="swatch-dot" style="background:' + sw.hex + '"></span>' +
+      '<b>' + esc(sw.label) + '</b><i>' + esc(sw.hex) + '</i></div>' +
       '<p class="tiny" style="margin-top:12px">Height ' + esc(U.fmtHeight(r.input.heightIn)) + ' &middot; wrist-to-floor ' +
       esc(U.fmtIn(r.input.wtfIn, 1)) + '. The LEVEL band at your height runs ' +
       esc(U.fmtIn(r.lie.levelBand[0], 1)) + '&ndash;' + esc(U.fmtIn(r.lie.levelBand[1], 1)) + '.</p></div>');

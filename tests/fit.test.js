@@ -214,6 +214,50 @@ module.exports = function () {
     });
   });
 
+  suite('The colour field', () => {
+    /* The scale was always continuous, so the colour is too — hard band
+       edges were an artefact of a chart that had to be printed. */
+    test('two players a fraction of a degree apart get different colours', () => {
+      assert(G.colourAt(1.4) !== G.colourAt(1.6), 'colour should be continuous');
+      assert(G.colourAt(0.05) !== G.colourAt(0.45), 'and within a single code');
+    });
+    test('the anchors are exactly the scale colours', () => {
+      G.scale.forEach((c) => equal(G.colourAt(c.i), c.hex.toUpperCase(), c.code));
+    });
+    test('colour clamps at the ends rather than running off', () => {
+      equal(G.colourAt(-9), G.colourAt(-5));
+      equal(G.colourAt(12), G.colourAt(5));
+    });
+    test('every code has a colour name', () => {
+      G.scale.forEach((c) => assert(c.name && c.name.length > 2, c.code + ' has no name'));
+    });
+    test('the reference runs 00 to 100 across the scale', () => {
+      equal(G.swatchFor(-5).ref, '00');
+      equal(G.swatchFor(0).ref, '50');
+      equal(G.swatchFor(5).ref, '100');
+    });
+    test('the label pairs a name with the reference', () => {
+      equal(G.swatchFor(0).label, 'Fairway 50');
+      equal(G.swatchFor(1.3).name, 'Teal');
+    });
+    test('ink stays readable on any background', () => {
+      for (let d = -5; d <= 5; d += 0.25) {
+        const s = G.swatchFor(d);
+        const rgb = [1, 3, 5].map((i) => parseInt(s.hex.slice(i, i + 2), 16));
+        const lum = (0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]) / 255;
+        const darkInk = s.ink === '#0B1310';
+        assert(darkInk === lum > 0.42 || Math.abs(lum - 0.42) < 0.2,
+          'ink ' + s.ink + ' on ' + s.hex + ' (lum ' + lum.toFixed(2) + ')');
+      }
+    });
+    test('a fit carries its own swatch', () => {
+      const sw = G.fit({ heightIn: 73, wtfIn: 35.5 }).lie.swatch;
+      assert(/^#[0-9A-F]{6}$/.test(sw.hex), 'bad hex: ' + sw.hex);
+      assert(sw.label.indexOf(sw.name) === 0, 'label should lead with the name');
+      equal(sw.code, 'U1');
+    });
+  });
+
   suite('Club length', () => {
     test('length bands match the published half-inch steps', () => {
       const cases = [[60, -1.5], [62, -1], [64, -0.5], [67, 0], [70, 0], [72, 0],
