@@ -104,6 +104,25 @@ module.exports = function () {
       });
     });
 
+    /* Length and lie interact: an inch of extra length already plays 2 degrees
+       upright, so bending to the stamped target before fixing length would
+       leave the player further out than they started. */
+    test('when length and lie are both wrong, the order of work is spelled out', () => {
+      const f = fit({ wtfIn: 35.2 });
+      const a = G.audit(f, { ironLie: 0, ironLength: 1,
+        ironFlex: f.shafts.ironFlex, gripSize: f.grip.key });
+      const lie = a.actions.concat(a.superseded).find((x) => x.job === 'bend');
+      assert(lie, 'expected a lie finding');
+      assert(/length corrected FIRST/.test(lie.caveat), 'no sequencing warning: ' + lie.caveat);
+    });
+    test('with the length already right, no sequencing warning is added', () => {
+      const f = fit({ wtfIn: 35.2 });
+      const a = G.audit(f, { ironLie: 0, ironLength: f.length.adj,
+        ironFlex: f.shafts.ironFlex, gripSize: f.grip.key });
+      const lie = a.actions.concat(a.superseded).find((x) => x.job === 'bend');
+      assert(!/length corrected FIRST/.test(lie.caveat), 'warned about length that is fine');
+    });
+
     /* The spec sheet applied the iron lie adjustment to woods and hybrids,
        which are not bent to the iron code. */
     test('only irons take the lie adjustment', () => {

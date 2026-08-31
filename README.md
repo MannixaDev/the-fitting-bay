@@ -131,8 +131,9 @@ lie** — and shaped by two principles:
 
 1. **Inside a length band**, nothing about the club changes, so the curve rises only with body
    proportion — about 0.1" per inch of height.
-2. **Crossing a length band** changes the club by ½", and a ½" length change is worth roughly ½° of
-   effective lie, so the curve steepens to about 0.4" per inch of height where length is changing.
+2. **Crossing a length band** changes the club by ½", and a ½" length change is worth a *full degree* of
+   effective lie (the standard clubmaking rule is 1° per ½", and a longer club plays more upright), so
+   the curve steepens to about 0.4–0.5" per inch of height where length is changing.
 
 That produces the shape you see on the chart: gentle across the standard-length heights of
 5'7"–6'0", steeper at both ends. Values are round quarter-inch figures.

@@ -34,6 +34,70 @@
   };
 
   /* ---------------------------------------------------------------------
+     1b. LIE-ANGLE PHYSICS
+     ---------------------------------------------------------------------
+     A lie error is the club rotated about the target line — toe up or heel
+     up as seen down the line. Rotating a lofted face about that axis swings
+     where the face points, and the amount depends on the loft:
+
+         face change = arctan( sin(lie error) x tan(loft) )
+
+     Derived from the rotation of the face normal and checked numerically.
+     Two sanity checks it must pass: a 0-degree face (a putter) is completely
+     immune to lie error, and the sign flips with the direction of the error.
+
+     The consequence is much larger than most fitting copy suggests. One
+     degree of lie error moves a 4-iron face 0.38 degrees and a 60-degree
+     wedge face 1.73 degrees — a factor of four and a half.
+
+     Ball flight then has two parts:
+       - START LINE. About 75% of an iron's start direction comes from the
+         face (85% for a driver); the rest follows the path.
+       - CURVE. The face is now closed or open to an unchanged path, so the
+         ball keeps turning. Anchored on published TrackMan figures: one
+         degree of face-to-path is about 12 yards of curve at 300 yards, and
+         an iron carrying ~150 yards curves about 3 yards per degree. Both
+         fit curve = f2p x 3.0 x (distance/150)^2 to within a few percent.
+
+     Curve is the approximate half of this and is labelled as such wherever
+     it is shown.
+     ------------------------------------------------------------------ */
+  function faceChangeFromLie(loftDeg, lieErrorDeg) {
+    var E = lieErrorDeg * Math.PI / 180, L = loftDeg * Math.PI / 180;
+    return Math.atan(Math.sin(E) * Math.tan(L)) * 180 / Math.PI;
+  }
+
+  /**
+   * What one lie error does to one club.
+   * Positive lieError = toe up = face closes = miss to the player's home side.
+   */
+  function lieImpact(loftDeg, lieErrorDeg, carryYards, isDriver) {
+    var face = faceChangeFromLie(loftDeg, lieErrorDeg);
+    var startFraction = isDriver ? 0.85 : 0.75;
+    var startDeg = face * startFraction;
+    var startYards = carryYards * Math.tan(startDeg * Math.PI / 180);
+    var curveYards = face * 3.0 * Math.pow(carryYards / 150, 2);
+    var total = startYards + curveYards;
+    return {
+      faceChange: Math.round(face * 100) / 100,
+      startYards: Math.round(startYards * 10) / 10,
+      curveYards: Math.round(curveYards * 10) / 10,
+      totalYards: Math.round(total * 10) / 10,
+      percentOfShot: Math.round((total / carryYards) * 1000) / 10
+    };
+  }
+
+  /* Length and lie are coupled, and the standard clubmaking rule is 1 degree
+     per half inch — twice what a lot of published copy claims. A LONGER club
+     plays MORE UPRIGHT, because soling it with the grip at the same height
+     lifts the toe. Shorter plays flatter. */
+  var LIE_DEG_PER_INCH = 2;
+
+  function lieFromLengthChange(inches) {
+    return inches * LIE_DEG_PER_INCH;
+  }
+
+  /* ---------------------------------------------------------------------
      2. THE BAY SCALE — our static lie-angle scale
      ---------------------------------------------------------------------
      What the scale measures
@@ -68,8 +132,9 @@
        1. Inside a length band nothing about the club changes, so the curve
           rises only with body proportion (about 0.1"/inch of height).
        2. Crossing a length band changes the club by 1/2", and a 1/2" length
-          change is worth about 1/2 degree of effective lie, so the curve
-          steepens (about 0.4"/inch) where length is changing.
+          change is worth a full degree of effective lie (see LIE_DEG_PER_INCH
+          above), so the curve steepens where length is changing — about
+          0.4-0.5"/inch of height, which is what the measured curve does.
 
      Values are round quarter-inch figures we chose, not a transcription of
      any manufacturer's chart. See README.md for validation.
@@ -1202,8 +1267,11 @@
           costLo: 40, costHi: 70,
           current: fmtDeg(cur.ironLie), recommended: fmtDeg(recLie),
           detail: 'You are ' + round1(lieAbs) + '° too ' + (lieGap > 0 ? 'flat' : 'upright') +
-            '. At roughly 4 yards of push or pull per degree, that is about ' + Math.round(lieAbs * 4) +
-            ' yards offline on a 150-yard shot before your swing has had any say — and it bites hardest in the short irons and wedges, where it costs you greens.',
+            '. On a 7-iron that turns the face ' + Math.abs(faceChangeFromLie(31, lieAbs)).toFixed(2) +
+            '° at impact, which is worth roughly ' + Math.abs(lieImpact(31, lieAbs, 145).totalYards) +
+            ' yards offline once the start line and the curve it puts on the ball are both counted. ' +
+            'The yards are similar across the bag, but the face-angle error itself is about four times larger ' +
+            'in a wedge than in a long iron, on a shot you are trying to hit far more precisely.',
           fix: 'Bend the set ' + round1(lieAbs) + '° ' + (lieGap > 0 ? 'upright' : 'flat') + '.',
           caveat: 'Forged heads bend freely. Cast heads usually take 2° either way and no more, and some hollow-body or multi-material heads cannot be bent at all — ask before you pay.'
         });
@@ -1235,12 +1303,14 @@
           costLo: tooLong ? 40 : 60, costHi: tooLong ? 80 : 140,
           current: U.fmtAdj(cur.ironLength), recommended: U.fmtAdj(recLen),
           detail: 'Your irons are ' + U.fmtIn(lenAbs, 2) + ' too ' + (tooLong ? 'long' : 'short') +
-            '. Length does two things at once: it moves where your hands sit at address, and it changes the effective lie by about a degree per inch — so a club that is too long also plays ' +
-            (tooLong ? 'flatter' : 'more upright') + ' than the number stamped on it.',
+            '. Length does two things at once: it moves where your hands sit at address, and it changes the ' +
+            'effective lie by a degree for every half inch — so at ' + U.fmtIn(lenAbs, 2) + ' out, yours already play about ' +
+            round1(lieFromLengthChange(lenAbs)) + '° ' + (tooLong ? 'more upright' : 'flatter') +
+            ' than the number stamped on them.',
           fix: tooLong
             ? 'Shorten by ' + U.fmtIn(lenAbs, 2) + ' and re-grip. Trimming also stiffens the shaft slightly, which at your speed is usually welcome.'
             : 'Lengthen by ' + U.fmtIn(lenAbs, 2) + ' with shaft extensions, or reshaft to the correct length. Extensions soften the shaft a little.',
-          caveat: 'Do length and lie in the same visit — changing one changes the other, and paying twice for the same bench time is a waste.'
+          caveat: 'Do length and lie in the same visit. Changing one changes the other by a degree per half inch, so a shop that adjusts length without re-checking lie has moved you further from your fit, not closer.'
         });
       }
     }
@@ -1465,6 +1535,25 @@
       }
     }
 
+    /* ---- length and lie interact, so the ORDER of the work matters ---------
+       A club that is an inch long already plays two degrees upright whatever
+       is stamped on it. Bending to the stamped target without fixing the
+       length first would leave the player further out than they started. */
+    var lieFinding = null, lenFinding = null;
+    f.forEach(function (x) {
+      if (x.severity === 'ok' || x.severity === 'unknown') return;
+      if (x.job === 'bend') lieFinding = x;
+      if (x.job === 'length') lenFinding = x;
+    });
+    if (lieFinding && lenFinding) {
+      var effective = round1(lieFromLengthChange(Math.abs(cur.ironLength - result.length.adj)));
+      var dir = cur.ironLength > result.length.adj ? 'upright' : 'flat';
+      lieFinding.caveat = 'Order matters here. Your length is out too, which already makes these play about ' +
+        effective + '° ' + dir + ' whatever is stamped on them. Have the length corrected FIRST, then bend the lie ' +
+        'to the target — bending to the stamped number while the length is still wrong would leave you further out ' +
+        'than you are now. ' + lieFinding.caveat;
+    }
+
     /* ---- replace vs repair -------------------------------------------------
        There is a point where fixing a set of irons costs more than replacing
        it. Only bench work on the IRONS counts toward that — a driver, a wedge
@@ -1576,6 +1665,9 @@
     audit: audit,
     sides: sides,
     reviewGapping: reviewGapping,
+    faceChangeFromLie: faceChangeFromLie,
+    lieImpact: lieImpact,
+    lieFromLengthChange: lieFromLengthChange,
     buildLadder: buildLadder,
     FLEX_NAME: FLEX_NAME
   };

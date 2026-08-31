@@ -1354,6 +1354,22 @@
           '<td class="small muted">' + miss + '</td></tr>';
       }).join('');
     }
+    /* Generated from the verified geometry rather than typed in, so the page
+       can never drift away from what the engine actually computes. */
+    var lt = $('#lieTable');
+    if (lt) {
+      var CLUBS = [['4-iron', 21, 175], ['6-iron', 27, 155], ['7-iron', 31, 145],
+        ['9-iron', 40, 125], ['PW', 44, 115], ['52° wedge', 52, 100], ['60° wedge', 60, 70]];
+      lt.innerHTML = CLUBS.map(function (c) {
+        var i = G.lieImpact(c[1], 1, c[2]);
+        return '<tr><td>' + esc(c[0]) + '</td><td class="num">' + c[1] + '&deg;</td>' +
+          '<td class="num">' + c[2] + ' yd</td>' +
+          '<td class="num"><b>' + i.faceChange.toFixed(2) + '&deg;</b></td>' +
+          '<td class="num">' + i.totalYards.toFixed(1) + ' yd</td>' +
+          '<td class="num">' + i.percentOfShot.toFixed(1) + '%</td></tr>';
+      }).join('');
+    }
+
     var st = $('#stdTable');
     if (st) {
       st.innerHTML = G.standardSpecs.map(function (s) {

@@ -74,6 +74,78 @@ module.exports = function () {
     });
   });
 
+  suite('Lie-angle physics', () => {
+    /* face change = arctan( sin(lie error) x tan(loft) ), derived from the
+       rotation of the face normal about the target line and checked against a
+       numeric rotation matrix. An earlier version of this used
+       tan(error) x sin(loft), which halves the wedge effect. */
+    test('a putter face is completely immune to lie error', () => {
+      near(G.faceChangeFromLie(0, 3), 0, 1e-9);
+      near(G.faceChangeFromLie(0, -5), 0, 1e-9);
+    });
+    test('the sign follows the direction of the error', () => {
+      assert(G.faceChangeFromLie(34, 2) > 0);
+      assert(G.faceChangeFromLie(34, -2) < 0);
+    });
+    test('face change matches the closed form at known lofts', () => {
+      near(G.faceChangeFromLie(21, 1), 0.384, 0.005, '4-iron');
+      near(G.faceChangeFromLie(31, 1), 0.601, 0.005, '7-iron');
+      near(G.faceChangeFromLie(60, 1), 1.731, 0.005, '60 degree');
+    });
+    test('a wedge face turns about 4.5x as far as a long iron', () => {
+      const ratio = G.faceChangeFromLie(60, 1) / G.faceChangeFromLie(21, 1);
+      near(ratio, 4.5, 0.2);
+    });
+    test('face change grows monotonically with loft', () => {
+      for (let L = 5; L < 62; L++) {
+        assert(G.faceChangeFromLie(L + 1, 1) > G.faceChangeFromLie(L, 1), 'dipped at ' + L);
+      }
+    });
+
+    /* The curve model is anchored on published TrackMan figures. If someone
+       retunes the constant, these two anchors must still hold. */
+    test('curve reproduces the published 300-yard anchor', () => {
+      // 1 degree of face-to-path is ~12 yards of curve at 300 yards
+      const loft = 45, err = 1;
+      const face = G.faceChangeFromLie(loft, err);
+      const scaled = G.lieImpact(loft, err, 300).curveYards / face;
+      near(scaled, 12, 0.5, 'yards of curve per degree at 300 yd');
+    });
+    test('curve reproduces the published mid-iron anchor', () => {
+      const loft = 27, err = 2;
+      const face = G.faceChangeFromLie(loft, err);
+      const perDeg = G.lieImpact(loft, err, 152).curveYards / face;
+      near(perDeg, 3.1, 0.3, 'yards of curve per degree at ~150 yd');
+    });
+
+    /* The finding that corrected the site's copy: yards offline are roughly
+       flat across the bag, while the face error is not. */
+    test('yards offline stay flat across the bag', () => {
+      const clubs = [[21, 175], [31, 145], [44, 115], [56, 85], [60, 70]];
+      const totals = clubs.map((c) => G.lieImpact(c[0], 1, c[1]).totalYards);
+      const lo = Math.min.apply(null, totals), hi = Math.max.apply(null, totals);
+      assert(hi / lo < 1.5, 'offline yards vary too much: ' + totals.join(', '));
+      totals.forEach((t) => assert(t > 2 && t < 4, 'outside the 2-4 yard band: ' + t));
+    });
+    test('but the miss grows sharply as a share of the shot', () => {
+      const longIron = G.lieImpact(21, 1, 175).percentOfShot;
+      const wedge = G.lieImpact(60, 1, 70).percentOfShot;
+      assert(wedge / longIron > 2.4, 'wedge should be far worse proportionally');
+    });
+    test('a driver starts more of its flight on the face than an iron', () => {
+      assert(G.lieImpact(10.5, 2, 250, true).startYards > G.lieImpact(10.5, 2, 250, false).startYards);
+    });
+
+    /* Length and lie: 1 degree per half inch, and longer plays MORE UPRIGHT.
+       The site previously had this at half strength and in the wrong
+       direction, in two user-facing places. */
+    test('length couples to lie at a degree per half inch', () => {
+      near(G.lieFromLengthChange(0.5), 1, 1e-9);
+      near(G.lieFromLengthChange(1), 2, 1e-9);
+      near(G.lieFromLengthChange(-0.5), -1, 1e-9);
+    });
+  });
+
   suite('Club length', () => {
     test('length bands match the published half-inch steps', () => {
       const cases = [[60, -1.5], [62, -1], [64, -0.5], [67, 0], [70, 0], [72, 0],

@@ -109,9 +109,30 @@
           <p>Lie angle is the angle between the shaft and the ground when the sole sits flat. If it is wrong, the sole
             is not flat at impact, the effective loft twists, and the ball starts offline before the face angle gets a
             say.</p>
-          <p><b>Rule of thumb: every 1° of lie error moves the ball about 4 yards offline on a 150-yard shot.</b>
-            The effect grows as loft grows and shaft length shrinks, which is why wedges and short irons punish a lie
-            error hardest and a driver barely notices one.</p>
+          <p><b>Rule of thumb: every 1° of lie error costs you about 3 yards on a mid-iron.</b> Roughly a third of
+            that is the ball starting offline; the rest is the curve it puts on the shot, because the face is now
+            closed or open to a path that has not moved.</p>
+
+          <h4>Why wedges punish it, and why the usual explanation is wrong</h4>
+          <p>You will read everywhere that a lie error costs you more yards as loft goes up. It does not — the yards
+            are remarkably flat across the bag, because the bigger face error in a wedge is almost exactly cancelled
+            by the shorter shot. What actually changes is the size of the face error itself:</p>
+          <p class="formula">face change = arctan( sin(lie&nbsp;error) &times; tan(loft) )</p>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Club</th><th class="num">Loft</th><th class="num">Carry</th>
+                <th class="num">Face turned by 1° of lie error</th><th class="num">Offline</th>
+                <th class="num">As % of the shot</th></tr></thead>
+              <tbody id="lieTable"></tbody>
+            </table>
+          </div>
+          <p class="small" style="margin-top:14px">A degree of lie error turns a 60° wedge face <b>four and a half
+            times</b> as far as a 4-iron face. The ball finishes a similar distance offline either way, but as a
+            share of the shot it is nearly three times worse — on the club you are trying to hit closest. That is the
+            real reason wedge lie matters, and it is why a fitter checks your wedges separately from your set.</p>
+          <p class="small">The face-angle figures are geometry and are exact. The yardages are modelled: start
+            direction is about 75% face for an iron, and the curve is anchored on published TrackMan face-to-path
+            data. Treat the yards as indicative and the ratios as solid.</p>
 
           <h4>How the Bay Scale works</h4>
           <p>Every height has a <b>reference wrist-to-floor</b> — the arm length that plays a standard lie. The scale
@@ -162,9 +183,12 @@
             under 32" suggests −1", 32"–34" suggests −½", 34"–36" is standard, 36"–37.5" suggests +½", above 37.5"
             suggests +1". When the two disagree it means your arms are long or short for your height, and the tool
             says so rather than hiding it.</p>
-          <div class="note">Changing length changes lie. Every 1" you add makes a club play roughly <b>1° flatter</b>
-            in effect (the hands sit further from the body), and every 1" you take off plays roughly 1° more upright.
-            A good builder accounts for that; a cheap "just cut them down" job does not.</div>
+          <div class="note">Changing length changes lie, and by more than most people expect. The clubmaking rule is
+            <b>1° for every ½" of length</b> — so an inch is worth two degrees. A <b>longer</b> club plays
+            <b>more upright</b>, because soling it with your hands at the same height lifts the toe; a shorter club
+            plays flatter. That is why "just get them cut down" is rarely just that: take an inch off and you have
+            also moved the lie two degrees flat, which is two full steps on the Bay Scale. A good builder bends the
+            set back; a cheap job does not.</div>
         </div>
       </details>
 
@@ -440,7 +464,7 @@
   </div>
 </footer>
 
-<script src="js/fitting-engine.js?v=75128d87"></script>
-<script src="js/app.js?v=81031d45"></script>
+<script src="js/fitting-engine.js?v=646da77b"></script>
+<script src="js/app.js?v=ad53200a"></script>
 </body>
 </html>
