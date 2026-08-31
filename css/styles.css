@@ -534,3 +534,7 @@ tr.measured .pill { font-size: .64rem; padding: 1px 7px; vertical-align: middle;
 .carry-input::-webkit-outer-spin-button,
 .carry-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 @media (max-width: 560px) { .carry-input { width: 68px; padding: 5px 6px; } }
+
+/* club-selection chips (checkbox variant of .opts) */
+.opts.chips { grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 8px; }
+.opts.chips .opt span { padding: 9px 10px; text-align: center; font-size: .85rem; }

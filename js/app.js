@@ -56,6 +56,35 @@
     return isMetric() ? U.cmToIn(v) : v;
   }
 
+  /* ---------- the bag ---------- */
+  function hasClubs() { return radio('hasClubs') !== 'no'; }
+
+  function checkedValues(name) {
+    return $$('input[name="' + name + '"]:checked').map(function (el) { return el.value; });
+  }
+
+  function parseWedges(raw) {
+    return String(raw || '').split(/[^0-9.]+/)
+      .map(parseFloat)
+      .filter(function (n) { return isFinite(n) && n >= 44 && n <= 66; })
+      .sort(function (a, b) { return a - b; });
+  }
+
+  /* Long clubs in playing order, driver first. The checkbox order in the
+     markup is already longest-to-shortest, so `checkedValues` preserves it. */
+  function readBag() {
+    if (!$('#curLongestIron')) return null;
+    var picked = checkedValues('curLongs');
+    var wedges = parseWedges($('#curWedges') && $('#curWedges').value);
+    return {
+      hasClubs: hasClubs(),
+      hasDriver: picked.indexOf('Driver') !== -1,
+      longs: picked.filter(function (v) { return v !== 'Driver'; }),
+      longestIron: selNum('#curLongestIron'),
+      wedgeLofts: wedges.length ? wedges : null
+    };
+  }
+
   /* ---------- collect ---------- */
   function buildInput() {
     return {
@@ -79,7 +108,8 @@
       tempo: radio('tempo'),
       turf: radio('turf'),
       priority: radio('priority'),
-      strokeArc: radio('strokeArc')
+      strokeArc: radio('strokeArc'),
+      bag: readBag()
     };
   }
 
@@ -107,6 +137,7 @@
     var out = {};
     $$(sel + ' input, ' + sel + ' select').forEach(function (el) {
       if (el.type === 'radio') { if (el.checked) out['r:' + el.name] = el.value; }
+      else if (el.type === 'checkbox') { out['c:' + el.name + ':' + el.value] = el.checked ? 1 : 0; }
       else if (el.id) out['#' + el.id] = el.value;
     });
     return out;
@@ -115,8 +146,15 @@
   function applyForm(data) {
     if (!data) return;
     Object.keys(data).forEach(function (k) {
-      if (k.indexOf('r:') === 0) setRadio(k.slice(2), data[k]);
-      else { var el = $(k); if (el) el.value = data[k]; }
+      if (k.indexOf('r:') === 0) { setRadio(k.slice(2), data[k]); return; }
+      if (k.indexOf('c:') === 0) {
+        var bits = k.split(':');
+        var box = document.querySelector('input[name="' + bits[1] + '"][value="' + bits[2] + '"]');
+        if (box) box.checked = !!data[k];
+        return;
+      }
+      var el = $(k);
+      if (el) el.value = data[k];
     });
   }
 
@@ -130,7 +168,6 @@
           v: 1, at: Date.now(),
           step: typeof step === 'number' ? step : currentStepIndex(),
           fit: collectForm('#fitForm'),
-          audit: $('#auditForm') ? collectForm('#auditForm') : null,
           carries: carryOverrides
         }));
       } catch (e) { /* quota or blocked — the tool still works */ }
@@ -230,13 +267,16 @@
       }
     });
 
-    if (includeAudit && $('#auditForm')) {
+    if (includeAudit && $('#curLongestIron')) {
       AUDIT_FIELDS.forEach(function (f) {
         var el = $('#' + f[1]);
         if (el && el.value !== '') put(f[0], el.value);
       });
       var adj = radio('curAdj');
       if (adj) put('aDA', adj === 'yes' ? '1' : '0');
+      put('aHC', hasClubs() ? '1' : '0');
+      var longs = checkedValues('curLongs');
+      put('aLG', longs.join('.'));
     }
     return p.join('&');
   }
@@ -308,6 +348,13 @@
       if (q[f[0]] !== undefined) { setVal(f[1], q[f[0]]); any = true; }
     });
     if (q.aDA !== undefined) { setRadio('curAdj', q.aDA === '1' ? 'yes' : 'no'); any = true; }
+    if (q.aHC !== undefined) { setRadio('hasClubs', q.aHC === '1' ? 'yes' : 'no'); any = true; }
+    if (q.aLG !== undefined) {
+      var want = q.aLG.split('.');
+      $$('input[name="curLongs"]').forEach(function (el) { el.checked = want.indexOf(el.value) !== -1; });
+      any = true;
+    }
+    syncBagFields();
     return any;
   }
 
@@ -332,11 +379,18 @@
     var result = G.fit(input);
     lastFit = result;
     renderResults(result);
-    resetAuditUI();
     renderChart($('#chartFull'), input.heightIn, input.wtfIn, true);
+    if (hasClubs()) runAudit();
     $('#wizardSection').style.display = 'none';
     $('#results').classList.add('show');
     return result;
+  }
+
+  function runAudit() {
+    if (!lastFit || !$('#auditResults')) return;
+    var cur = readAuditInput();
+    cur.carries = currentCarries();
+    renderAudit(G.audit(lastFit, cur, numZero($('#curBudget'))));
   }
 
   function restoreFromUrl(scroll) {
@@ -345,14 +399,11 @@
     if (!q.h || !applyState(q)) return false;
     var d = readDraft();
     if (d && d.carries) carryOverrides = d.carries;
+    /* The bag has to be in place BEFORE the fit runs, or the carry ladder is
+       built from the recommended set instead of the player's own clubs.
+       runFitFromForm() runs the audit itself once the bag is present. */
+    applyAuditState(q);
     runFitFromForm();
-    if (applyAuditState(q)) {
-      $('#auditIntro').hidden = true;
-      $('#auditPanel').hidden = false;
-      var cur = readAuditInput();
-      cur.carries = currentCarries();
-      renderAudit(G.audit(lastFit, cur, numZero($('#curBudget'))));
-    }
     if (scroll) {
       window.scrollTo({ top: $('#fit').getBoundingClientRect().top + window.pageYOffset - 74, behavior: 'auto' });
     }
@@ -365,8 +416,8 @@
     applyForm(d.fit);
     syncUnitFields();
     applyForm(d.fit);            // re-apply: switching units re-shows fields
-    if (d.audit) applyForm(d.audit);
     if (d.carries) carryOverrides = d.carries;
+    syncBagFields();
     if (typeof d.step === 'number' && d.step > 0) goToStep(d.step);
     var n = $('#draftNotice');
     if (n) {
@@ -511,7 +562,7 @@
       }
       formErr.textContent = '';
       runFitFromForm();
-      writeUrl(true, false);
+      writeUrl(true, true);
       saveDraft(0);
       window.scrollTo({ top: $('#fit').getBoundingClientRect().top + window.pageYOffset - 74, behavior: 'smooth' });
     });
@@ -706,6 +757,10 @@
         }).join('') + '</div>');
     }
 
+    /* The audit is the actionable part, so it sits above the explanation of
+       the recommendation rather than below it. */
+    out.push('<div id="auditResults"></div>');
+
     var cards = [];
 
     /* ---- irons ---- */
@@ -824,9 +879,13 @@
 
     /* ---- gapping table ---- */
     out.push('<div class="panel card" style="margin-bottom:18px"><h3><span class="ico">&#8801;</span>Carry gaps</h3>' +
-      '<p class="small muted">Modelled from your speed and skill level, stepped off your 7-iron. <b>If you know your ' +
-      'real numbers, type them straight into the table</b> &mdash; the gaps recalculate as you go, and measured ' +
-      'yardages turn this from an illustration into an actual audit of your bag.</p>' +
+      '<p class="small muted">' +
+      (r.set.ladderIsYours
+        ? 'These are <b>your</b> clubs, modelled from your speed. '
+        : 'A representative bag for your speed &mdash; tell us what you actually carry on the last question and this ' +
+          'table will describe your bag instead. ') +
+      '<b>If you know your real numbers, type them straight into the table</b> &mdash; the gaps recalculate as ' +
+      'you go, and measured yardages turn this from an illustration into an actual audit of your bag.</p>' +
       '<div class="table-scroll"><table><thead><tr><th>Club</th><th class="num">Carry (yd)</th>' +
       '<th class="num">Gap</th><th>Verdict</th></tr></thead><tbody id="carryRows"></tbody></table></div>' +
       '<div id="carrySummary" class="note"></div>' +
@@ -858,6 +917,7 @@
     renderChart($('#miniChart'), r.input.heightIn, r.input.wtfIn, false);
     renderCarryRows();
     initCarryTable();
+    resultsRendered = true;
   }
 
   function specFor(r, club) {
@@ -871,34 +931,17 @@
   var lastFit = null;
 
   function initAudit() {
-    var openBtn = $('#auditOpenBtn'), panel = $('#auditPanel'), intro = $('#auditIntro');
-    var form = $('#auditForm'), cancel = $('#auditCancelBtn');
-    if (!form) return;
-
-    openBtn.addEventListener('click', function () {
-      intro.hidden = true;
-      panel.hidden = false;
-      panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    /* The bag questions now live in the wizard, so there is no separate panel
+       to open. All that is left is keeping the fields visible or hidden. */
+    $$('input[name="hasClubs"]').forEach(function (el) {
+      el.addEventListener('change', syncBagFields);
     });
-    cancel.addEventListener('click', function () {
-      panel.hidden = true;
-      intro.hidden = false;
-      $('#auditResults').innerHTML = '';
-    });
+    syncBagFields();
+  }
 
-    form.addEventListener('input', function () { saveDraft(); });
-    form.addEventListener('change', function () { saveDraft(); });
-
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      if (!lastFit) return;
-      var budget = numZero($('#curBudget'));
-      var cur = readAuditInput();
-      cur.carries = currentCarries();
-      renderAudit(G.audit(lastFit, cur, budget));
-      writeUrl(false, true);
-      $('#auditResults').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
+  function syncBagFields() {
+    var box = $('#bagFields');
+    if (box) box.hidden = !hasClubs();
   }
 
   function selNum(id) {
@@ -911,11 +954,7 @@
 
   function readAuditInput() {
     var adj = radio('curAdj');
-    var wedgeRaw = ($('#curWedges') && $('#curWedges').value) || '';
-    var wedges = wedgeRaw.split(/[^0-9.]+/)
-      .map(parseFloat)
-      .filter(function (n) { return isFinite(n) && n >= 44 && n <= 66; })
-      .sort(function (a, b) { return a - b; });
+    var wedges = parseWedges($('#curWedges') && $('#curWedges').value);
 
     return {
       ironLength: selNum('#curIronLength'),
@@ -1026,13 +1065,6 @@
       'come with the build, but premium shafts and non-stock grips add to it, so the sticker price is not what you pay.</div>');
     o.push('</div>');
     $('#auditResults').innerHTML = o.join('');
-  }
-
-  function resetAuditUI() {
-    if (!$('#auditPanel')) return;
-    $('#auditPanel').hidden = true;
-    $('#auditIntro').hidden = false;
-    $('#auditResults').innerHTML = '';
   }
 
   function costRange(a, pair) {
@@ -1230,6 +1262,7 @@
      CARRY TABLE — editable, so modelled gaps become measured ones
      ================================================================== */
   var carryOverrides = {};
+  var resultsRendered = false;
 
   function currentCarries() {
     if (!lastFit) return [];
@@ -1291,11 +1324,16 @@
       if (isFinite(v) && v > 0 && Math.round(v) !== est) carryOverrides[club] = Math.round(v);
       else delete carryOverrides[club];
       clearTimeout(host._t);
-      host._t = setTimeout(function () { renderCarryRows(); saveDraft(); }, 600);
+      host._t = setTimeout(function () {
+        renderCarryRows();
+        if (hasClubs()) runAudit();
+        saveDraft();
+      }, 600);
     });
     $('#carryReset').addEventListener('click', function () {
       carryOverrides = {};
       renderCarryRows();
+      if (hasClubs()) runAudit();
       saveDraft();
     });
   }

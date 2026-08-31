@@ -176,6 +176,48 @@ module.exports = function () {
     });
   });
 
+  suite("Carry ladder — the player's own bag", () => {
+    /* Reported by a real user: their 60° wedge was missing, because the table
+       listed the RECOMMENDED wedges rather than the ones in their bag. */
+    test('the ladder lists the clubs actually carried', () => {
+      const rows = fit({ bag: { hasClubs: true, longs: ['3-wood', '5-hybrid'],
+        longestIron: 6, wedgeLofts: [50, 54, 60] } }).set.carries;
+      const clubs = rows.map((r) => r.club);
+      equal(clubs[0], 'Driver');
+      assert(clubs.includes('5-hybrid'), 'missing a carried hybrid: ' + clubs.join(', '));
+      assert(clubs.some((c) => /60°/.test(c)), 'the 60° wedge is missing: ' + clubs.join(', '));
+      assert(!clubs.includes('5-iron'), 'listed an iron above the longest carried');
+      assert(!clubs.includes('5-wood'), 'listed a wood that is not in the bag');
+    });
+    test('a player with no driver does not get one in the ladder', () => {
+      const clubs = fit({ bag: { hasClubs: true, hasDriver: false, longs: ['3-wood'],
+        longestIron: 5, wedgeLofts: [56] } }).set.carries.map((r) => r.club);
+      assert(!clubs.includes('Driver'), 'invented a driver');
+      equal(clubs[0], '3-wood');
+    });
+    test('without a bag it falls back to a representative set', () => {
+      const r = fit({});
+      assert(!r.set.ladderIsYours, "should not claim to be the player's bag");
+      assert(r.set.carries.length > 6, 'should still model something useful');
+    });
+    test('any bag still produces a monotonic ladder', () => {
+      [[['3-wood'], 7, [50, 56]], [[], 4, [58]], [['3-wood', '5-wood', '7-wood', '4-hybrid', '5-hybrid'], 7, [50, 54, 58, 62]]]
+        .forEach(([longs, longestIron, wedgeLofts]) => {
+          const rows = fit({ bag: { hasClubs: true, longs, longestIron, wedgeLofts } }).set.carries;
+          for (let i = 1; i < rows.length; i++) {
+            assert(rows[i].carry <= rows[i - 1].carry,
+              'ladder rises at ' + rows[i].club + ' for ' + JSON.stringify(longs));
+          }
+        });
+    });
+    test('four wedges are all listed, in loft order', () => {
+      const clubs = fit({ bag: { hasClubs: true, longs: ['3-wood'], longestIron: 6,
+        wedgeLofts: [50, 54, 58, 62] } }).set.carries.map((r) => r.club);
+      [50, 54, 58, 62].forEach((L) => assert(clubs.some((c) => c.indexOf(L + '°') === 0),
+        L + '° missing from ' + clubs.join(', ')));
+    });
+  });
+
   suite('Shaft shortlist', () => {
     test('suggestions match the recommended flex', () => {
       const r = fit({ driverSpeed: 100, ironCarry: null });

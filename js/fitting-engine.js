@@ -633,62 +633,98 @@
   /* ---------------------------------------------------------------------
      9. SET MAKEUP + GAPPING
      ------------------------------------------------------------------ */
-  function setMakeup(speeds, input, wedges) {
+  /* ---------------------------------------------------------------------
+     Carry ladder.
+
+     This has to describe the bag the player ACTUALLY carries, not a
+     representative one. Bags vary enormously — a 7-wood here, three wedges
+     there, a 2-iron for the wind — and a table that quietly leaves out
+     somebody's 60° is worse than no table, because the gap it reports at the
+     bottom of the bag is simply wrong.
+
+     So: irons are stepped off the measured 7-iron at 7% per club, long clubs
+     are spread evenly between the driver and the longest iron (which keeps
+     the ladder monotonic however the two speed anchors disagree), and wedges
+     come off the pitching wedge at ~2.55 yards per degree of loft.
+     ------------------------------------------------------------------ */
+  function buildLadder(speeds, bag) {
+    var i7 = speeds.iron7Carry, f = 1.07;
+    var rows = [];
+    function push(club, yds) { rows.push({ club: club, carry: Math.round(Math.max(yds, 0)) }); }
+    function ironCarry(n) { return i7 * Math.pow(f, 7 - n); }
+
+    var longest = bag.longestIron;
+    var topIron = ironCarry(longest);
+    var dc = Math.max(speeds.driverCarry, topIron + 25);
+
+    if (bag.hasDriver !== false) push('Driver', dc);
+
+    var longs = bag.longs || [];
+    for (var k = 0; k < longs.length; k++) {
+      push(longs[k], dc - (dc - topIron) * ((k + 1) / (longs.length + 1)));
+    }
+    for (var c = longest; c <= 9; c++) push(c + '-iron', ironCarry(c));
+
+    var pwCarry = ironCarry(10);
+    push('PW (' + bag.pwLoft + '°)', pwCarry);
+    (bag.wedgeLofts || []).forEach(function (L) {
+      push(L + '° wedge', pwCarry - (L - bag.pwLoft) * 2.55);
+    });
+    return rows;
+  }
+
+  function setMakeup(speeds, input, wedges, bag) {
     var d = speeds.driver;
-    var i7 = speeds.iron7Carry;
-    var irons, why, woods, hybrids;
+    var irons, why, woods, hybrids, defaultLongs;
 
     var longestIron;
     if (d < 82) {
       longestIron = 7;
+      defaultLongs = ['3-wood', '5-wood', '7-wood', '5-hybrid', '6-hybrid'];
       irons = '7-iron through pitching wedge';
       hybrids = ['4-hybrid (22°)', '5-hybrid (25°)', '6-hybrid (28°)'];
       woods = ['3-wood or a high-lofted "heaven wood" (16–18°)', '5-wood (18°)', '7-wood (21°)'];
       why = 'Below roughly 82 mph with the driver there is no realistic case for a long iron. Fairway woods and hybrids have a deeper face and a much lower centre of gravity, and they launch off turf where a 4-iron simply will not.';
     } else if (d < 92) {
       longestIron = 6;
+      defaultLongs = ['3-wood', '5-wood', '4-hybrid', '5-hybrid'];
       irons = '6-iron through pitching wedge';
       hybrids = ['4-hybrid (22°)', '5-hybrid (25°)'];
       woods = ['3-wood (15°)', '5-wood (18°)'];
       why = 'At your speed a 5-iron is already marginal from a normal fairway lie. Replacing it and everything above it with hybrids costs you nothing and gains you height and stopping power on long approaches.';
     } else if (d < 102) {
       longestIron = 5;
+      defaultLongs = ['3-wood', '5-wood', '4-hybrid'];
       irons = '5-iron through pitching wedge';
       hybrids = ['4-hybrid (22°), or keep the 4-iron if you strike it well'];
       woods = ['3-wood (15°)', '5-wood (18°) or 3-hybrid (19°)'];
       why = 'You have enough speed to use a 5-iron properly. The honest test for the 4-iron: if you do not hit it well from a flat fairway lie at least half the time, that slot belongs to a hybrid.';
     } else {
       longestIron = 4;
+      defaultLongs = ['3-wood', '5-wood'];
       irons = '4-iron through pitching wedge';
       hybrids = ['Optional 3-hybrid (19°), or a driving iron if you play in wind'];
       woods = ['3-wood (15°)', '5-wood (18°) — or drop it for an extra wedge if you rarely need 240 yards'];
       why = 'At 102+ mph long irons are genuinely playable. The choice between a 3-hybrid and a 2/3-iron is about turf and wind: hybrids launch higher and are far easier from rough, driving irons flight down and run out.';
     }
 
-    /* Carry ladder. The irons are stepped off the measured 7-iron; the long
-       clubs are interpolated between the 5-iron and the driver so the ladder
-       is always monotonic even when the two speed anchors disagree slightly. */
-    var carries = [];
-    function push(name, yds) { carries.push({ club: name, carry: Math.round(Math.max(yds, 0)) }); }
-    var f = 1.07;
-    var fiveIron = i7 * f * f;
-    var dc = Math.max(speeds.driverCarry, fiveIron + 40);
-    var spread = dc - fiveIron;
-    push('Driver', dc);
-    push('3-wood', dc - spread * 0.28);
-    push('5-wood / 3-hybrid', dc - spread * 0.50);
-    push('4-hybrid / 4-iron', dc - spread * 0.75);
-    push('5-iron', fiveIron);
-    push('6-iron', i7 * f);
-    push('7-iron', i7);
-    push('8-iron', i7 * 0.93);
-    push('9-iron', i7 * 0.93 * 0.93);
-    var pwCarry = i7 * 0.93 * 0.93 * 0.93;
-    push('PW (' + wedges.pwLoft + '°)', pwCarry);
-    for (var w = 0; w < wedges.lofts.length; w++) {
-      push(wedges.lofts[w] + '° wedge', pwCarry - (wedges.lofts[w] - wedges.pwLoft) * 2.55);
-    }
-    return { irons: irons, longestIron: longestIron, hybrids: hybrids, woods: woods, why: why, carries: carries };
+    /* Describe the player's own bag when they have told us what is in it,
+       and the recommended one when they have not. */
+    var own = bag && bag.hasClubs;
+    var ladderBag = {
+      longestIron: own && isNum(bag.longestIron) ? bag.longestIron : longestIron,
+      longs: own && bag.longs && bag.longs.length ? bag.longs : defaultLongs,
+      pwLoft: wedges.pwLoft,
+      wedgeLofts: own && bag.wedgeLofts && bag.wedgeLofts.length ? bag.wedgeLofts : wedges.lofts,
+      hasDriver: !own || bag.hasDriver !== false
+    };
+
+    return {
+      irons: irons, longestIron: longestIron, hybrids: hybrids, woods: woods, why: why,
+      carries: buildLadder(speeds, ladderBag),
+      ladderIsYours: !!own,
+      ladderBag: ladderBag
+    };
   }
 
   /* ---------------------------------------------------------------------
@@ -884,7 +920,7 @@
     var head = ironHeadFit(input, speeds);
     var grip = gripFit(input);
     var wedges = wedgeFit(input, head);
-    var set = setMakeup(speeds, input, wedges);
+    var set = setMakeup(speeds, input, wedges, input.bag);
     var putter = putterFit(input, heightIn, wtfIn);
     var ball = ballFit(speeds, input);
     var dyn = dynamicLieNote(input, lie.code);
@@ -1540,6 +1576,7 @@
     audit: audit,
     sides: sides,
     reviewGapping: reviewGapping,
+    buildLadder: buildLadder,
     FLEX_NAME: FLEX_NAME
   };
 })(window);

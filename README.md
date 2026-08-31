@@ -63,9 +63,10 @@ angle, tempo, turf, priority, putting stroke) it produces:
 - **Named shafts** — a shortlist of widely stocked models matching your weight, flex and flight
 - **Junior sizing** where the player is a child, and **women's-set traps** where relevant
 
-It then offers a second, separate pass — **"check the clubs you already own"** — which diffs your
-current specs against the fit and returns a prioritised, costed list of what to change, optionally
-filtered to a budget.
+The final question asks what is already in your bag. Answer it and you also get an **audit** — a
+prioritised, costed list of which of your clubs is wrong and what it costs to put right, optionally
+filtered to a budget — and the yardage table describes your clubs rather than a generic set. Say
+you are starting fresh and the step is skipped entirely.
 
 ## Design decisions worth knowing
 
@@ -75,10 +76,19 @@ So the engine keeps `slice`/`hook`/`pull`/`push` as-is and routes every "left" a
 user-facing copy through `sides(input)`. On the page, `.dir-away` / `.dir-home` spans are swapped
 at runtime. Nothing branches on handedness, which means nothing can drift out of sync.
 
-**The carry table is editable.** It starts as a modelled ladder from your speed, but every number
-is an input. Type your real yardages over the estimates and the gaps recalculate live, measured
-rows are marked, and those numbers feed the audit as gapping findings — which is how you catch the
-classic "my 4-iron and 5-iron go the same distance". Overrides persist in the draft.
+**The carry table describes the player's actual bag.** Bags vary enormously — a 7-wood here, four
+wedges there, a 2-iron for the wind — and a table that quietly omits somebody's 60° is worse than
+no table, because the gap it reports at the bottom of the bag is simply wrong. The final wizard
+step asks what is in the bag, and `buildLadder()` assembles the ladder from exactly those clubs:
+irons stepped off the measured 7-iron at 7% per club, long clubs spread evenly between the driver
+and the longest iron (which keeps it monotonic however the two speed anchors disagree), and wedges
+off the pitching wedge at ~2.55 yards per degree. With no bag supplied it falls back to a
+representative set for that speed, and says so.
+
+**The carry table is also editable.** Every number is an input. Type your real yardages over the
+estimates and the gaps recalculate live, measured rows are marked, and those numbers feed the
+audit as gapping findings — which is how you catch the classic "my 4-iron and 5-iron go the same
+distance". Overrides persist in the draft.
 
 **Sensitivity is reported, not hidden.** The result says whether ½" of measuring error either way
 would change your lie code. If it would, that is exactly the case where a fitter tests both, and

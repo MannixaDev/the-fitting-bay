@@ -20,7 +20,7 @@
 <meta name="twitter:description" content="Free static golf club fitting: lie, length, shaft, loft, bounce, grips, putter and a full build sheet.">
 <meta name="twitter:image" content="https://mannixadev.github.io/the-fitting-bay/og-image.png">
 <meta name="theme-color" content="#0d1210">
-<link rel="stylesheet" href="css/styles.css?v=a904895c">
+<link rel="stylesheet" href="css/styles.css?v=48ebf9a9">
 </head>
 <body>
 
@@ -52,9 +52,9 @@
     <div class="wrap">
       <p class="eyebrow">Static club fitting, done properly</p>
       <h1>Find out what clubs<br>actually <span>fit you</span>.</h1>
-      <p class="lede">Answer twelve questions about your body, your swing and your ball flight. You get back a
+      <p class="lede">Answer a few questions about your body, your swing and your ball flight. You get back a
         complete build sheet: lie angle, club length, shaft flex and weight, driver loft, wedge bounce, grip size,
-        putter specs and a 14-club set makeup with estimated yardage gaps — plus the reasoning behind every number.</p>
+        putter specs and a set makeup with yardage gaps — plus, if you already own clubs, exactly which of them is wrong and what it costs to fix.</p>
       <div class="hero-stats">
         <div><b>2 min</b><span>To complete</span></div>
         <div><b>1 tape measure</b><span>All you need</span></div>
@@ -344,6 +344,157 @@
               </div>
             </div>
 
+
+            <!-- STEP 9 -->
+            <div class="step" data-title="The clubs you play now" data-help="Last one, and it is optional. Tell us what is in your bag and we will tell you which clubs are actually wrong, what each one is costing you, and what it costs to put right — cheapest and most valuable first. It also means your yardage table shows your clubs rather than a generic set.">
+              <p class="help" data-role="help"></p>
+
+              <div class="field field-wide" style="margin-bottom:20px">
+                <label>Do you already have clubs?</label>
+                <div class="opts">
+                  <label class="opt"><input type="radio" name="hasClubs" value="yes" checked><span>Yes, I have clubs<em>Check them against the fit</em></span></label>
+                  <label class="opt"><input type="radio" name="hasClubs" value="no"><span>No, I'm starting fresh<em>Skip this &mdash; just give me the fit</em></span></label>
+                </div>
+              </div>
+
+              <div id="bagFields">
+                <h4>Your irons</h4>
+                <div class="field-grid">
+                  <div class="field">
+                    <label for="curIronLength">Length vs standard</label>
+                    <select id="curIronLength">
+                      <option value="">Not sure</option>
+                      <option value="-1">1" short</option>
+                      <option value="-0.5">&frac12;" short</option>
+                      <option value="0">Standard</option>
+                      <option value="0.5">&frac12;" long</option>
+                      <option value="1">1" long</option>
+                    </select>
+                    <p class="hint">Standard is 37" for a men's 7-iron, 36" for women's.</p>
+                  </div>
+                  <div class="field">
+                    <label for="curIronLie">Lie angle vs standard</label>
+                    <select id="curIronLie">
+                      <option value="">Not sure</option>
+                      <option value="-2">2&deg; flat</option>
+                      <option value="-1">1&deg; flat</option>
+                      <option value="0">Standard</option>
+                      <option value="1">1&deg; upright</option>
+                      <option value="2">2&deg; upright</option>
+                      <option value="3">3&deg; upright</option>
+                    </select>
+                    <p class="hint">If you bought off the rack and never had them bent, choose Standard.</p>
+                  </div>
+                  <div class="field">
+                    <label for="curIronFlex">Shaft flex</label>
+                    <select id="curIronFlex">
+                      <option value="">Not sure</option>
+                      <option value="L">L &mdash; Ladies</option>
+                      <option value="A">A &mdash; Senior / Light</option>
+                      <option value="R">R &mdash; Regular</option>
+                      <option value="S">S &mdash; Stiff</option>
+                      <option value="X">X &mdash; Extra Stiff</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label for="curIronMaterial">Shaft material</label>
+                    <select id="curIronMaterial">
+                      <option value="">Not sure</option>
+                      <option value="Steel">Steel</option>
+                      <option value="Graphite">Graphite</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label for="curGripSize">Grip size</label>
+                    <select id="curGripSize">
+                      <option value="">Not sure</option>
+                      <option value="Undersize">Undersize</option>
+                      <option value="Standard">Standard</option>
+                      <option value="Midsize">Midsize</option>
+                      <option value="Jumbo">Jumbo / Oversize</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label for="curLongestIron">Longest iron you carry</label>
+                    <select id="curLongestIron">
+                      <option value="">Not sure</option>
+                      <option value="3">3-iron</option>
+                      <option value="4">4-iron</option>
+                      <option value="5">5-iron</option>
+                      <option value="6">6-iron</option>
+                      <option value="7">7-iron</option>
+                    </select>
+                  </div>
+                </div>
+
+                <h4 style="margin-top:24px">Woods and hybrids you carry</h4>
+                <div class="field field-wide">
+                  <div class="opts chips">
+                    <label class="opt"><input type="checkbox" name="curLongs" value="Driver" checked><span>Driver</span></label>
+                    <label class="opt"><input type="checkbox" name="curLongs" value="3-wood" checked><span>3-wood</span></label>
+                    <label class="opt"><input type="checkbox" name="curLongs" value="4-wood"><span>4-wood</span></label>
+                    <label class="opt"><input type="checkbox" name="curLongs" value="5-wood"><span>5-wood</span></label>
+                    <label class="opt"><input type="checkbox" name="curLongs" value="7-wood"><span>7-wood</span></label>
+                    <label class="opt"><input type="checkbox" name="curLongs" value="2-hybrid"><span>2-hybrid</span></label>
+                    <label class="opt"><input type="checkbox" name="curLongs" value="3-hybrid"><span>3-hybrid</span></label>
+                    <label class="opt"><input type="checkbox" name="curLongs" value="4-hybrid"><span>4-hybrid</span></label>
+                    <label class="opt"><input type="checkbox" name="curLongs" value="5-hybrid"><span>5-hybrid</span></label>
+                    <label class="opt"><input type="checkbox" name="curLongs" value="6-hybrid"><span>6-hybrid</span></label>
+                  </div>
+                  <p class="hint">Tick everything between your driver and your longest iron. This is what makes the
+                    yardage table describe your bag instead of a generic one.</p>
+                </div>
+
+                <h4 style="margin-top:24px">Your driver</h4>
+                <div class="field-grid">
+                  <div class="field">
+                    <label for="curDriverLoft">Loft</label>
+                    <input type="number" id="curDriverLoft" min="6" max="18" step="0.5" placeholder="10.5" inputmode="decimal">
+                    <p class="hint">Degrees, stamped on the sole or the hosel.</p>
+                  </div>
+                  <div class="field">
+                    <label for="curDriverLength">Length</label>
+                    <input type="number" id="curDriverLength" min="40" max="48" step="0.25" placeholder="45.75" inputmode="decimal">
+                    <p class="hint">Inches. Leave blank if you have never measured it.</p>
+                  </div>
+                  <div class="field">
+                    <label>Adjustable hosel?</label>
+                    <div class="opts">
+                      <label class="opt"><input type="radio" name="curAdj" value="" checked><span>Not sure</span></label>
+                      <label class="opt"><input type="radio" name="curAdj" value="yes"><span>Yes</span></label>
+                      <label class="opt"><input type="radio" name="curAdj" value="no"><span>No</span></label>
+                    </div>
+                    <p class="hint">If the head unscrews from the shaft with a wrench, it adjusts.</p>
+                  </div>
+                </div>
+
+                <h4 style="margin-top:24px">Wedges, ball and budget</h4>
+                <div class="field-grid">
+                  <div class="field">
+                    <label for="curWedges">Wedge lofts after your pitching wedge</label>
+                    <input type="text" id="curWedges" placeholder="52, 56, 60" inputmode="numeric">
+                    <p class="hint">Degrees, separated by commas. We already have your pitching wedge.</p>
+                  </div>
+                  <div class="field">
+                    <label for="curBall">Ball you usually play</label>
+                    <select id="curBall">
+                      <option value="">Not sure</option>
+                      <option value="soft2p">2-piece soft / distance</option>
+                      <option value="mid3p">3-piece mid compression</option>
+                      <option value="tour3p">3-piece tour urethane</option>
+                      <option value="tourfirm">Firm tour urethane</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label for="curBudget">What can you spend right now?</label>
+                    <input type="number" id="curBudget" min="0" max="5000" step="10" placeholder="150" inputmode="numeric">
+                    <p class="hint">Optional. We will pick the combination that buys the most improvement for the
+                      money and tell you what can wait.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <p class="err" id="formErr" role="alert"></p>
 
             <div class="draft-notice" id="draftNotice" hidden>
@@ -391,150 +542,7 @@
         </div>
         <div id="resultsBody"></div>
 
-        <!-- ================= AUDIT ================= -->
-        <div class="panel card no-print" id="auditIntro" style="margin-top:18px">
-          <h3><span class="ico">&#10003;</span>Now check the clubs you already own</h3>
-          <p class="small muted" style="margin-bottom:16px">Most people are not buying a whole new set. Tell us what
-            you play now and we will tell you which clubs are actually wrong, what each one is costing you, and what
-            it costs to put right &mdash; cheapest and most valuable first. Skip anything you do not know.</p>
-          <button type="button" class="btn btn-primary" id="auditOpenBtn">Check my current clubs</button>
-        </div>
 
-        <div class="panel card no-print" id="auditPanel" hidden style="margin-top:18px">
-          <h3><span class="ico">&#10003;</span>What do you play now?</h3>
-          <p class="small muted">Everything here is optional. "Not sure" is a perfectly good answer &mdash; we will
-            tell you how to find out.</p>
-
-          <form id="auditForm" novalidate>
-            <h4 style="margin-top:20px">Your irons</h4>
-            <div class="field-grid">
-              <div class="field">
-                <label for="curIronLength">Length vs standard</label>
-                <select id="curIronLength">
-                  <option value="">Not sure</option>
-                  <option value="-1">1" short</option>
-                  <option value="-0.5">½" short</option>
-                  <option value="0">Standard</option>
-                  <option value="0.5">½" long</option>
-                  <option value="1">1" long</option>
-                </select>
-                <p class="hint">Standard is 37" for a men's 7-iron, 36" for women's.</p>
-              </div>
-              <div class="field">
-                <label for="curIronLie">Lie angle vs standard</label>
-                <select id="curIronLie">
-                  <option value="">Not sure</option>
-                  <option value="-2">2° flat</option>
-                  <option value="-1">1° flat</option>
-                  <option value="0">Standard</option>
-                  <option value="1">1° upright</option>
-                  <option value="2">2° upright</option>
-                  <option value="3">3° upright</option>
-                </select>
-                <p class="hint">If you bought off the rack and never had them bent, choose Standard.</p>
-              </div>
-              <div class="field">
-                <label for="curIronFlex">Shaft flex</label>
-                <select id="curIronFlex">
-                  <option value="">Not sure</option>
-                  <option value="L">L — Ladies</option>
-                  <option value="A">A — Senior / Light</option>
-                  <option value="R">R — Regular</option>
-                  <option value="S">S — Stiff</option>
-                  <option value="X">X — Extra Stiff</option>
-                </select>
-              </div>
-              <div class="field">
-                <label for="curIronMaterial">Shaft material</label>
-                <select id="curIronMaterial">
-                  <option value="">Not sure</option>
-                  <option value="Steel">Steel</option>
-                  <option value="Graphite">Graphite</option>
-                </select>
-              </div>
-              <div class="field">
-                <label for="curGripSize">Grip size</label>
-                <select id="curGripSize">
-                  <option value="">Not sure</option>
-                  <option value="Undersize">Undersize</option>
-                  <option value="Standard">Standard</option>
-                  <option value="Midsize">Midsize</option>
-                  <option value="Jumbo">Jumbo / Oversize</option>
-                </select>
-              </div>
-              <div class="field">
-                <label for="curLongestIron">Longest iron you carry</label>
-                <select id="curLongestIron">
-                  <option value="">Not sure</option>
-                  <option value="3">3-iron</option>
-                  <option value="4">4-iron</option>
-                  <option value="5">5-iron</option>
-                  <option value="6">6-iron</option>
-                  <option value="7">7-iron</option>
-                </select>
-              </div>
-            </div>
-
-            <h4 style="margin-top:24px">Your driver</h4>
-            <div class="field-grid">
-              <div class="field">
-                <label for="curDriverLoft">Loft</label>
-                <input type="number" id="curDriverLoft" min="6" max="18" step="0.5" placeholder="10.5" inputmode="decimal">
-                <p class="hint">Degrees, stamped on the sole or the hosel.</p>
-              </div>
-              <div class="field">
-                <label for="curDriverLength">Length</label>
-                <input type="number" id="curDriverLength" min="40" max="48" step="0.25" placeholder="45.75" inputmode="decimal">
-                <p class="hint">Inches. Leave blank if you have never measured it.</p>
-              </div>
-              <div class="field">
-                <label>Adjustable hosel?</label>
-                <div class="opts">
-                  <label class="opt"><input type="radio" name="curAdj" value=""checked><span>Not sure</span></label>
-                  <label class="opt"><input type="radio" name="curAdj" value="yes"><span>Yes</span></label>
-                  <label class="opt"><input type="radio" name="curAdj" value="no"><span>No</span></label>
-                </div>
-                <p class="hint">If the head unscrews from the shaft with a wrench, it adjusts.</p>
-              </div>
-            </div>
-
-            <h4 style="margin-top:24px">Your budget <span class="tiny" style="font-weight:400">(optional)</span></h4>
-            <div class="field-grid">
-              <div class="field">
-                <label for="curBudget">What can you spend right now?</label>
-                <input type="number" id="curBudget" min="0" max="5000" step="10" placeholder="150" inputmode="numeric">
-                <p class="hint">We will pick the combination that buys the most improvement for the money, and tell you
-                  what can wait. Leave blank for the full list.</p>
-              </div>
-            </div>
-
-            <h4 style="margin-top:24px">The rest of the bag</h4>
-            <div class="field-grid">
-              <div class="field">
-                <label for="curWedges">Wedge lofts after your pitching wedge</label>
-                <input type="text" id="curWedges" placeholder="52, 56" inputmode="numeric">
-                <p class="hint">Degrees, separated by commas. We already have your pitching wedge.</p>
-              </div>
-              <div class="field">
-                <label for="curBall">Ball you usually play</label>
-                <select id="curBall">
-                  <option value="">Not sure</option>
-                  <option value="soft2p">2-piece soft / distance</option>
-                  <option value="mid3p">3-piece mid compression</option>
-                  <option value="tour3p">3-piece tour urethane</option>
-                  <option value="tourfirm">Firm tour urethane</option>
-                </select>
-              </div>
-            </div>
-
-            <div style="display:flex;gap:10px;margin-top:24px;flex-wrap:wrap">
-              <button type="submit" class="btn btn-brass">Show me what to fix</button>
-              <button type="button" class="btn btn-ghost" id="auditCancelBtn">Cancel</button>
-            </div>
-          </form>
-        </div>
-
-        <div id="auditResults"></div>
       </div>
     </div>
   </section>
@@ -576,7 +584,7 @@
   </div>
 </footer>
 
-<script src="js/fitting-engine.js?v=f5faf6b3"></script>
-<script src="js/app.js?v=6b7f88a9"></script>
+<script src="js/fitting-engine.js?v=75128d87"></script>
+<script src="js/app.js?v=81031d45"></script>
 </body>
 </html>
