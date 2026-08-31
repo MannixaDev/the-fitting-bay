@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The Fitting Bay — Golf Club Fitting Calculator</title>
 <meta name="description" content="A free, static golf club fitting tool. Enter your height, wrist-to-floor and swing data and get lie angle, shaft flex, club length, driver loft, wedge bounce, grip size, putter specs and a full 14-club build sheet.">
-<link rel="stylesheet" href="css/styles.css?v=10">
+<link rel="stylesheet" href="css/styles.css?v=13">
 </head>
 <body>
 
@@ -297,6 +297,11 @@
 
             <p class="err" id="formErr" role="alert"></p>
 
+            <div class="draft-notice" id="draftNotice" hidden>
+              <span>We put your answers back &mdash; they were saved in this browser, not sent anywhere.</span>
+              <button type="button" id="draftClearBtn">Start fresh</button>
+            </div>
+
             <div class="step-nav">
               <button type="button" class="btn btn-ghost" id="backBtn" disabled>Back</button>
               <div class="spacer"></div>
@@ -314,8 +319,17 @@
             <p class="eyebrow" style="margin-bottom:.4rem">Your build sheet</p>
             <h2 style="margin:0">Here is what fits you</h2>
           </div>
+          <button type="button" class="btn btn-ghost" id="copyLinkBtn">Copy link to this fit</button>
           <button type="button" class="btn btn-ghost" id="printBtn">Print / save as PDF</button>
           <button type="button" class="btn btn-ghost" id="editBtn">Change my answers</button>
+        </div>
+        <div class="share-note no-print">
+          <p class="tiny">Your answers are in this page's address, so you can bookmark it, come back to it, or
+            send it to your pro. Nothing is stored on a server &mdash; the link <em>is</em> the data.</p>
+          <div id="shareFallback" hidden>
+            <label class="tiny" for="shareUrl">Copy this link:</label>
+            <input type="text" id="shareUrl" readonly>
+          </div>
         </div>
         <div id="resultsBody"></div>
 
@@ -494,7 +508,7 @@
   </div>
 </footer>
 
-<script src="js/fitting-engine.js?v=10"></script>
-<script src="js/app.js?v=10"></script>
+<script src="js/fitting-engine.js?v=13"></script>
+<script src="js/app.js?v=13"></script>
 </body>
 </html>

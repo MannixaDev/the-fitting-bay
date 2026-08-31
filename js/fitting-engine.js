@@ -772,6 +772,19 @@
      Costs are indicative shop rates for a set of irons unless stated.
      ------------------------------------------------------------------ */
   var CUR = '£';
+  /* Cheapest credible NEW set built to your specs, used as the ceiling on how
+     much repair work is worth doing.
+
+     Important: this is the CUSTOMISED price, not the sticker price. Custom
+     length and lie come as part of the build, but premium shafts and non-stock
+     grips carry an upcharge, so a real configured set lands above the headline
+     figure. Benchmark below is an observed Takomo Iron 101 MKII customised
+     build (7 clubs, KBS Tour steel, -1/2" length, -2 deg lie, standard grip)
+     at UK pricing. Base models start nearer 549; other models run to ~700.
+
+     Update SET_BENCHMARK when pricing moves — everything else follows from it. */
+  var SET_BENCHMARK = 580;
+  var SET_BENCHMARK_NOTE = 'a custom-built 7-club set from a direct-to-consumer brand such as Takomo';
   var FLEX_IDX = { L: 0, A: 1, R: 2, S: 3, X: 4, XX: 5 };
   var GRIP_IDX = { Undersize: 0, Standard: 1, Midsize: 2, Jumbo: 3 };
   var BALL_NAME = {
@@ -823,7 +836,7 @@
         });
       } else {
         add({
-          area: 'Iron lie angle', severity: lieAbs > 1.5 ? 'high' : 'medium',
+          area: 'Iron lie angle', job: 'bend', severity: lieAbs > 1.5 ? 'high' : 'medium',
           costLo: 40, costHi: 70,
           current: fmtDeg(cur.ironLie), recommended: fmtDeg(recLie),
           detail: 'You are ' + round1(lieAbs) + '° too ' + (lieGap > 0 ? 'flat' : 'upright') +
@@ -856,7 +869,7 @@
       } else {
         var tooLong = lenGap > 0;
         add({
-          area: 'Iron length', severity: lenAbs > 0.75 ? 'high' : 'medium',
+          area: 'Iron length', job: 'length', severity: lenAbs > 0.75 ? 'high' : 'medium',
           costLo: tooLong ? 40 : 60, costHi: tooLong ? 80 : 140,
           current: U.fmtAdj(cur.ironLength), recommended: U.fmtAdj(recLen),
           detail: 'Your irons are ' + U.fmtIn(lenAbs, 2) + ' too ' + (tooLong ? 'long' : 'short') +
@@ -891,7 +904,7 @@
         });
       } else {
         add({
-          area: 'Iron shaft flex', severity: flexAbs >= 2 ? 'high' : 'medium',
+          area: 'Iron shaft flex', job: 'reshaft', severity: flexAbs >= 2 ? 'high' : 'medium',
           costLo: 250, costHi: 450,
           current: cur.ironFlex, recommended: recFlex,
           detail: flexGap > 0
@@ -907,7 +920,7 @@
     if (cur.ironMaterial && cur.ironMaterial !== result.shafts.material) {
       var wantsGraphite = result.shafts.material === 'Graphite';
       add({
-        area: 'Iron shaft material', severity: wantsGraphite ? 'medium' : 'low',
+        area: 'Iron shaft material', job: 'reshaft', severity: wantsGraphite ? 'medium' : 'low',
         costLo: 250, costHi: 500,
         current: cur.ironMaterial, recommended: result.shafts.material,
         detail: wantsGraphite
@@ -935,7 +948,7 @@
     } else {
       var gripGap = GRIP_IDX[recGrip] - GRIP_IDX[cur.gripSize];
       add({
-        area: 'Grip size', severity: Math.abs(gripGap) >= 2 ? 'high' : 'medium',
+        area: 'Grip size', job: 'grips', severity: Math.abs(gripGap) >= 2 ? 'high' : 'medium',
         costLo: 60, costHi: 110,
         current: cur.gripSize, recommended: recGrip,
         detail: 'Your grips are ' + (gripGap > 0 ? 'too small' : 'too big') + ' by ' + Math.abs(gripGap) +
@@ -1069,39 +1082,92 @@
       }
     }
 
+    /* ---- replace vs repair -------------------------------------------------
+       There is a point where fixing a set of irons costs more than replacing
+       it. Only bench work on the IRONS counts toward that — a driver, a wedge
+       or a box of balls are separate purchases. Overlapping jobs are counted
+       once: a flex change and a material change are the same reshaft, not two.
+       ---------------------------------------------------------------------- */
+    var jobs = {};
+    f.forEach(function (x) {
+      if (!x.job || x.severity === 'ok' || x.severity === 'unknown') return;
+      var j = jobs[x.job] || (jobs[x.job] = { lo: 0, hi: 0 });
+      j.lo = Math.max(j.lo, x.costLo);
+      j.hi = Math.max(j.hi, x.costHi);
+    });
+    var ironLo = 0, ironHi = 0;
+    Object.keys(jobs).forEach(function (k) { ironLo += jobs[k].lo; ironHi += jobs[k].hi; });
+    var ironMid = (ironLo + ironHi) / 2;
+
+    var replaceAdvice = null;
+    if (ironMid >= SET_BENCHMARK) {
+      replaceAdvice = { level: 'replace', ironLo: ironLo, ironHi: ironHi, benchmark: SET_BENCHMARK };
+      f.forEach(function (x) { if (x.job && x.severity !== 'ok' && x.severity !== 'unknown') x.superseded = true; });
+      add({
+        area: 'Replace the set rather than repair it', severity: 'high', job: null,
+        costLo: SET_BENCHMARK, costHi: SET_BENCHMARK,
+        costLabel: 'From ' + CUR + SET_BENCHMARK + ' for a new fitted set',
+        quickWin: false, isReplaceAdvice: true,
+        current: money(ironLo, ironHi) + ' of bench work',
+        recommended: 'A new set built to your specs from ' + CUR + SET_BENCHMARK,
+        detail: 'Putting your current irons right comes to ' + money(ironLo, ironHi) +
+          ', and ' + SET_BENCHMARK_NOTE + ' comes to roughly ' + CUR + SET_BENCHMARK +
+          ' once it is configured to your length, lie, shaft and grip. At that point you are paying close to the price of a new set to modify an old one — and you would still have the old grooves, the old finish, and whatever the last owner did to it.',
+        fix: 'Price a new custom-built set before you book any of the work below. If you like your current heads enough to keep them, do the cheap jobs only and skip the reshaft.',
+        caveat: 'Two things flip this back the other way: heads you genuinely love and cannot buy any more, and a set young enough that the grooves still bite. Bending and re-gripping a nearly new set is still good value.'
+      });
+    } else if (ironMid >= SET_BENCHMARK * 0.6 && ironMid > 0) {
+      replaceAdvice = { level: 'warn', ironLo: ironLo, ironHi: ironHi, benchmark: SET_BENCHMARK };
+    }
+
     /* ---- rank ------------------------------------------------------------- */
     var actions = f.filter(function (x) { return x.severity !== 'ok' && x.severity !== 'unknown'; });
     var fine = f.filter(function (x) { return x.severity === 'ok'; });
     var unknowns = f.filter(function (x) { return x.severity === 'unknown'; });
 
     actions.sort(function (a, b) {
+      if (!!a.isReplaceAdvice !== !!b.isReplaceAdvice) return a.isReplaceAdvice ? -1 : 1;
+      if (!!a.superseded !== !!b.superseded) return a.superseded ? 1 : -1;
       if (SEV_RANK[b.severity] !== SEV_RANK[a.severity]) return SEV_RANK[b.severity] - SEV_RANK[a.severity];
       if (a.quickWin !== b.quickWin) return a.quickWin ? -1 : 1;
       return a.costLo - b.costLo;
     });
 
-    var quick = actions.filter(function (x) { return x.quickWin; });
+    var live = actions.filter(function (x) { return !x.superseded; });
+    var superseded = actions.filter(function (x) { return x.superseded; });
+    var quick = live.filter(function (x) { return x.quickWin; });
     var quickLo = 0, quickHi = 0, allLo = 0, allHi = 0;
     quick.forEach(function (x) { quickLo += x.costLo; quickHi += x.costHi; });
-    actions.forEach(function (x) { allLo += x.costLo; allHi += x.costHi; });
+    live.forEach(function (x) { allLo += x.costLo; allHi += x.costHi; });
 
     var headline;
     if (!actions.length) {
       headline = unknowns.length
         ? 'Nothing you told us about is wrong. Fill in the gaps below and we can check the rest.'
         : 'Everything checks out. Your clubs already match your fit — spend the money on lessons instead.';
+    } else if (replaceAdvice && replaceAdvice.level === 'replace') {
+      headline = 'Do not spend this money. Putting your irons right costs ' + money(ironLo, ironHi) +
+        ', and a new set configured to your specs comes to about ' + CUR + SET_BENCHMARK + '. Replace them instead.';
     } else if (quick.length) {
-      headline = quick.length + ' of your ' + actions.length + ' issue' + (actions.length > 1 ? 's' : '') +
-        ' can be fixed for ' + money(quickLo, quickHi) + ' without buying a single new club. Start there.';
+      var ofYours = quick.length + ' of your ' + live.length + ' issue' + (live.length > 1 ? 's' : '');
+      headline = quickHi === 0
+        ? ofYours + ' cost' + (quick.length > 1 ? '' : 's') + ' nothing at all to fix. Start there.'
+        : ofYours + ' can be fixed for ' + money(quickLo, quickHi) + ' without buying a single new club. Start there.';
     } else {
-      headline = actions.length + ' thing' + (actions.length > 1 ? 's' : '') +
+      headline = live.length + ' thing' + (live.length > 1 ? 's' : '') +
         ' worth changing, but none of them are cheap. Work down the list as budget allows.';
+    }
+    if (replaceAdvice && replaceAdvice.level === 'warn') {
+      headline += ' Worth knowing: the iron work alone comes to ' + money(ironLo, ironHi) +
+        ', and a new set configured to your specs comes to about ' + CUR + SET_BENCHMARK + ' — price both before you commit.';
     }
 
     return {
       headline: headline,
-      actions: actions, fine: fine, unknowns: unknowns, quickWins: quick,
-      quickCost: [quickLo, quickHi], totalCost: [allLo, allHi], currency: CUR
+      actions: live, superseded: superseded, fine: fine, unknowns: unknowns, quickWins: quick,
+      quickCost: [quickLo, quickHi], totalCost: [allLo, allHi],
+      ironWork: [ironLo, ironHi], replaceAdvice: replaceAdvice,
+      benchmark: SET_BENCHMARK, currency: CUR
     };
   }
 

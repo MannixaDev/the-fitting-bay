@@ -130,6 +130,29 @@ out, since "I don't know my lie angle" is the normal state for most golfers.
 
 Costs are indicative UK shop rates, set in one constant (`CUR`) plus the per-finding figures.
 
+**Repair has a ceiling.** Past a point, fixing a set of irons costs more than replacing it, and the
+audit says so rather than cheerfully quoting you £700 of bench work. `SET_BENCHMARK` holds the price
+of the cheapest credible new set built to your specs (currently £580 — a direct-to-consumer set
+priced *as configured*, since custom length and lie come with the build but premium shafts and
+non-stock grips carry an upcharge, so the sticker price is not what you pay).
+
+Only bench work on the irons counts toward that ceiling — a driver, a wedge or a box of balls are
+separate purchases. Overlapping jobs are counted once: a flex change and a material change are the
+same reshaft, not two. When the midpoint of the iron work reaches the benchmark, a
+replace-rather-than-repair card goes to the top and the individual iron repairs are demoted into a
+*"repairs you would be paying for instead"* group, out of the running totals. Between 60% and 100%
+of the benchmark it adds a warning to the headline instead.
+
+## Persistence
+
+Nothing leaves the browser. Two mechanisms, and a link always wins over a local draft:
+
+- **The URL** carries a finished fit (and its audit) in readable short keys, so a result can be
+  bookmarked, shared with a fitter, or hand-edited. `?sv=1&h=73&w=35.5&sk=m…`
+- **`localStorage`** keeps a rolling draft of whatever is typed, including the wizard step, so a
+  refresh mid-questionnaire does not lose the answers. Wrapped in try/catch throughout, since
+  private mode and blocked storage both throw.
+
 ### Speed and distance model
 
 - 7-iron clubhead speed ≈ **0.80 × driver clubhead speed**. This ratio is stable across ability

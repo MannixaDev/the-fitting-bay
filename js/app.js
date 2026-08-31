@@ -24,11 +24,399 @@
   };
 
   /* =====================================================================
+     FORM READERS — shared by the wizard and by URL restore
+     ================================================================== */
+  function isMetric() { return radio('units') === 'metric'; }
+
+  function readHeightInches() {
+    if (isMetric()) {
+      var cm = num($('#heightCm'));
+      return cm ? U.cmToIn(cm) : null;
+    }
+    var ft = parseFloat($('#heightFt').value);
+    var i = parseFloat($('#heightIn').value);
+    if (!isFinite(ft)) return null;
+    return ft * 12 + (isFinite(i) ? i : 0);
+  }
+  function readWtfInches() {
+    var v = num($('#wtf'));
+    if (!v) return null;
+    return isMetric() ? U.cmToIn(v) : v;
+  }
+  function readHandInches() {
+    var v = num($('#handLength'));
+    if (!v) return null;
+    return isMetric() ? U.cmToIn(v) : v;
+  }
+
+  /* ---------- collect ---------- */
+  function buildInput() {
+    return {
+      heightIn: readHeightInches(),
+      wtfIn: readWtfInches(),
+      handLength: readHandInches(),
+      gloveSize: $('#gloveSize').value || null,
+      age: num($('#age')),
+      gender: radio('gender'),
+      joints: radio('joints') === 'yes',
+      skill: radio('skill'),
+      handicap: (function () { var v = parseFloat($('#handicap').value); return isFinite(v) ? v : null; })(),
+      pwLoft: num($('#pwLoft')),
+      ironCarry: num($('#ironCarry')),
+      ironSpeed: num($('#ironSpeed')),
+      driverSpeed: num($('#driverSpeed')),
+      driverCarry: num($('#driverCarry')),
+      shotShape: radio('shotShape'),
+      trajectory: radio('trajectory'),
+      attack: radio('attack'),
+      tempo: radio('tempo'),
+      turf: radio('turf'),
+      priority: radio('priority'),
+      strokeArc: radio('strokeArc')
+    };
+  }
+
+
+  /* =====================================================================
+     DRAFT PERSISTENCE
+     ---------------------------------------------------------------------
+     The URL carries a finished fit, but it is only written on submit — so a
+     refresh halfway through the wizard used to lose everything. This keeps a
+     rolling copy of whatever is typed, in this browser only, and puts the
+     player back on the step they were on.
+     ================================================================== */
+  var DRAFT_KEY = 'fittingbay.draft.v1';
+  var draftTimer = null;
+
+  function store() {
+    try {
+      var t = window.localStorage;
+      t.setItem('__fb', '1'); t.removeItem('__fb');
+      return t;
+    } catch (e) { return null; }   // private mode, blocked storage, file://
+  }
+
+  function collectForm(sel) {
+    var out = {};
+    $$(sel + ' input, ' + sel + ' select').forEach(function (el) {
+      if (el.type === 'radio') { if (el.checked) out['r:' + el.name] = el.value; }
+      else if (el.id) out['#' + el.id] = el.value;
+    });
+    return out;
+  }
+
+  function applyForm(data) {
+    if (!data) return;
+    Object.keys(data).forEach(function (k) {
+      if (k.indexOf('r:') === 0) setRadio(k.slice(2), data[k]);
+      else { var el = $(k); if (el) el.value = data[k]; }
+    });
+  }
+
+  function saveDraft(step) {
+    var t = store();
+    if (!t || !$('#fitForm')) return;
+    if (draftTimer) clearTimeout(draftTimer);
+    draftTimer = setTimeout(function () {
+      try {
+        t.setItem(DRAFT_KEY, JSON.stringify({
+          v: 1, at: Date.now(),
+          step: typeof step === 'number' ? step : currentStepIndex(),
+          fit: collectForm('#fitForm'),
+          audit: $('#auditForm') ? collectForm('#auditForm') : null
+        }));
+      } catch (e) { /* quota or blocked — the tool still works */ }
+    }, 250);
+  }
+
+  function readDraft() {
+    var t = store();
+    if (!t) return null;
+    try {
+      var d = JSON.parse(t.getItem(DRAFT_KEY) || 'null');
+      return d && d.v === 1 && d.fit ? d : null;
+    } catch (e) { return null; }
+  }
+
+  function clearDraft() {
+    var t = store();
+    if (t) { try { t.removeItem(DRAFT_KEY); } catch (e) { } }
+  }
+
+  function syncUnitFields() {
+    var el = document.querySelector('input[name="units"]:checked');
+    if (el) el.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  /* =====================================================================
+     URL STATE — makes a fit bookmarkable and shareable
+     ---------------------------------------------------------------------
+     Answers are written into the query string with short, readable keys, so
+     a link can be sent to a fitter, saved, or hand-edited. Nothing is stored
+     anywhere else and nothing leaves the browser.
+     ================================================================== */
+  var STATE_VERSION = '1';
+
+  var ENUMS = {
+    skill:      { beginner: 'b', high: 'h', mid: 'm', low: 'l', scratch: 's' },
+    gender:     { male: 'm', female: 'f' },
+    shotShape:  { slice: 'sl', fade: 'fa', straight: 'st', draw: 'dr', hook: 'hk', pull: 'pl', push: 'pu' },
+    trajectory: { low: 'l', mid: 'm', high: 'h' },
+    attack:     { steep: 'st', neutral: 'ne', shallow: 'sh' },
+    tempo:      { smooth: 'sm', moderate: 'mo', aggressive: 'ag' },
+    turf:       { soft: 'so', normal: 'no', firm: 'fi' },
+    priority:   { forgiveness: 'f', distance: 'd', accuracy: 'a', workability: 'w' },
+    strokeArc:  { straight: 'st', slight: 'sl', strong: 'sg' }
+  };
+  var ENUMS_REV = {};
+  Object.keys(ENUMS).forEach(function (k) {
+    ENUMS_REV[k] = {};
+    Object.keys(ENUMS[k]).forEach(function (full) { ENUMS_REV[k][ENUMS[k][full]] = full; });
+  });
+
+  /* fit answers: [query key, element id or radio name, kind] */
+  var FIT_FIELDS = [
+    ['gl', 'gloveSize', 'val'], ['age', 'age', 'val'], ['hcp', 'handicap', 'val'],
+    ['pw', 'pwLoft', 'val'], ['ic', 'ironCarry', 'val'], ['is', 'ironSpeed', 'val'],
+    ['ds', 'driverSpeed', 'val'], ['dc', 'driverCarry', 'val'],
+    ['gd', 'gender', 'enum:gender'], ['sk', 'skill', 'enum:skill'],
+    ['ss', 'shotShape', 'enum:shotShape'], ['tj', 'trajectory', 'enum:trajectory'],
+    ['ak', 'attack', 'enum:attack'], ['tp', 'tempo', 'enum:tempo'],
+    ['tf', 'turf', 'enum:turf'], ['pr', 'priority', 'enum:priority'],
+    ['sa', 'strokeArc', 'enum:strokeArc']
+  ];
+
+  /* audit answers */
+  var AUDIT_FIELDS = [
+    ['aL', 'curIronLength'], ['aA', 'curIronLie'], ['aF', 'curIronFlex'],
+    ['aM', 'curIronMaterial'], ['aG', 'curGripSize'], ['aI', 'curLongestIron'],
+    ['aDL', 'curDriverLoft'], ['aDN', 'curDriverLength'], ['aW', 'curWedges'],
+    ['aB', 'curBall']
+  ];
+
+  function r2(v) { return Math.round(v * 100) / 100; }
+
+  function buildQuery(includeAudit) {
+    var p = [];
+    function put(k, v) {
+      if (v === null || v === undefined || v === '') return;
+      p.push(k + '=' + encodeURIComponent(v));
+    }
+    put('sv', STATE_VERSION);
+    if (isMetric()) put('u', 'm');
+    put('h', r2(readHeightInches()));
+    put('w', r2(readWtfInches()));
+    var hand = readHandInches();
+    if (hand) put('hl', r2(hand));
+    if (radio('joints') === 'yes') put('jt', '1');
+
+    FIT_FIELDS.forEach(function (f) {
+      var key = f[0], id = f[1], kind = f[2];
+      if (kind === 'val') {
+        var el = $('#' + id);
+        put(key, el && el.value !== '' ? el.value : null);
+      } else {
+        var name = kind.split(':')[1];
+        var v = radio(id);
+        put(key, v ? ENUMS[name][v] : null);
+      }
+    });
+
+    if (includeAudit && $('#auditForm')) {
+      AUDIT_FIELDS.forEach(function (f) {
+        var el = $('#' + f[1]);
+        if (el && el.value !== '') put(f[0], el.value);
+      });
+      var adj = radio('curAdj');
+      if (adj) put('aDA', adj === 'yes' ? '1' : '0');
+    }
+    return p.join('&');
+  }
+
+  function parseQuery(search) {
+    var out = {};
+    (search || '').replace(/^\?/, '').split('&').forEach(function (pair) {
+      if (!pair) return;
+      var i = pair.indexOf('=');
+      var k = i < 0 ? pair : pair.slice(0, i);
+      var v = i < 0 ? '' : decodeURIComponent(pair.slice(i + 1).replace(/\+/g, ' '));
+      if (k) out[k] = v;
+    });
+    return out;
+  }
+
+  function setVal(id, v) {
+    var el = $('#' + id);
+    if (el && v !== undefined && v !== null && v !== '') el.value = v;
+  }
+  function setRadio(name, value) {
+    if (!value) return;
+    var el = document.querySelector('input[name="' + name + '"][value="' + value + '"]');
+    if (el) el.checked = true;
+  }
+
+  /**
+   * Write the query string into the form. Returns false if the state is
+   * missing or unusable, in which case the caller leaves the wizard alone.
+   */
+  function applyState(q) {
+    var h = parseFloat(q.h), w = parseFloat(q.w);
+    if (!isFinite(h) || !isFinite(w)) return false;
+    if (h < 42 || h > 90 || w < 20 || w > 48 || w > h * 0.75) return false;
+
+    var metric = q.u === 'm';
+    setRadio('units', metric ? 'metric' : 'imperial');
+    var unitsEl = document.querySelector('input[name="units"]:checked');
+    if (unitsEl) unitsEl.dispatchEvent(new Event('change', { bubbles: true }));
+
+    if (metric) {
+      setVal('heightCm', Math.round(U.inToCm(h) * 10) / 10);
+      setVal('wtf', Math.round(U.inToCm(w) * 10) / 10);
+      if (q.hl) setVal('handLength', Math.round(U.inToCm(parseFloat(q.hl)) * 10) / 10);
+    } else {
+      var ft = Math.floor(h / 12);
+      setVal('heightFt', ft);
+      setVal('heightIn', Math.round((h - ft * 12) * 10) / 10);
+      setVal('wtf', w);
+      if (q.hl) setVal('handLength', q.hl);
+    }
+    setRadio('joints', q.jt === '1' ? 'yes' : 'no');
+
+    FIT_FIELDS.forEach(function (f) {
+      var key = f[0], id = f[1], kind = f[2];
+      if (q[key] === undefined) return;
+      if (kind === 'val') setVal(id, q[key]);
+      else {
+        var name = kind.split(':')[1];
+        setRadio(id, ENUMS_REV[name][q[key]]);
+      }
+    });
+    return true;
+  }
+
+  function applyAuditState(q) {
+    var any = false;
+    AUDIT_FIELDS.forEach(function (f) {
+      if (q[f[0]] !== undefined) { setVal(f[1], q[f[0]]); any = true; }
+    });
+    if (q.aDA !== undefined) { setRadio('curAdj', q.aDA === '1' ? 'yes' : 'no'); any = true; }
+    return any;
+  }
+
+  function writeUrl(push, includeAudit) {
+    if (!window.history || !history.replaceState) return;
+    var qs = buildQuery(includeAudit);
+    var url = location.pathname + (qs ? '?' + qs : '');
+    try {
+      if (push) history.pushState({ fit: 1 }, '', url);
+      else history.replaceState({ fit: 1 }, '', url);
+    } catch (e) { /* file:// in some browsers — the tool still works */ }
+  }
+
+  function clearUrl() {
+    if (!window.history || !history.replaceState) return;
+    try { history.replaceState(null, '', location.pathname); } catch (e) { }
+  }
+
+  /* ---------- run the fit from whatever is currently in the form ---------- */
+  function runFitFromForm() {
+    var input = buildInput();
+    var result = G.fit(input);
+    lastFit = result;
+    renderResults(result);
+    resetAuditUI();
+    renderChart($('#chartFull'), input.heightIn, input.wtfIn, true);
+    $('#wizardSection').style.display = 'none';
+    $('#results').classList.add('show');
+    return result;
+  }
+
+  function restoreFromUrl(scroll) {
+    if (!$('#fitForm')) return false;
+    var q = parseQuery(location.search);
+    if (!q.h || !applyState(q)) return false;
+    runFitFromForm();
+    if (applyAuditState(q)) {
+      $('#auditIntro').hidden = true;
+      $('#auditPanel').hidden = false;
+      renderAudit(G.audit(lastFit, readAuditInput()));
+    }
+    if (scroll) {
+      window.scrollTo({ top: $('#fit').getBoundingClientRect().top + window.pageYOffset - 74, behavior: 'auto' });
+    }
+    return true;
+  }
+
+  function restoreDraft() {
+    var d = readDraft();
+    if (!d) return false;
+    applyForm(d.fit);
+    syncUnitFields();
+    applyForm(d.fit);            // re-apply: switching units re-shows fields
+    if (d.audit) applyForm(d.audit);
+    if (typeof d.step === 'number' && d.step > 0) goToStep(d.step);
+    var n = $('#draftNotice');
+    if (n) {
+      n.hidden = false;
+      $('#draftClearBtn').addEventListener('click', function () {
+        clearDraft();
+        location.href = location.pathname;
+      });
+    }
+    return true;
+  }
+
+  /* ---------- copy link ---------- */
+  function copyLink(btn) {
+    var url = location.href;
+    var done = function (ok) {
+      var was = btn.textContent;
+      btn.textContent = ok ? 'Link copied' : 'Press Ctrl+C';
+      btn.disabled = ok;
+      setTimeout(function () { btn.textContent = was; btn.disabled = false; }, ok ? 2000 : 4000);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(function () { done(true); }, function () { legacyCopy(url, done); });
+    } else {
+      legacyCopy(url, done);
+    }
+  }
+
+  function legacyCopy(text, done) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    if (!ok) {
+      // last resort: show it so the user can copy it by hand
+      var box = $('#shareFallback');
+      if (box) {
+        box.hidden = false;
+        var inp = $('#shareUrl');
+        inp.value = text;
+        inp.focus();
+        inp.select();
+      }
+    }
+    done(ok);
+  }
+
+  /* =====================================================================
      WIZARD
      ================================================================== */
+  var currentStepIndex = function () { return 0; };
+  var goToStep = function () { };
+
   function initWizard() {
     var steps = $$('#fitForm .step');
     var current = 0;
+    currentStepIndex = function () { return current; };
+    goToStep = function (i) { showStep(i); };
     var progress = $('#progress');
     var stepTitle = $('#stepTitle'), stepNum = $('#stepNum'), stepTotal = $('#stepTotal');
     var backBtn = $('#backBtn'), nextBtn = $('#nextBtn'), submitBtn = $('#submitBtn');
@@ -75,11 +463,12 @@
       var err = validateStep(current);
       if (err) { formErr.textContent = err; return; }
       showStep(current + 1);
+      saveDraft();
     });
-    backBtn.addEventListener('click', function () { showStep(current - 1); });
+    backBtn.addEventListener('click', function () { showStep(current - 1); saveDraft(); });
 
-    /* ---------- units ---------- */
-    function isMetric() { return radio('units') === 'metric'; }
+    $('#fitForm').addEventListener('input', function () { saveDraft(); });
+    $('#fitForm').addEventListener('change', function () { saveDraft(); });
 
     $$('input[name="units"]').forEach(function (r) {
       r.addEventListener('change', function () {
@@ -98,54 +487,6 @@
       });
     });
 
-    function readHeightInches() {
-      if (isMetric()) {
-        var cm = num($('#heightCm'));
-        return cm ? U.cmToIn(cm) : null;
-      }
-      var ft = parseFloat($('#heightFt').value);
-      var i = parseFloat($('#heightIn').value);
-      if (!isFinite(ft)) return null;
-      return ft * 12 + (isFinite(i) ? i : 0);
-    }
-    function readWtfInches() {
-      var v = num($('#wtf'));
-      if (!v) return null;
-      return isMetric() ? U.cmToIn(v) : v;
-    }
-    function readHandInches() {
-      var v = num($('#handLength'));
-      if (!v) return null;
-      return isMetric() ? U.cmToIn(v) : v;
-    }
-
-    /* ---------- collect ---------- */
-    function buildInput() {
-      return {
-        heightIn: readHeightInches(),
-        wtfIn: readWtfInches(),
-        handLength: readHandInches(),
-        gloveSize: $('#gloveSize').value || null,
-        age: num($('#age')),
-        gender: radio('gender'),
-        joints: radio('joints') === 'yes',
-        skill: radio('skill'),
-        handicap: (function () { var v = parseFloat($('#handicap').value); return isFinite(v) ? v : null; })(),
-        pwLoft: num($('#pwLoft')),
-        ironCarry: num($('#ironCarry')),
-        ironSpeed: num($('#ironSpeed')),
-        driverSpeed: num($('#driverSpeed')),
-        driverCarry: num($('#driverCarry')),
-        shotShape: radio('shotShape'),
-        trajectory: radio('trajectory'),
-        attack: radio('attack'),
-        tempo: radio('tempo'),
-        turf: radio('turf'),
-        priority: radio('priority'),
-        strokeArc: radio('strokeArc')
-      };
-    }
-
     $('#fitForm').addEventListener('submit', function (e) {
       e.preventDefault();
       for (var i = 0; i < steps.length; i++) {
@@ -153,20 +494,16 @@
         if (err) { showStep(i); formErr.textContent = err; return; }
       }
       formErr.textContent = '';
-      var input = buildInput();
-      var result = G.fit(input);
-      lastFit = result;
-      renderResults(result);
-      resetAuditUI();
-      renderChart($('#chartFull'), input.heightIn, input.wtfIn, true);
-      $('#wizardSection').style.display = 'none';
-      $('#results').classList.add('show');
+      runFitFromForm();
+      writeUrl(true, false);
+      saveDraft(0);
       window.scrollTo({ top: $('#fit').getBoundingClientRect().top + window.pageYOffset - 74, behavior: 'smooth' });
     });
 
     $('#editBtn').addEventListener('click', function () {
       $('#results').classList.remove('show');
       $('#wizardSection').style.display = '';
+      clearUrl();
       showStep(0);
     });
     $('#printBtn').addEventListener('click', function () { window.print(); });
@@ -486,10 +823,14 @@
       $('#auditResults').innerHTML = '';
     });
 
+    form.addEventListener('input', function () { saveDraft(); });
+    form.addEventListener('change', function () { saveDraft(); });
+
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       if (!lastFit) return;
       renderAudit(G.audit(lastFit, readAuditInput()));
+      writeUrl(false, true);
       $('#auditResults').scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }
@@ -528,7 +869,7 @@
   var SEV_LABEL = { high: 'Fix this first', medium: 'Worth fixing', low: 'Minor' };
 
   function findingCard(x, n) {
-    var h = ['<div class="finding sev-' + x.severity + '">'];
+    var h = ['<div class="finding sev-' + x.severity + (x.isReplaceAdvice ? ' is-replace' : '') + '">'];
     h.push('<div class="finding-head">');
     h.push('<span class="finding-n">' + n + '</span>');
     h.push('<div class="finding-title"><b>' + esc(x.area) + '</b>');
@@ -561,6 +902,16 @@
       o.push('<div class="findings">' + a.actions.map(function (x, i) { return findingCard(x, i + 1); }).join('') + '</div>');
     }
 
+    if (a.superseded && a.superseded.length) {
+      var sLo = 0, sHi = 0;
+      a.superseded.forEach(function (x) { sLo += x.costLo; sHi += x.costHi; });
+      o.push('<details class="audit-group superseded"><summary><b>' + a.superseded.length +
+        ' repair' + (a.superseded.length > 1 ? 's' : '') + ' you would be paying for instead</b> ' +
+        '<span class="tiny">&mdash; ' + esc(costRange(a, [sLo, sHi])) + ' of work on irons you would be replacing</span></summary><div>');
+      a.superseded.forEach(function (x, i) { o.push(findingCard(x, i + 1)); });
+      o.push('</div></details>');
+    }
+
     if (a.fine.length) {
       o.push('<details class="audit-group"><summary><b>' + a.fine.length +
         ' thing' + (a.fine.length > 1 ? 's' : '') + ' you should leave alone</b> ' +
@@ -587,7 +938,9 @@
 
     o.push('<div class="note">Prices are indicative UK shop rates for a set of irons and will vary. ' +
       'The ordering assumes you want the biggest improvement per pound spent, which is why a bend and a re-grip ' +
-      'come before a reshaft even when the reshaft is the larger error.</div>');
+      'come before a reshaft even when the reshaft is the larger error. The ' + esc(a.currency) + esc(a.benchmark) +
+      ' replacement benchmark is a direct-to-consumer set priced <em>as configured</em> &mdash; custom length and lie ' +
+      'come with the build, but premium shafts and non-stock grips add to it, so the sticker price is not what you pay.</div>');
     o.push('</div>');
     $('#auditResults').innerHTML = o.join('');
   }
@@ -637,4 +990,20 @@
   if ($('#chartFull')) renderChart($('#chartFull'), null, null, true);
   if ($('#fitForm')) initWizard();
   initAudit();
+
+  if ($('#copyLinkBtn')) {
+    $('#copyLinkBtn').addEventListener('click', function () { copyLink(this); });
+  }
+  if ($('#fitForm')) {
+    /* A link wins over a local draft: if someone opens a shared fit, that is
+       the fit they meant to see. Otherwise fall back to whatever they had
+       typed on this device. */
+    if (!restoreFromUrl(true)) restoreDraft();
+    window.addEventListener('popstate', function () {
+      if (!restoreFromUrl(false)) {
+        $('#results').classList.remove('show');
+        $('#wizardSection').style.display = '';
+      }
+    });
+  }
 })();
