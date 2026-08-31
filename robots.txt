@@ -1,0 +1,7 @@
+# The Fitting Bay — a free static golf club fitting calculator.
+# Nothing here is private and nothing is generated per-visitor, so crawl away.
+
+User-agent: *
+Allow: /
+
+Sitemap: https://fittingbay.com/sitemap.xml
