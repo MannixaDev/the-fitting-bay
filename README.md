@@ -5,17 +5,20 @@ dependencies, no back end. Open `index.html` in a browser and it works.
 
 ```
 golffitting/
-├── index.html                  the fitting tool: wizard, results, Bay Scale chart
-├── fitting-information.html    reference pages: how fitting works, all the tables
+├── index.html                  the fitting tool: wizard, results, audit, Bay Scale chart
+├── fitting-information.html    reference: how fitting works, all the tables
+├── favicon.svg
+├── og-image.png                social share card (1200×630)
 ├── css/styles.css
 ├── js/fitting-engine.js        all fitting logic, pure functions, no DOM
-├── js/app.js                   wizard UI, SVG chart rendering, results rendering
-└── .claude/launch.json         dev-server config for the preview pane
+├── js/app.js                   wizard UI, SVG rendering, results, audit, persistence
+├── tools/bump.js               rewrites the ?v= cache-busters from file hashes
+└── .githooks/pre-commit        runs bump.js so they can never go stale
+```
 
 `app.js` is shared by both pages and is page-aware: the wizard initialises only where
-`#fitForm` exists, while the chart and reference tables render wherever their host elements
-are present.
-```
+`#fitForm` exists, while the chart, diagrams and reference tables render wherever their host
+elements are present.
 
 ## Running it
 
@@ -25,8 +28,19 @@ Double-click `index.html`, or serve the folder:
 python -m http.server 8123
 ```
 
-The `?v=N` query strings on the asset links are cache-busters. Bump them when you edit
-`styles.css` or the JS, or browsers will keep serving the old file.
+The `?v=` query strings on the asset links are content hashes. They are generated, not
+hand-written:
+
+```bash
+node tools/bump.js          # rewrite in place
+node tools/bump.js --check  # exit 1 if stale, for CI
+```
+
+A pre-commit hook runs it automatically. Enable it once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
 
 ## What it outputs
 
@@ -45,8 +59,33 @@ angle, tempo, turf, priority, putting stroke) it produces:
 - **Set makeup** for all 14 slots with an estimated carry-gap table
 - A **build sheet** table of every club: standard spec, adjustment, and the number to build to
 
+- **Named shafts** — a shortlist of widely stocked models matching your weight, flex and flight
+- **Junior sizing** where the player is a child, and **women's-set traps** where relevant
+
 It then offers a second, separate pass — **"check the clubs you already own"** — which diffs your
-current specs against the fit and returns a prioritised, costed list of what to change.
+current specs against the fit and returns a prioritised, costed list of what to change, optionally
+filtered to a budget.
+
+## Design decisions worth knowing
+
+**Handedness is a property of the text, not the logic.** Shot shapes are named from the player's
+point of view and are already handedness-neutral — a slice always curves *away* from the player.
+So the engine keeps `slice`/`hook`/`pull`/`push` as-is and routes every "left" and "right" in
+user-facing copy through `sides(input)`. On the page, `.dir-away` / `.dir-home` spans are swapped
+at runtime. Nothing branches on handedness, which means nothing can drift out of sync.
+
+**The carry table is editable.** It starts as a modelled ladder from your speed, but every number
+is an input. Type your real yardages over the estimates and the gaps recalculate live, measured
+rows are marked, and those numbers feed the audit as gapping findings — which is how you catch the
+classic "my 4-iron and 5-iron go the same distance". Overrides persist in the draft.
+
+**Sensitivity is reported, not hidden.** The result says whether ½" of measuring error either way
+would change your lie code. If it would, that is exactly the case where a fitter tests both, and
+the tool says so rather than projecting false precision.
+
+**Wrist-to-floor gets a live sanity check.** Because everything rests on it, an entry more than
+2.5" from typical for that height triggers a warning *while you type*, alongside an SVG diagram and
+the three specific ways people take the measurement wrong.
 
 ## Provenance
 
@@ -143,15 +182,37 @@ replace-rather-than-repair card goes to the top and the individual iron repairs 
 *"repairs you would be paying for instead"* group, out of the running totals. Between 60% and 100%
 of the benchmark it adds a warning to the headline instead.
 
+### Budget planning
+
+`audit(fit, current, budget)` picks the combination of fixes that buys the most improvement per
+pound: free fixes first, then greedy by severity-per-pound. Two special cases matter more than the
+arithmetic:
+
+- If a **new set** is the recommendation and the budget covers it, it is forced to the top of the
+  plan rather than competing on value-per-pound — otherwise a £100 wedge buries a £580 decision.
+- If a new set is the recommendation and the budget **does not** cover it, the cheap bench work
+  that was set aside becomes available again as an interim plan, and the tool says plainly that
+  the rest should be saved rather than sunk into a reshaft you are about to throw away.
+
 ## Persistence
 
-Nothing leaves the browser. Two mechanisms, and a link always wins over a local draft:
+Nothing leaves the browser. Three mechanisms, and a link always wins over a local draft:
 
 - **The URL** carries a finished fit (and its audit) in readable short keys, so a result can be
   bookmarked, shared with a fitter, or hand-edited. `?sv=1&h=73&w=35.5&sk=m…`
-- **`localStorage`** keeps a rolling draft of whatever is typed, including the wizard step, so a
-  refresh mid-questionnaire does not lose the answers. Wrapped in try/catch throughout, since
-  private mode and blocked storage both throw.
+- **`localStorage`** keeps a rolling draft of whatever is typed, including the wizard step and any
+  carry overrides, so a refresh mid-questionnaire does not lose the answers. Wrapped in try/catch
+  throughout, since private mode and blocked storage both throw.
+- **Saved profiles** hold up to a dozen named fits on the device (`Me`, `Dad`, `after lessons`),
+  each stored as its query string so loading one is just a navigation.
+
+## Accessibility
+
+Radio groups get `role="radiogroup"` and `aria-labelledby`, and hints become `aria-describedby`
+descriptions — wired in JS at init rather than hand-edited across forty groups, so new fields
+inherit it for free. The step heading is focused on each wizard advance (but not on first paint),
+the step counter is an `aria-live` region, there is a skip link, and `prefers-reduced-motion` is
+honoured.
 
 ### Speed and distance model
 

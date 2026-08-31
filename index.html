@@ -5,9 +5,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The Fitting Bay — Golf Club Fitting Calculator</title>
 <meta name="description" content="A free, static golf club fitting tool. Enter your height, wrist-to-floor and swing data and get lie angle, shaft flex, club length, driver loft, wedge bounce, grip size, putter specs and a full 14-club build sheet.">
-<link rel="stylesheet" href="css/styles.css?v=13">
+<link rel="icon" href="favicon.svg?v=1" type="image/svg+xml">
+<link rel="canonical" href="https://mannixadev.github.io/the-fitting-bay/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="The Fitting Bay">
+<meta property="og:url" content="https://mannixadev.github.io/the-fitting-bay/">
+<meta property="og:title" content="The Fitting Bay — find out what clubs actually fit you">
+<meta property="og:description" content="Free static golf club fitting. Lie angle, club length, shaft flex, driver loft, wedge bounce, grip size, putter specs and a full 14-club build sheet — plus an audit of the clubs you already own.">
+<meta property="og:image" content="https://mannixadev.github.io/the-fitting-bay/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The Fitting Bay — find out what clubs actually fit you">
+<meta name="twitter:description" content="Free static golf club fitting: lie, length, shaft, loft, bounce, grips, putter and a full build sheet.">
+<meta name="twitter:image" content="https://mannixadev.github.io/the-fitting-bay/og-image.png">
+<meta name="theme-color" content="#0d1210">
+<link rel="stylesheet" href="css/styles.css?v=a904895c">
 </head>
 <body>
+
+<a class="skip-link" href="#top">Skip to content</a>
 
 <header class="site-header">
   <div class="wrap">
@@ -50,10 +67,16 @@
   <section id="fit">
     <div class="wrap">
       <div id="wizardSection">
+        <div class="profile-bar" id="profileBar" hidden>
+          <span class="tiny">Saved on this device:</span>
+          <select id="profileSelect" aria-label="Saved fits"></select>
+          <button type="button" class="btn btn-ghost" id="profileLoad">Load</button>
+          <button type="button" class="btn btn-ghost" id="profileDelete">Delete</button>
+        </div>
         <div class="panel wizard">
           <div class="wizard-top">
-            <div class="step-meta">
-              <h2 id="stepTitle" style="margin:0">Your measurements</h2>
+            <div class="step-meta" aria-live="polite">
+              <h2 id="stepTitle" style="margin:0" tabindex="-1">Your measurements</h2>
               <div class="count"><span id="stepNum">1</span> / <span id="stepTotal">8</span></div>
             </div>
             <div class="progress-track" id="progress"></div>
@@ -93,6 +116,25 @@
                     Get someone else to do it — reaching down yourself changes the answer.</p>
                 </div>
               </div>
+              <p class="hint" id="wtfLive" hidden></p>
+
+              <details class="how-to">
+                <summary>Show me exactly how to measure wrist-to-floor</summary>
+                <div class="how-to-body">
+                  <div data-diagram="wtf"></div>
+                  <div>
+                    <h4>The three ways people get this wrong</h4>
+                    <ul class="mistakes">
+                      <li><b>Reaching down.</b> The moment you look at the tape you drop your shoulder and add an inch.
+                        Stand still, look ahead, let someone else read it.</li>
+                      <li><b>Measuring in socks.</b> Golf shoes add roughly ½", and you play in golf shoes.</li>
+                      <li><b>Measuring from the wrong point.</b> It is the <em>crease</em> where your palm meets your
+                        wrist, not the knuckle, not the base of your thumb, and not the tip of your little finger.</li>
+                    </ul>
+                  </div>
+                </div>
+              </details>
+
               <div class="note">Both numbers move the result. Height sets your club <em>length</em>; height and
                 wrist-to-floor together set your <em>lie angle</em>. A ½" error in wrist-to-floor is enough to change
                 your lie recommendation by a full degree.</div>
@@ -132,6 +174,14 @@
                   <label for="age">Age</label>
                   <input type="number" id="age" min="6" max="105" step="1" placeholder="42" inputmode="numeric">
                   <p class="hint">Used for shaft weight, material and grip size.</p>
+                </div>
+                <div class="field">
+                  <label>You play</label>
+                  <div class="opts">
+                    <label class="opt"><input type="radio" name="handedness" value="right" checked><span>Right-handed</span></label>
+                    <label class="opt"><input type="radio" name="handedness" value="left"><span>Left-handed</span></label>
+                  </div>
+                  <p class="hint">Every direction in your results is written for the way you actually play.</p>
                 </div>
                 <div class="field">
                   <label>Standard set specs</label>
@@ -216,15 +266,14 @@
                 <div class="field field-wide">
                   <label>Your usual shot shape or miss</label>
                   <div class="opts">
-                    <label class="opt"><input type="radio" name="shotShape" value="slice"><span>Slice<em>Starts left-ish, curves hard right</em></span></label>
-                    <label class="opt"><input type="radio" name="shotShape" value="fade"><span>Fade<em>Gentle left-to-right</em></span></label>
+                    <label class="opt"><input type="radio" name="shotShape" value="slice"><span>Slice<em>Starts <span class="dir-home">left</span>-ish, curves hard <span class="dir-away">right</span></em></span></label>
+                    <label class="opt"><input type="radio" name="shotShape" value="fade"><span>Fade<em>Gentle <span class="dir-home">left</span>-to-<span class="dir-away">right</span></em></span></label>
                     <label class="opt"><input type="radio" name="shotShape" value="straight" checked><span>Straight<em>No consistent curve</em></span></label>
-                    <label class="opt"><input type="radio" name="shotShape" value="draw"><span>Draw<em>Gentle right-to-left</em></span></label>
-                    <label class="opt"><input type="radio" name="shotShape" value="hook"><span>Hook<em>Curves hard left</em></span></label>
-                    <label class="opt"><input type="radio" name="shotShape" value="pull"><span>Pull<em>Straight, but left of target</em></span></label>
-                    <label class="opt"><input type="radio" name="shotShape" value="push"><span>Push<em>Straight, but right of target</em></span></label>
+                    <label class="opt"><input type="radio" name="shotShape" value="draw"><span>Draw<em>Gentle <span class="dir-away">right</span>-to-<span class="dir-home">left</span></em></span></label>
+                    <label class="opt"><input type="radio" name="shotShape" value="hook"><span>Hook<em>Curves hard <span class="dir-home">left</span></em></span></label>
+                    <label class="opt"><input type="radio" name="shotShape" value="pull"><span>Pull<em>Straight, but <span class="dir-home">left</span> of target</em></span></label>
+                    <label class="opt"><input type="radio" name="shotShape" value="push"><span>Push<em>Straight, but <span class="dir-away">right</span> of target</em></span></label>
                   </div>
-                  <p class="hint">Right-handed golfers: read these as written. Left-handed: swap left and right.</p>
                 </div>
                 <div class="field field-wide">
                   <label>Your natural trajectory with irons</label>
@@ -319,10 +368,19 @@
             <p class="eyebrow" style="margin-bottom:.4rem">Your build sheet</p>
             <h2 style="margin:0">Here is what fits you</h2>
           </div>
+          <button type="button" class="btn btn-ghost" id="saveFitBtn">Save this fit</button>
           <button type="button" class="btn btn-ghost" id="copyLinkBtn">Copy link to this fit</button>
           <button type="button" class="btn btn-ghost" id="printBtn">Print / save as PDF</button>
           <button type="button" class="btn btn-ghost" id="editBtn">Change my answers</button>
         </div>
+        <form class="save-fit no-print" id="saveFitForm" hidden>
+          <label class="tiny" for="saveFitName">Name this fit (e.g. "Me", "Dad", "after lessons")</label>
+          <div>
+            <input type="text" id="saveFitName" maxlength="40" placeholder="Me">
+            <button type="submit" class="btn btn-primary">Save</button>
+            <button type="button" class="btn btn-ghost" id="saveFitCancel">Cancel</button>
+          </div>
+        </form>
         <div class="share-note no-print">
           <p class="tiny">Your answers are in this page's address, so you can bookmark it, come back to it, or
             send it to your pro. Nothing is stored on a server &mdash; the link <em>is</em> the data.</p>
@@ -440,6 +498,16 @@
               </div>
             </div>
 
+            <h4 style="margin-top:24px">Your budget <span class="tiny" style="font-weight:400">(optional)</span></h4>
+            <div class="field-grid">
+              <div class="field">
+                <label for="curBudget">What can you spend right now?</label>
+                <input type="number" id="curBudget" min="0" max="5000" step="10" placeholder="150" inputmode="numeric">
+                <p class="hint">We will pick the combination that buys the most improvement for the money, and tell you
+                  what can wait. Leave blank for the full list.</p>
+              </div>
+            </div>
+
             <h4 style="margin-top:24px">The rest of the bag</h4>
             <div class="field-grid">
               <div class="field">
@@ -508,7 +576,7 @@
   </div>
 </footer>
 
-<script src="js/fitting-engine.js?v=13"></script>
-<script src="js/app.js?v=13"></script>
+<script src="js/fitting-engine.js?v=e6f221fb"></script>
+<script src="js/app.js?v=f893d116"></script>
 </body>
 </html>

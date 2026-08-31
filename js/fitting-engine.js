@@ -81,6 +81,22 @@
     75: 35.00, 76: 35.40, 77: 35.80, 78: 36.20, 79: 36.60
   };
 
+  /* ---------------------------------------------------------------------
+     HANDEDNESS
+     ---------------------------------------------------------------------
+     Shot shapes are named from the player's point of view and are therefore
+     handedness-neutral: a slice always curves AWAY from the player, a hook
+     always curves toward them. Only the words "left" and "right" flip, so
+     every direction in user-facing text is written through this helper.
+     ------------------------------------------------------------------ */
+  function sides(input) {
+    var lh = input && input.handedness === 'left';
+    return {
+      away: lh ? 'left' : 'right',   // where a slice/push finishes
+      home: lh ? 'right' : 'left'    // where a hook/pull finishes
+    };
+  }
+
   function levelCentre(heightIn) {
     if (heightIn <= 60) return REFERENCE_WTF[60] - (60 - heightIn) * 0.50;
     if (heightIn >= 79) return REFERENCE_WTF[79] + (heightIn - 79) * 0.40;
@@ -316,21 +332,23 @@
       graphiteReasons.push('Borderline — modern premium graphite iron shafts (95–105 g) are worth testing head-to-head against steel at your speed.');
     }
 
-    var driverWeight, ironWeight;
+    var driverWeight, ironWeight, driverRange, ironRange;
     switch (driverFlex) {
-      case 'L': driverWeight = '40–50 g'; break;
-      case 'A': driverWeight = '45–55 g'; break;
-      case 'R': driverWeight = '55–65 g'; break;
-      case 'S': driverWeight = '60–70 g'; break;
-      case 'X': driverWeight = '70–80 g'; break;
-      default: driverWeight = '75–90 g';
+      case 'L': driverRange = [40, 50]; break;
+      case 'A': driverRange = [45, 55]; break;
+      case 'R': driverRange = [55, 65]; break;
+      case 'S': driverRange = [60, 70]; break;
+      case 'X': driverRange = [70, 80]; break;
+      default: driverRange = [75, 90];
     }
+    driverWeight = driverRange[0] + '–' + driverRange[1] + ' g';
     if (material === 'Graphite') {
-      ironWeight = i7 < 62 ? '45–55 g' : i7 < 70 ? '55–70 g' : i7 < 78 ? '70–85 g' : '85–105 g';
+      ironRange = i7 < 62 ? [45, 55] : i7 < 70 ? [55, 70] : i7 < 78 ? [70, 85] : [85, 105];
     } else {
-      ironWeight = ironFlex === 'A' ? '85–95 g' : ironFlex === 'R' ? '95–110 g'
-        : ironFlex === 'S' ? '105–120 g' : '120–130 g';
+      ironRange = ironFlex === 'A' ? [85, 95] : ironFlex === 'R' ? [95, 110]
+        : ironFlex === 'S' ? [105, 120] : [120, 130];
     }
+    ironWeight = ironRange[0] + '–' + ironRange[1] + ' g';
     if (input.tempo === 'smooth') ironWeight += ' (favour the lighter end)';
     if (input.tempo === 'aggressive') ironWeight += ' (favour the heavier end)';
 
@@ -344,7 +362,94 @@
       baseFlex: base, baseFlexName: FLEX_NAME[base], tempoNote: tempoNote,
       material: material, graphiteReasons: graphiteReasons,
       driverWeight: driverWeight, ironWeight: ironWeight,
+      driverRange: driverRange, ironRange: ironRange,
       profile: profile, nearBoundary: near
+    };
+  }
+
+  /* ---------------------------------------------------------------------
+     4b. SHAFT LIBRARY
+     ---------------------------------------------------------------------
+     "Buy something 105-120 g" is not actionable. These are widely stocked
+     models that a fitter or a club shop will have in the building rack, so a
+     player can walk in and ask for one by name. Weight is the real spec; the
+     letter on the shaft is not standardised between manufacturers.
+
+     Reviewed August 2026. Models come and go — treat as a starting shortlist,
+     not gospel, and check what your fitter actually has.
+     ------------------------------------------------------------------ */
+  var SHAFT_LIBRARY = {
+    ironSteel: [
+      { name: 'True Temper Elevate MPH 85', g: [83, 88], flex: ['A', 'R'], launch: 'high' },
+      { name: 'Nippon N.S. Pro 850GH', g: [85, 90], flex: ['A', 'R', 'S'], launch: 'high' },
+      { name: 'True Temper Elevate 95', g: [94, 99], flex: ['R', 'S'], launch: 'high' },
+      { name: 'KBS Tour Lite', g: [95, 105], flex: ['R', 'S'], launch: 'mid-high' },
+      { name: 'Project X LZ', g: [95, 125], flex: ['R', 'S', 'X'], launch: 'mid' },
+      { name: 'Nippon N.S. Pro Modus³ Tour 105', g: [103, 107], flex: ['R', 'S', 'X'], launch: 'mid' },
+      { name: 'True Temper Dynamic Gold 105', g: [103, 108], flex: ['R', 'S'], launch: 'mid-low' },
+      { name: 'KBS Tour', g: [110, 130], flex: ['R', 'S', 'X'], launch: 'mid' },
+      { name: 'Nippon N.S. Pro Modus³ Tour 120', g: [114, 120], flex: ['S', 'X'], launch: 'mid-low' },
+      { name: 'True Temper Dynamic Gold 120 / VSS', g: [119, 132], flex: ['S', 'X', 'XX'], launch: 'low' }
+    ],
+    ironGraphite: [
+      { name: 'UST Mamiya Recoil ES 460', g: [45, 55], flex: ['L', 'A'], launch: 'high' },
+      { name: 'Mitsubishi MMT 60', g: [55, 65], flex: ['A', 'R'], launch: 'mid-high' },
+      { name: 'UST Mamiya Recoil 660 / 680', g: [63, 72], flex: ['A', 'R', 'S'], launch: 'mid-high' },
+      { name: 'Aerotech SteelFiber i70 / i80', g: [68, 85], flex: ['R', 'S'], launch: 'mid' },
+      { name: 'Mitsubishi MMT 80', g: [75, 85], flex: ['R', 'S'], launch: 'mid' },
+      { name: 'Aerotech SteelFiber i95', g: [90, 98], flex: ['R', 'S', 'X'], launch: 'mid' },
+      { name: 'Aerotech SteelFiber i110', g: [105, 115], flex: ['S', 'X'], launch: 'mid-low' }
+    ],
+    driver: [
+      { name: 'Aldila Ascent / UST Attas Speed', g: [40, 52], flex: ['L', 'A'], launch: 'high' },
+      { name: 'Mitsubishi Tensei AV Blue', g: [50, 62], flex: ['A', 'R', 'S'], launch: 'mid-high' },
+      { name: 'Fujikura Ventus Red', g: [50, 66], flex: ['A', 'R', 'S'], launch: 'high' },
+      { name: 'Project X HZRDUS Smoke Red RDX', g: [55, 65], flex: ['R', 'S'], launch: 'mid-high' },
+      { name: 'Fujikura Ventus Blue', g: [55, 75], flex: ['R', 'S', 'X'], launch: 'mid' },
+      { name: 'Mitsubishi Tensei 1K Black', g: [60, 80], flex: ['S', 'X'], launch: 'low' },
+      { name: 'Fujikura Ventus Black', g: [60, 85], flex: ['S', 'X', 'XX'], launch: 'low' },
+      { name: 'Graphite Design Tour AD series', g: [55, 85], flex: ['R', 'S', 'X'], launch: 'mid' }
+    ]
+  };
+
+  var LAUNCH_ORDER = ['low', 'mid-low', 'mid', 'mid-high', 'high'];
+
+  function wantedLaunch(trajectory) {
+    if (trajectory === 'low') return 'mid-high';
+    if (trajectory === 'high') return 'mid-low';
+    return 'mid';
+  }
+
+  function pickShafts(list, flex, range, trajectory) {
+    var want = wantedLaunch(trajectory);
+    var wantIdx = LAUNCH_ORDER.indexOf(want);
+    return list
+      .filter(function (x) {
+        var overlaps = x.g[0] <= range[1] && x.g[1] >= range[0];
+        return overlaps && x.flex.indexOf(flex) !== -1;
+      })
+      .map(function (x) {
+        var d = Math.abs(LAUNCH_ORDER.indexOf(x.launch) - wantIdx);
+        return { shaft: x, dist: d };
+      })
+      .sort(function (a, b) { return a.dist - b.dist; })
+      .slice(0, 3)
+      .map(function (o) {
+        return {
+          name: o.shaft.name,
+          weight: o.shaft.g[0] === o.shaft.g[1] ? o.shaft.g[0] + ' g' : o.shaft.g[0] + '–' + o.shaft.g[1] + ' g',
+          launch: o.shaft.launch,
+          onProfile: o.dist === 0
+        };
+      });
+  }
+
+  function shaftSuggestions(shafts, input) {
+    return {
+      irons: pickShafts(shafts.material === 'Graphite' ? SHAFT_LIBRARY.ironGraphite : SHAFT_LIBRARY.ironSteel,
+        shafts.ironFlex, shafts.ironRange, input.trajectory),
+      driver: pickShafts(SHAFT_LIBRARY.driver, shafts.driverFlex, shafts.driverRange, input.trajectory),
+      note: 'Shortlist only, reviewed August 2026. Weight is the spec that matters; flex letters are not standardised between manufacturers, so a Stiff in one model can play like a Regular in another. Hit them before you buy.'
     };
   }
 
@@ -404,6 +509,7 @@
      6. IRON HEAD CATEGORY
      ------------------------------------------------------------------ */
   function ironHeadFit(input, speeds) {
+    var S = sides(input);
     var hcp = isNum(input.handicap) ? input.handicap
       : (input.skill === 'scratch' ? 2 : input.skill === 'low' ? 8 : input.skill === 'mid' ? 15 : input.skill === 'high' ? 22 : 30);
     var cat, why, alt;
@@ -418,9 +524,9 @@
       alt = 'If you miss the centre more often than you would like, a players-distance head gives up almost nothing in looks and adds real ball speed on mishits.';
     } else if (hcp <= 18) {
       cat = 'Players Distance / Game Improvement';
-      why = 'Mid handicap is the transition zone. Players-distance heads keep a clean look with a hollow body or forged face for ball speed; game improvement adds a wider sole and more offset if you fight low shots to the right.';
+      why = 'Mid handicap is the transition zone. Players-distance heads keep a clean look with a hollow body or forged face for ball speed; game improvement adds a wider sole and more offset if you fight low shots to the ' + S.away + '.';
       alt = (input.shotShape === 'slice' || input.shotShape === 'fade')
-        ? 'Given your left-to-right miss, take the game-improvement option — the extra offset genuinely helps you square the face.'
+        ? 'Given your ' + S.home + '-to-' + S.away + ' miss, take the game-improvement option — the extra offset genuinely helps you square the face.'
         : 'With your ball flight either category works. Pick on looks and turf interaction, and hit both off real grass if you can.';
     } else if (hcp <= 27) {
       cat = 'Game Improvement';
@@ -442,6 +548,7 @@
      7. GRIP
      ------------------------------------------------------------------ */
   function gripFit(input) {
+    var S = sides(input);
     var h = input.handLength;
     var size, why, key;
     if (!isNum(h)) {
@@ -462,8 +569,8 @@
     }
 
     var mods = [];
-    if (input.shotShape === 'hook' || input.shotShape === 'pull') mods.push('Your left-side miss is a reason to go one size LARGER than the measurement suggests. A thicker grip quietens hand and wrist action and slows face rotation through impact.');
-    if (input.shotShape === 'slice' || input.shotShape === 'push') mods.push('Your right-side miss is a reason to stay at or slightly below the measured size. A thinner grip lets the hands release and helps the face square up.');
+    if (input.shotShape === 'hook' || input.shotShape === 'pull') mods.push('Your ' + S.home + '-side miss is a reason to go one size LARGER than the measurement suggests. A thicker grip quietens hand and wrist action and slows face rotation through impact.');
+    if (input.shotShape === 'slice' || input.shotShape === 'push') mods.push('Your ' + S.away + '-side miss is a reason to stay at or slightly below the measured size. A thinner grip lets the hands release and helps the face square up.');
     if (input.joints) mods.push('With joint pain, go up a size and choose a softer compound. A larger, softer grip lets you hold the club with less grip pressure, which is worth more to arthritic hands than any other single spec in the bag.');
     if (isNum(input.age) && input.age >= 65) mods.push('Grip diameter tends to want to go up with age as hand strength drops. Midsize is very common past 65.');
     mods.push('Cross-check against your glove: a men’s Medium or Medium-Large glove usually lands on standard; XL and above usually points to midsize.');
@@ -588,6 +695,7 @@
      10. PUTTER
      ------------------------------------------------------------------ */
   function putterFit(input, heightIn, wtfIn) {
+    var S = sides(input);
     var len;
     if (heightIn < 62) len = 32;
     else if (heightIn < 65) len = 32.5;
@@ -629,7 +737,7 @@
       grip: (input.shotShape === 'hook' || input.joints)
         ? 'Oversize or counterbalanced pistol — quietens the hands'
         : 'Standard pistol, or oversize if you are wristy through the ball',
-      check: 'The length check that beats every chart: set up comfortably and let your arms hang. Your eyes should be over the ball or a fraction inside it, and the putter should sit flat on its sole. If the toe is in the air, the putter is too long or too upright for you — and a toe-up putter pushes putts to the right.'
+      check: 'The length check that beats every chart: set up comfortably and let your arms hang. Your eyes should be over the ball or a fraction inside it, and the putter should sit flat on its sole. If the toe is in the air, the putter is too long or too upright for you — and a toe-up putter pushes putts to the ' + S.away + '.'
     };
   }
 
@@ -663,20 +771,88 @@
      12. DYNAMIC LIE CONSIDERATION
      ------------------------------------------------------------------ */
   function dynamicLieNote(input, staticCode) {
+    var S = sides(input);
     var shape = input.shotShape;
     if (shape === 'hook' || shape === 'pull') {
       return {
         adjust: -1, severity: 'warn',
-        text: 'Your iron miss is to the left. A lie angle that is too upright produces exactly that — a high pull. If a lie-board test shows a toe-up impact, your dynamic fit may come out 1° flatter than the static ' + staticCode.code + ' result.'
+        text: 'Your iron miss is to the ' + S.home + '. A lie angle that is too upright produces exactly that — a high pull. If a lie-board test shows a toe-up impact, your dynamic fit may come out 1° flatter than the static ' + staticCode.code + ' result.'
       };
     }
     if (shape === 'slice' || shape === 'push') {
       return {
         adjust: 1, severity: 'warn',
-        text: 'Your iron miss is to the right. A lie angle that is too flat produces a low push. If a lie-board test shows a heel-down impact, your dynamic fit may come out 1° more upright than the static ' + staticCode.code + ' result. One caution: a slice caused by an open clubface is not a lie-angle problem, and adding upright lie will not fix it.'
+        text: 'Your iron miss is to the ' + S.away + '. A lie angle that is too flat produces a low push. If a lie-board test shows a heel-down impact, your dynamic fit may come out 1° more upright than the static ' + staticCode.code + ' result. One caution: a slice caused by an open clubface is not a lie-angle problem, and adding upright lie will not fix it.'
       };
     }
     return { adjust: 0, severity: 'info', text: 'Your ball flight does not suggest a lie-angle error, so the static result stands as your build spec.' };
+  }
+
+  /* ---------------------------------------------------------------------
+     12b. JUNIOR FITTING
+     ---------------------------------------------------------------------
+     Adult charts stop at 5'0" and adult logic gives bad advice to a growing
+     player. Juniors are fitted almost entirely on height, in 3" bands, with
+     much lighter shafts and smaller grips — and the single most useful thing
+     you can tell a parent is how often to expect to do it again.
+     ------------------------------------------------------------------ */
+  var JUNIOR_BANDS = [
+    { max: 39, label: 'up to 3\'3"', driver: 26, seven: 20.5 },
+    { max: 42, label: '3\'3"–3\'6"', driver: 29, seven: 23 },
+    { max: 45, label: '3\'6"–3\'9"', driver: 32, seven: 25.5 },
+    { max: 48, label: '3\'9"–4\'0"', driver: 35, seven: 28 },
+    { max: 51, label: '4\'0"–4\'3"', driver: 37, seven: 30 },
+    { max: 54, label: '4\'3"–4\'6"', driver: 39, seven: 31.5 },
+    { max: 57, label: '4\'6"–4\'9"', driver: 41, seven: 33 },
+    { max: 60, label: '4\'9"–5\'0"', driver: 42, seven: 34.5 }
+  ];
+
+  function juniorFit(input) {
+    var h = input.heightIn;
+    var age = isNum(input.age) ? input.age : null;
+    var isJunior = h < 60 || (age !== null && age < 15 && h < 66);
+    if (!isJunior) return null;
+
+    var band = null;
+    for (var i = 0; i < JUNIOR_BANDS.length; i++) {
+      if (h <= JUNIOR_BANDS[i].max) { band = JUNIOR_BANDS[i]; break; }
+    }
+    var outgrown = !band;
+
+    return {
+      band: band,
+      outgrown: outgrown,
+      driverLength: band ? band.driver : 43,
+      sevenLength: band ? band.seven : 35.5,
+      shaft: 'Junior graphite. Weight matters far more than flex at this stage — a shaft a child cannot swing is the single biggest reason juniors slice.',
+      grip: 'Junior or undersize. An adult grip in a child\'s hand forces the club into the palms and kills any chance of a release.',
+      setSize: h < 48 ? '5 clubs is plenty: driver or fairway, a mid iron, a wedge, and a putter.'
+        : h < 57 ? '7 clubs: driver, fairway, 7-iron, 9-iron, wedge, putter, and one hybrid.'
+          : '9–11 clubs. Full adult set makeup can wait until growth slows.',
+      refit: 'Re-check every 2" of growth, which for most juniors is roughly every 9–12 months. A club that was right last summer is usually wrong by the next one.',
+      spend: outgrown
+        ? 'At this height a junior is close to adult sizing. It is worth fitting properly now, because the next set should last several years.'
+        : 'Do not custom-build for a growing junior. Buy a good boxed junior set or a used one, size up when they grow, and put the money you save into lessons — the swing is worth more than the spec at this stage.',
+      note: 'Length here is by height, not age. Two 11-year-olds can be six inches apart and need different clubs.'
+    };
+  }
+
+  /* ---------------------------------------------------------------------
+     12c. NOTES SPECIFIC TO WOMEN'S SETS
+     ------------------------------------------------------------------ */
+  function womensNotes(input, speeds, shafts) {
+    if (input.gender !== 'female') return [];
+    var out = [];
+    if (shafts.driverFlex !== 'L') {
+      out.push('Most women\'s stock sets ship in L flex whatever the buyer\'s speed. Yours works out at ' +
+        FLEX_NAME[shafts.driverFlex] + '. If you buy off the rack you will very likely be under-flexed, which costs you both distance and left-side dispersion — specify the flex, or buy from a brand that lets you.');
+    }
+    out.push('Women\'s stock sets are usually built about 1" shorter than men\'s and in graphite only. That is a reasonable starting point, but it is an average, not a fit — the length recommendation above comes from your actual height and arm length.');
+    if (speeds.driver >= 85) {
+      out.push('At ' + speeds.driver + ' mph you are faster than most women\'s stock equipment is designed for. Look at men\'s heads in a lighter shaft rather than a women\'s set, or a brand that builds either way.');
+    }
+    out.push('Watch the lofts. Women\'s sets are often built weaker through the short irons and stronger in the fairway woods, which can leave a gap of 25 yards or more between your longest iron and your shortest wood.');
+    return out;
   }
 
   /* ---------------------------------------------------------------------
@@ -712,6 +888,19 @@
     var putter = putterFit(input, heightIn, wtfIn);
     var ball = ballFit(speeds, input);
     var dyn = dynamicLieNote(input, lie.code);
+    var junior = juniorFit(input);
+    var womens = womensNotes(input, speeds, shafts);
+    var shaftPicks = shaftSuggestions(shafts, input);
+
+    /* How much a measuring error would move the answer. If half an inch of
+       wrist-to-floor changes the code, the player should know that before
+       they pay someone to bend a set. */
+    var sensitivity = [-0.5, 0.5].map(function (d) {
+      var alt = staticLie(heightIn, wtfIn + d);
+      return { delta: d, code: alt.code, changes: alt.code.i !== lie.code.i };
+    });
+    var expectedWtf = levelCentre(heightIn);
+    var wtfOutlier = Math.abs(wtfIn - expectedWtf) > 2.5;
 
     var lengthAgreement;
     if (Math.abs(len.adj - wtfCheck.adj) < 0.26) {
@@ -750,6 +939,12 @@
     if (speeds.confidence === 'low') flags.push({ level: 'warn', text: 'You did not supply a swing speed or a carry distance, so everything speed-driven — flex, shaft weight, driver loft, set makeup, ball — is an educated guess from your age, gender and skill level. Fifteen minutes on a launch monitor would move these numbers more than any other input you could give this tool.' });
     if (speeds.confidence === 'medium') flags.push({ level: 'info', text: 'Speed was derived from carry distance, which blends clubhead speed with strike quality. If you strike it poorly for your level, this tool will under-read your speed and under-flex your shaft.' });
     if (isNum(input.age) && input.age >= 60 && shafts.material === 'Steel') flags.push({ level: 'info', text: 'You are 60 or over and the speed numbers still point to steel. That is fine — but test a premium graphite iron shaft anyway. A lot of players in that bracket gain speed and lose nothing in dispersion.' });
+    if (wtfOutlier) flags.push({ level: 'warn', text: 'Your wrist-to-floor of ' + U.fmtIn(wtfIn, 1) +
+      ' is a long way from the ' + U.fmtIn(expectedWtf, 1) + ' that is typical at ' + U.fmtHeight(heightIn) +
+      '. Unusual proportions are real and this may well be right — but the most common cause is measuring from the wrong point. Check it from the crease of the wrist, in your golf shoes, with someone else reading the tape, before you act on this.' });
+    if (sensitivity[0].changes || sensitivity[1].changes) flags.push({ level: 'info', text: 'Half an inch either way on your wrist-to-floor would change your lie code (' +
+      sensitivity[0].code.code + ' at ' + U.fmtIn(wtfIn - 0.5, 1) + ', ' + sensitivity[1].code.code + ' at ' + U.fmtIn(wtfIn + 0.5, 1) +
+      '). Worth re-measuring once to be sure before anyone bends anything.' });
     flags.push({ level: 'info', text: 'This is a STATIC fit. It gets you to a very good starting point — which is exactly what a fitter uses it for — but only hitting balls off a lie board with a launch monitor produces a DYNAMIC fit, and the two can differ by a full step on the scale.' });
 
     return {
@@ -757,8 +952,64 @@
       lengthAgreement: lengthAgreement, speeds: speeds, shafts: shafts,
       driver: driver, ironHead: head, grip: grip, wedges: wedges,
       set: set, putter: putter, ball: ball, dynamicLie: dyn,
+      junior: junior, womensNotes: womens, shaftPicks: shaftPicks,
+      sensitivity: sensitivity, expectedWtf: Math.round(expectedWtf * 10) / 10,
+      wtfOutlier: wtfOutlier,
       specSheet: specSheet, flags: flags
     };
+  }
+
+  /* ---------------------------------------------------------------------
+     13b. GAPPING REVIEW
+     ---------------------------------------------------------------------
+     Works on whatever carry numbers it is handed — the modelled ladder, or
+     the player's own measured yardages once they have typed them in. Real
+     numbers are where this earns its keep: two clubs that go the same
+     distance is the most common and least noticed fault in a golf bag.
+     ------------------------------------------------------------------ */
+  function reviewGapping(rows) {
+    var issues = [], measured = 0;
+    rows.forEach(function (r) { if (r.measured) measured++; });
+
+    for (var i = 1; i < rows.length; i++) {
+      var a = rows[i - 1], b = rows[i];
+      var gap = a.carry - b.carry;
+      if (gap <= 0) {
+        issues.push({
+          type: 'inverted', severity: 'high', clubs: [a.club, b.club], gap: gap,
+          text: 'Your ' + b.club + ' carries as far as or further than your ' + a.club +
+            '. One of those two is doing nothing for you, and it is almost always the longer club — either the loft is wrong or you cannot launch it.'
+        });
+      } else if (gap < 8) {
+        issues.push({
+          type: 'overlap', severity: 'medium', clubs: [a.club, b.club], gap: gap,
+          text: 'Only ' + gap + ' yards between your ' + a.club + ' and your ' + b.club +
+            '. That is inside your own shot-to-shot scatter, so you are carrying two clubs to cover one distance and wasting a slot out of your fourteen.'
+        });
+      } else if (gap > 20) {
+        issues.push({
+          type: 'hole', severity: gap > 28 ? 'high' : 'medium', clubs: [a.club, b.club], gap: gap,
+          text: 'A ' + gap + '-yard hole between your ' + a.club + ' and your ' + b.club +
+            '. Every approach that lands in that window has to be a manufactured half swing, which is where big numbers come from.'
+        });
+      }
+    }
+
+    var summary;
+    if (!issues.length) {
+      summary = measured
+        ? 'No gapping problems in the numbers you entered. Your ladder is even.'
+        : 'No gapping problems in the modelled ladder.';
+    } else {
+      var holes = issues.filter(function (x) { return x.type === 'hole'; }).length;
+      var overlaps = issues.filter(function (x) { return x.type !== 'hole'; }).length;
+      summary = [
+        holes ? holes + ' gap' + (holes > 1 ? 's' : '') + ' too wide' : null,
+        overlaps ? overlaps + ' pair' + (overlaps > 1 ? 's' : '') + ' too close together' : null
+      ].filter(Boolean).join(' and ') + '.';
+      summary = summary.charAt(0).toUpperCase() + summary.slice(1);
+    }
+    return { issues: issues, summary: summary, measuredCount: measured };
   }
 
   /* ---------------------------------------------------------------------
@@ -806,7 +1057,71 @@
   }
   function isNumOrZero(v) { return typeof v === 'number' && isFinite(v); }
 
-  function audit(result, cur) {
+  /* Given a budget, pick the combination of fixes that buys the most
+     improvement per pound. Free fixes always go in first — there is no reason
+     not to turn an adjustable hosel. */
+  function planForBudget(actions, budget, replaceAdvice, benchmark, superseded) {
+    if (!isNum(budget)) return null;
+
+    var canAffordSet = !replaceAdvice || replaceAdvice.level !== 'replace' || budget >= benchmark;
+    /* If a new set is the right answer but is out of reach, the cheap bench
+       work we set aside becomes worth doing again in the meantime. */
+    var pool = (canAffordSet ? actions : actions.filter(function (x) { return !x.isReplaceAdvice; })
+      .concat(superseded.filter(function (x) { return x.costHi <= 120; }))).slice();
+
+    var scored = pool.map(function (x) {
+      var score = SEV_RANK[x.severity] + (x.quickWin ? 0.5 : 0);
+      return { f: x, cost: x.costLo, value: x.cost === 0 ? 999 : score / Math.max(x.costLo, 1) };
+    });
+    scored.sort(function (a, b) {
+      if ((a.cost === 0) !== (b.cost === 0)) return a.cost === 0 ? -1 : 1;
+      return b.value - a.value;
+    });
+
+    var remaining = budget, now = [], later = [], spentLo = 0, spentHi = 0;
+
+    /* Value-per-pound would bury a £580 replacement under a £100 wedge. If the
+       budget covers a new set and a new set is the recommendation, that is the
+       plan for the irons — take it first, then spend what is left. */
+    var forced = scored.filter(function (o) { return o.f.isReplaceAdvice; });
+    if (canAffordSet && forced.length) {
+      forced.forEach(function (o) {
+        now.push(o.f); remaining -= o.cost; spentLo += o.f.costLo; spentHi += o.f.costHi;
+      });
+      scored = scored.filter(function (o) { return !o.f.isReplaceAdvice; });
+    }
+
+    scored.forEach(function (o) {
+      if (o.cost <= remaining) {
+        now.push(o.f); remaining -= o.cost; spentLo += o.f.costLo; spentHi += o.f.costHi;
+      } else later.push(o.f);
+    });
+
+    var headline;
+    if (!canAffordSet) {
+      headline = money(budget, budget) + ' will not stretch to the ' + CUR + benchmark +
+        ' a new set costs, and it is not worth putting into a reshaft you are going to throw away. ' +
+        (now.length
+          ? 'Do the cheap bench work below to make the current set playable, and save the rest.'
+          : 'Save it toward the new set instead.');
+    } else if (!now.length) {
+      headline = 'Nothing on your list comes in under ' + CUR + budget + '. The cheapest single fix is ' +
+        (later.length ? later[later.length - 1].area.toLowerCase() + ' at ' + later[later.length - 1].costLabel : 'out of reach') + '.';
+    } else if (!later.length) {
+      headline = CUR + budget + ' covers everything on your list — about ' + money(spentLo, spentHi) + ' of work.';
+    } else {
+      headline = 'For ' + CUR + budget + ' do these ' + now.length + ' first (' + money(spentLo, spentHi) +
+        '). The remaining ' + later.length + ' can wait — none of them change as much per pound.';
+    }
+
+    return {
+      budget: budget, now: now, later: later,
+      spend: [spentLo, spentHi], leftover: Math.max(0, remaining),
+      canAffordSet: canAffordSet, headline: headline
+    };
+  }
+
+  function audit(result, cur, budget) {
     cur = cur || {};
     var f = [];
 
@@ -1063,6 +1378,27 @@
       }
     }
 
+    /* ---- measured yardages ------------------------------------------------- */
+    var gapping = null;
+    if (cur.carries && cur.carries.length > 1) {
+      gapping = reviewGapping(cur.carries);
+      gapping.issues.forEach(function (g) {
+        var isHole = g.type === 'hole';
+        add({
+          area: 'Gapping: ' + g.clubs[0] + ' → ' + g.clubs[1],
+          severity: g.severity,
+          costLo: isHole ? 100 : 0, costHi: isHole ? 220 : 0,
+          costLabel: isHole ? CUR + '100–' + CUR + '220 for the missing club' : 'Free — drop or re-loft a club',
+          quickWin: !isHole,
+          current: g.gap + ' yards apart', recommended: '10–20 yards apart',
+          detail: g.text,
+          fix: g.type === 'hole'
+            ? 'Add a club to cover the window, or re-loft what you have to spread the ladder.'
+            : 'Take one of the two out of the bag. That slot is worth more as a wedge or a hybrid you do not currently carry.'
+        });
+      });
+    }
+
     /* ---- ball -------------------------------------------------------------- */
     if (cur.ball) {
       if (cur.ball === result.ball.key) {
@@ -1162,8 +1498,10 @@
         ', and a new set configured to your specs comes to about ' + CUR + SET_BENCHMARK + ' — price both before you commit.';
     }
 
+    var plan = planForBudget(live, budget, replaceAdvice, SET_BENCHMARK, superseded);
+
     return {
-      headline: headline,
+      headline: headline, plan: plan, gapping: gapping,
       actions: live, superseded: superseded, fine: fine, unknowns: unknowns, quickWins: quick,
       quickCost: [quickLo, quickHi], totalCost: [allLo, allHi],
       ironWork: [ironLo, ironHi], replaceAdvice: replaceAdvice,
@@ -1189,6 +1527,8 @@
     standardSpecs: STD_SPECS,
     fit: fit,
     audit: audit,
+    sides: sides,
+    reviewGapping: reviewGapping,
     FLEX_NAME: FLEX_NAME
   };
 })(window);
