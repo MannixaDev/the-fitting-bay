@@ -518,10 +518,13 @@
         var h = readHeightInches();
         if (!h) return 'Enter your height.';
         if (h < 42 || h > 90) return 'That height looks wrong — check the units.';
+        /* Optional: without it we assume average proportions for the height
+           and say so. Only validate what was actually typed. */
         var w = readWtfInches();
-        if (!w) return 'Enter your wrist-to-floor measurement.';
-        if (w < 20 || w > 48) return 'That wrist-to-floor looks wrong — it should be roughly 27"–40" (69–102 cm).';
-        if (w > h * 0.75) return 'Your wrist-to-floor is larger than three quarters of your height, which is not physically possible. Check you have not swapped the two, or mixed inches and centimetres.';
+        if (w) {
+          if (w < 20 || w > 48) return 'That wrist-to-floor looks wrong — it should be roughly 27"–40" (69–102 cm). Leave it blank if you have not measured it.';
+          if (w > h * 0.75) return 'Your wrist-to-floor is larger than three quarters of your height, which is not physically possible. Check you have not swapped the two, or mixed inches and centimetres.';
+        }
       }
       return null;
     }
@@ -759,6 +762,24 @@
     out.push(v.join(''));
 
     /* ---- flags ---- */
+    var cf = r.confidence;
+    out.push('<div class="panel card conf conf-' + cf.overall + '" style="margin-bottom:18px">' +
+      '<h3><span class="ico">%</span>How much to trust this' +
+      '<span class="conf-badge conf-' + cf.overall + '">' + esc(cf.overall) + ' confidence</span></h3>' +
+      '<p class="small">' + esc(cf.headline) + '</p>' +
+      '<div class="conf-grid">' + cf.areas.map(function (a) {
+        return '<div class="conf-area conf-' + a.level + '">' +
+          '<span class="conf-pip"></span>' +
+          '<div><b>' + esc(a.name) + '</b><em>' + esc(a.why) + '</em>' +
+          (a.fix ? '<i>' + esc(a.fix) + '</i>' : '') + '</div></div>';
+      }).join('') + '</div>' +
+      (cf.assumed.length
+        ? '<div class="note">You told us you were not sure about ' + esc(listWords(cf.assumed)) +
+          ', so we used the neutral answer in each case. That is fine &mdash; but the parts marked amber or red above ' +
+          'are the ones that would change if you came back and filled them in.</div>'
+        : '') +
+      '</div>');
+
     if (r.flags.length) {
       out.push('<div class="panel card" style="margin-bottom:18px"><h3><span class="ico">!</span>Read this first</h3>' +
         r.flags.map(function (f) {
@@ -990,6 +1011,11 @@
   }
 
   function root_LieBench() { return window.LieBench || null; }
+
+  function listWords(a) {
+    if (a.length === 1) return a[0];
+    return a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
+  }
 
   function specFor(r, club) {
     for (var i = 0; i < r.specSheet.length; i++) if (r.specSheet[i].club === club) return r.specSheet[i];

@@ -645,3 +645,34 @@ details.result-group > summary:hover { background: rgba(255,255,255,.02); }
   background: var(--panel-2); border: 1px solid var(--line);
   padding: 2px 8px; border-radius: 999px; white-space: nowrap;
 }
+
+/* ---------- confidence ---------- */
+.conf h3 { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.conf-badge {
+  margin-left: auto; font-size: .72rem; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; padding: 4px 12px; border-radius: 999px;
+  border: 1px solid; white-space: nowrap;
+}
+.conf-badge.conf-high   { color: var(--green); border-color: rgba(52,192,122,.4); background: rgba(52,192,122,.1); }
+.conf-badge.conf-medium { color: var(--amber); border-color: rgba(224,166,60,.4); background: rgba(224,166,60,.1); }
+.conf-badge.conf-low    { color: var(--red);   border-color: rgba(227,93,79,.4);  background: rgba(227,93,79,.1); }
+
+.conf-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 12px; margin-top: 16px;
+}
+.conf-area {
+  display: flex; gap: 10px; align-items: flex-start;
+  background: var(--bg); border: 1px solid var(--line);
+  border-radius: var(--radius-sm); padding: 12px 14px;
+}
+.conf-pip { flex: none; width: 9px; height: 9px; border-radius: 50%; margin-top: 6px; }
+.conf-area.conf-high   .conf-pip { background: var(--green); box-shadow: 0 0 0 3px rgba(52,192,122,.16); }
+.conf-area.conf-medium .conf-pip { background: var(--amber); box-shadow: 0 0 0 3px rgba(224,166,60,.16); }
+.conf-area.conf-low    .conf-pip { background: var(--red);   box-shadow: 0 0 0 3px rgba(227,93,79,.16); }
+.conf-area b { display: block; font-size: .92rem; }
+.conf-area em { display: block; font-style: normal; font-size: .82rem; color: var(--ink-2); margin-top: 3px; }
+.conf-area i {
+  display: block; font-style: normal; font-size: .8rem; color: var(--green);
+  margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--line-soft);
+}

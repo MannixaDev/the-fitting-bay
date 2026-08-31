@@ -70,6 +70,28 @@ prioritised, costed list of which of your clubs is wrong and what it costs to pu
 filtered to a budget — and the yardage table describes your clubs rather than a generic set. Say
 you are starting fresh and the step is skipped entirely.
 
+## Answering less than everything
+
+A beginner cannot honestly answer half of these questions, and a tool that requires them to try is
+one that treats guesses as data.
+
+**Wrist-to-floor is optional.** It used to be a hard validation gate on question one, for a
+measurement nobody has to hand. Without it the engine assumes average proportions for the height —
+which is exactly what a height-only chart does — returns `LEVEL`, and says so. Height alone still
+produces a length, a shaft, a driver loft and a full bag.
+
+**"Not sure" is the default** on the five questions that need real self-knowledge: ball flight,
+trajectory, angle of attack, tempo and putting stroke. Each falls back to the neutral option and is
+recorded in `assumed`, so silence is never mistaken for an answer.
+
+**Confidence is reported per area, not as one number**, because the parts of a fit degrade
+separately: someone who measured carefully but does not know their swing speed has a rock-solid
+length and a guessed shaft. Each soft area says what would fix it.
+
+That combination created one way to give actively bad advice, which is guarded by a test: the audit
+must **refuse to price a lie bend** when the lie was only assumed. Bending a set toward a number we
+invented would leave a player further from their fit than they started.
+
 ## Design decisions worth knowing
 
 **Handedness is a property of the text, not the logic.** Shot shapes are named from the player's

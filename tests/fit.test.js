@@ -146,6 +146,74 @@ module.exports = function () {
     });
   });
 
+  suite('Answering less than everything', () => {
+    /* Wrist-to-floor used to be a hard gate on question one, for a
+       measurement most people cannot take on the spot. */
+    test('a fit works from height alone', () => {
+      const r = G.fit({ heightIn: 68, skill: 'beginner' });
+      assert(r.lie.code, 'should still produce a lie code');
+      assert(r.recommendedBag.count > 0, 'should still recommend a bag');
+      assert(r.specSheet.length === 12, 'should still produce a build sheet');
+    });
+    test('a missing measurement is assumed, not invented, and is declared', () => {
+      const r = G.fit({ heightIn: 68 });
+      assert(r.wtfAssumed, 'should be flagged as assumed');
+      near(r.input.wtfIn, G.levelCentre(68), 0.001, 'should assume average proportions');
+      equal(r.lie.code.code, 'LEVEL', 'average proportions means a standard lie');
+      assert(r.flags.some((f) => /did not give us a wrist-to-floor/.test(f.text)), 'should say so');
+    });
+    test('a supplied measurement is never overridden', () => {
+      const r = G.fit({ heightIn: 68, wtfIn: 36 });
+      assert(!r.wtfAssumed);
+      equal(r.input.wtfIn, 36);
+    });
+    test('"not sure" falls back to neutral and is recorded', () => {
+      const r = G.fit({ heightIn: 70, wtfIn: 34, shotShape: 'unsure', attack: 'unsure', tempo: 'unsure' });
+      equal(r.input.shotShape, 'straight');
+      equal(r.input.attack, 'neutral');
+      assert(r.assumed.indexOf('your ball flight') !== -1, 'should record the assumption');
+      assert(r.assumed.length >= 3);
+    });
+    test('the length cross-check does not pretend to agree with an assumption', () => {
+      equal(G.fit({ heightIn: 68 }).lengthAgreement.status, 'assumed');
+      assert(['agree', 'conflict'].indexOf(G.fit({ heightIn: 68, wtfIn: 36 }).lengthAgreement.status) !== -1);
+    });
+    test('an assumed measurement is never called an outlier or fragile', () => {
+      const r = G.fit({ heightIn: 68 });
+      assert(!r.wtfOutlier, 'cannot be an outlier against itself');
+      assert(!r.flags.some((f) => /edge of (your|this) band/.test(f.text)), 'no false precision');
+    });
+  });
+
+  suite('Confidence', () => {
+    test('answering nothing but height reports low confidence', () => {
+      const c = G.fit({ heightIn: 68, skill: 'beginner' }).confidence;
+      equal(c.overall, 'low');
+      assert(c.areas.some((a) => a.name === 'Lie angle' && a.level === 'low'));
+    });
+    test('a fully answered fit reports high confidence', () => {
+      const c = fit({ driverSpeed: 96, ironCarry: null, wtfIn: 34, handLength: 7.4, pwLoft: 44 }).confidence;
+      equal(c.overall, 'high');
+    });
+    test('club length is always solid, because height is always given', () => {
+      [{ heightIn: 60 }, { heightIn: 78, wtfIn: 37 }].forEach((o) => {
+        const a = G.fit(o).confidence.areas.find((x) => x.name === 'Club length');
+        equal(a.level, 'high');
+      });
+    });
+    test('every soft area explains what would fix it', () => {
+      G.fit({ heightIn: 68 }).confidence.areas.forEach((a) => {
+        if (a.level !== 'high') assert(a.fix, a.name + ' is soft but offers no fix');
+      });
+    });
+    test('measuring wrist-to-floor lifts the lie angle out of low', () => {
+      const before = G.fit({ heightIn: 68 }).confidence.areas.find((a) => a.name === 'Lie angle');
+      const after = G.fit({ heightIn: 68, wtfIn: 33 }).confidence.areas.find((a) => a.name === 'Lie angle');
+      equal(before.level, 'low');
+      equal(after.level, 'high');
+    });
+  });
+
   suite('Club length', () => {
     test('length bands match the published half-inch steps', () => {
       const cases = [[60, -1.5], [62, -1], [64, -0.5], [67, 0], [70, 0], [72, 0],

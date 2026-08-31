@@ -1087,6 +1087,119 @@
   }
 
   /* ---------------------------------------------------------------------
+     12d. WHAT WE WERE ACTUALLY TOLD
+     ---------------------------------------------------------------------
+     A beginner cannot answer half of these questions, and pretending they
+     can is how a tool ends up sounding confident about a guess. Anything
+     answered "not sure" falls back to the neutral option and is recorded, so
+     the confidence report can say which parts of the fit are soft.
+     ------------------------------------------------------------------ */
+  var UNSURE_FIELDS = [
+    ['shotShape', 'straight', 'your ball flight'],
+    ['trajectory', 'mid', 'your trajectory'],
+    ['attack', 'neutral', 'your angle of attack'],
+    ['tempo', 'moderate', 'your tempo'],
+    ['turf', 'normal', 'the turf you play'],
+    ['strokeArc', 'slight', 'your putting stroke']
+  ];
+
+  function normalise(raw) {
+    var input = {}, assumed = [];
+    for (var k in raw) if (Object.prototype.hasOwnProperty.call(raw, k)) input[k] = raw[k];
+
+    UNSURE_FIELDS.forEach(function (f) {
+      var v = input[f[0]];
+      if (!v || v === 'unsure') { input[f[0]] = f[1]; assumed.push(f[2]); }
+    });
+
+    /* Wrist-to-floor is the one measurement that used to block the whole
+       tool. Without it, assume average proportions for the height — which is
+       exactly what a height-only chart does — and say so loudly. */
+    if (!isNum(input.wtfIn)) {
+      input.wtfIn = levelCentre(input.heightIn);
+      input.wtfAssumed = true;
+      assumed.push('your wrist-to-floor');
+    }
+    input.assumed = assumed;
+    return input;
+  }
+
+  /* ---------------------------------------------------------------------
+     12e. CONFIDENCE
+     ---------------------------------------------------------------------
+     One number would be useless — the parts of a fit degrade separately. A
+     player who measured carefully but does not know their swing speed has a
+     rock-solid length and a guessed shaft. Report it that way.
+     ------------------------------------------------------------------ */
+  function confidence(input, speeds) {
+    var areas = [];
+    function add(name, level, why, fix) { areas.push({ name: name, level: level, why: why, fix: fix }); }
+
+    add('Club length', 'high',
+      'Comes from your height, which you gave us.', null);
+
+    if (input.wtfAssumed) {
+      add('Lie angle', 'low',
+        'We assumed average arm length for your height, so this is the average answer rather than yours.',
+        'Measure wrist-to-floor. It takes a minute and it is the only thing standing between you and a real lie recommendation.');
+    } else {
+      add('Lie angle', 'high', 'Based on your measured wrist-to-floor.', null);
+    }
+
+    if (speeds.confidence === 'high') {
+      add('Shaft and driver loft', 'high', 'Based on a measured clubhead speed.', null);
+    } else if (speeds.confidence === 'medium') {
+      add('Shaft and driver loft', 'medium',
+        'Derived from your carry distance, which mixes speed with how well you strike it.',
+        'Fifteen minutes on a launch monitor would firm this up more than any other answer.');
+    } else {
+      add('Shaft and driver loft', 'low',
+        'Estimated from your age, gender and standard of play, because no speed or distance was given.',
+        'Even a rough 7-iron carry would move this from a guess to an estimate.');
+    }
+
+    add('Set makeup and gapping', speeds.confidence === 'low' ? 'low' : 'medium',
+      speeds.confidence === 'low'
+        ? 'Built on the same guessed speed as the shaft recommendation.'
+        : 'Built on your speed, with typical lofts. Real yardages would make it exact.',
+      'Type your real carry distances into the yardage table.');
+
+    add('Grips', isNum(input.handLength) ? 'high' : input.gloveSize ? 'medium' : 'low',
+      isNum(input.handLength) ? 'Based on your measured hand length.'
+        : input.gloveSize ? 'Based on your glove size, which is a reasonable proxy.'
+          : 'Nothing to go on, so this is the most common size.',
+      isNum(input.handLength) ? null : 'Measure wrist crease to the tip of your middle finger.');
+
+    var wedgeKnown = isNum(input.pwLoft);
+    add('Wedges', wedgeKnown ? 'high' : 'medium',
+      wedgeKnown ? 'Gapped from the pitching wedge loft you gave us.'
+        : 'Gapped from a typical pitching wedge loft for this type of iron.',
+      wedgeKnown ? null : 'Check your pitching wedge loft — it is in the spec table for your set.');
+
+    var scores = { high: 2, medium: 1, low: 0 };
+    var total = 0;
+    areas.forEach(function (a) { total += scores[a.level]; });
+    var pct = total / (areas.length * 2);
+    var overall = pct >= 0.8 ? 'high' : pct >= 0.5 ? 'medium' : 'low';
+
+    var headline;
+    if (overall === 'high') {
+      headline = 'Everything here rests on answers you actually gave. Build to it.';
+    } else if (overall === 'low') {
+      headline = 'Treat this as a starting sketch. Several parts are assumptions rather than answers, and they are marked below.';
+    } else {
+      headline = 'The solid parts are marked below, and so are the guesses. Fill in what you can and it sharpens.';
+    }
+
+    return {
+      areas: areas, overall: overall, headline: headline,
+      assumed: input.assumed || [],
+      answered: areas.filter(function (a) { return a.level === 'high'; }).length,
+      total: areas.length
+    };
+  }
+
+  /* ---------------------------------------------------------------------
      13. TOP LEVEL
      ------------------------------------------------------------------ */
   var STD_SPECS = [
@@ -1104,7 +1217,8 @@
     { club: 'Sand wedge',men: 35.25, women: 34.25, lie: 63.5 }
   ];
 
-  function fit(input) {
+  function fit(rawInput) {
+    var input = normalise(rawInput);
     var heightIn = input.heightIn, wtfIn = input.wtfIn;
     var lie = staticLie(heightIn, wtfIn);
     var len = staticLength(heightIn);
@@ -1122,6 +1236,7 @@
     var putter = putterFit(input, heightIn, wtfIn);
     var ball = ballFit(speeds, input);
     var dyn = dynamicLieNote(input, lie.code);
+    var conf = null;   // filled in below, once speeds exist
     var junior = juniorFit(input);
     var womens = womensNotes(input, speeds, shafts);
     var shaftPicks = shaftSuggestions(shafts, input);
@@ -1146,7 +1261,12 @@
     var wtfOutlier = Math.abs(wtfIn - expectedWtf) > 2.5;
 
     var lengthAgreement;
-    if (Math.abs(len.adj - wtfCheck.adj) < 0.26) {
+    if (input.wtfAssumed) {
+      lengthAgreement = {
+        status: 'assumed',
+        text: 'Normally we cross-check your height against your wrist-to-floor, and a disagreement between the two is the signal that your arms are long or short for your height. Without the measurement there is nothing to cross-check, so this length is the one that suits an average build of your height.'
+      };
+    } else if (Math.abs(len.adj - wtfCheck.adj) < 0.26) {
       lengthAgreement = { status: 'agree', text: 'Your height-based and wrist-to-floor-based length recommendations agree. That is a strong signal — build to it with confidence.' };
     } else {
       var mid = Math.round(((len.adj + wtfCheck.adj) / 2) * 4) / 4;
@@ -1182,12 +1302,14 @@
     if (speeds.confidence === 'low') flags.push({ level: 'warn', text: 'You did not supply a swing speed or a carry distance, so everything speed-driven — flex, shaft weight, driver loft, set makeup, ball — is an educated guess from your age, gender and skill level. Fifteen minutes on a launch monitor would move these numbers more than any other input you could give this tool.' });
     if (speeds.confidence === 'medium') flags.push({ level: 'info', text: 'Speed was derived from carry distance, which blends clubhead speed with strike quality. If you strike it poorly for your level, this tool will under-read your speed and under-flex your shaft.' });
     if (isNum(input.age) && input.age >= 60 && shafts.material === 'Steel') flags.push({ level: 'info', text: 'You are 60 or over and the speed numbers still point to steel. That is fine — but test a premium graphite iron shaft anyway. A lot of players in that bracket gain speed and lose nothing in dispersion.' });
-    if (wtfOutlier) flags.push({ level: 'warn', text: 'Your wrist-to-floor of ' + U.fmtIn(wtfIn, 1) +
+    if (input.wtfAssumed) flags.push({ level: 'warn', text: 'You did not give us a wrist-to-floor measurement, so we assumed the average arm length for someone ' +
+      U.fmtHeight(heightIn) + ' tall — about ' + U.fmtIn(wtfIn, 1) + '. Everything else on this page stands, but the lie angle is the average answer rather than yours, and it is the one spec that most often differs. It takes a minute with a tape measure and someone to read it.' });
+    if (!input.wtfAssumed && wtfOutlier) flags.push({ level: 'warn', text: 'Your wrist-to-floor of ' + U.fmtIn(wtfIn, 1) +
       ' is a long way from the ' + U.fmtIn(expectedWtf, 1) + ' that is typical at ' + U.fmtHeight(heightIn) +
       '. Unusual proportions are real and this may well be right — but the most common cause is measuring from the wrong point. Check it from the crease of the wrist, in your golf shoes, with someone else reading the tape, before you act on this.' });
     /* borderline is a stricter version of fragile, so only one of the two
        messages is ever worth showing. */
-    if (sensitivity.fragile && !lie.borderline) flags.push({ level: 'info', text: 'You are only ' + U.fmtIn(sensitivity.margin, 2) +
+    if (!input.wtfAssumed && sensitivity.fragile && !lie.borderline) flags.push({ level: 'info', text: 'You are only ' + U.fmtIn(sensitivity.margin, 2) +
       ' from the edge of your band, so a measuring error that small would make you ' + sensitivity.nearer.code +
       ' instead. Re-measure once before anyone bends anything.' });
     flags.push({ level: 'info', text: 'This is a STATIC fit. It gets you to a very good starting point — which is exactly what a fitter uses it for — but only hitting balls off a lie board with a launch monitor produces a DYNAMIC fit, and the two can differ by a full step on the scale.' });
@@ -1199,6 +1321,8 @@
       set: set, putter: putter, ball: ball, dynamicLie: dyn,
       junior: junior, womensNotes: womens, shaftPicks: shaftPicks,
       recommendedBag: recommended,
+      confidence: confidence(input, speeds),
+      wtfAssumed: !!input.wtfAssumed, assumed: input.assumed,
       sensitivity: sensitivity, expectedWtf: Math.round(expectedWtf * 10) / 10,
       wtfOutlier: wtfOutlier,
       specSheet: specSheet, flags: flags
@@ -1394,7 +1518,15 @@
 
     /* ---- iron lie ---------------------------------------------------- */
     var recLie = result.lie.code.deg;
-    if (!isNumOrZero(cur.ironLie)) {
+    if (result.wtfAssumed) {
+      add({
+        area: 'Iron lie angle', severity: 'unknown', costLo: 0, costHi: 0,
+        current: isNumOrZero(cur.ironLie) ? fmtDeg(cur.ironLie) : 'Unknown',
+        recommended: 'Cannot say yet',
+        detail: 'We do not know what lie angle suits you, because no wrist-to-floor measurement was given and we assumed an average build. Bending a set on that assumption could easily move you further from your fit than you are now.',
+        fix: 'Measure wrist-to-floor and run this again before anyone touches your lie angle. It is the cheapest fix in golf, but only if it is aimed at the right number.'
+      });
+    } else if (!isNumOrZero(cur.ironLie)) {
       add({
         area: 'Iron lie angle', severity: 'unknown', costLo: 0, costHi: 0,
         current: 'Unknown', recommended: result.lie.code.code + ' (' + result.lie.code.label + ')',
@@ -1812,6 +1944,7 @@
     standardSpecs: STD_SPECS,
     fit: fit,
     audit: audit,
+    confidence: confidence,
     sides: sides,
     reviewGapping: reviewGapping,
     gapVerdict: gapVerdict,

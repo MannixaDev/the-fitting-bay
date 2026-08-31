@@ -123,6 +123,18 @@ module.exports = function () {
       assert(!/length corrected FIRST/.test(lie.caveat), 'warned about length that is fine');
     });
 
+    /* Making wrist-to-floor optional created a way to give actively bad
+       advice: bending a set to a lie we only assumed. */
+    test('the audit refuses to recommend a bend based on an assumed measurement', () => {
+      const f = G.fit({ heightIn: 70, skill: 'mid', ironCarry: 150 });
+      assert(f.wtfAssumed, 'setup: should be assumed');
+      const a = G.audit(f, { ironLie: 2, ironFlex: f.shafts.ironFlex, gripSize: f.grip.key });
+      const lie = a.actions.concat(a.unknowns, a.superseded).find((x) => /lie/i.test(x.area));
+      equal(lie.severity, 'unknown', 'must not be presented as an actionable fix');
+      assert(/Measure wrist-to-floor/.test(lie.fix), lie.fix);
+      assert(!a.actions.some((x) => x.job === 'bend'), 'no priced bend on an assumption');
+    });
+
     /* The spec sheet applied the iron lie adjustment to woods and hybrids,
        which are not bent to the iron code. */
     test('only irons take the lie adjustment', () => {
