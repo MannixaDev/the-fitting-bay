@@ -676,3 +676,6 @@ details.result-group > summary:hover { background: rgba(255,255,255,.02); }
   display: block; font-style: normal; font-size: .8rem; color: var(--green);
   margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--line-soft);
 }
+
+/* ---------- Bay Scale chart ---------- */
+.scale-chart { width: 100%; height: auto; display: block; }

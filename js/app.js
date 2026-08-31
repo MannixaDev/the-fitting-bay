@@ -584,116 +584,146 @@
   /* =====================================================================
      CHART
      ================================================================== */
+  /* ---------------------------------------------------------------------
+     The Bay Scale chart.
+
+     Deliberately not a filled colour-zone lookup table. That format exists
+     because a printed chart had to be read with a finger on paper; we do the
+     arithmetic, so the drawing can show the arithmetic instead.
+
+     What you get: a reference curve (the wrist-to-floor that plays a
+     standard lie at each height), faint contours at each whole code, ONE
+     tinted band — the one you are in — and your measurement plotted with a
+     dimension line down to the curve. The length of that line is the answer.
+
+     Code labels sit at the ends of the contours like any contour plot, not
+     written inside the bands.
+     ------------------------------------------------------------------ */
   function renderChart(host, playerH, playerW, big) {
     if (!host) return;
-    var W = big ? 900 : 400, H = big ? 560 : 340;
-    var padL = big ? 52 : 34, padR = big ? 16 : 10, padT = big ? 54 : 30, padB = big ? 44 : 28;
+    var W = big ? 900 : 420, H = big ? 500 : 300;
+    var padL = big ? 58 : 40, padR = big ? 78 : 20, padT = big ? 30 : 22, padB = big ? 48 : 34;
     var pw = W - padL - padR, ph = H - padT - padB;
     var h0 = 60, h1 = 79, w0 = 28.5, w1 = 40.5;
+    var SMIN = G.scaleRange[0], SMAX = G.scaleRange[1];
+    var uid = big ? 'B' : 'S';
 
     var x = function (h) { return padL + (h - h0) / (h1 - h0) * pw; };
     var y = function (w) { return padT + (w1 - w) / (w1 - w0) * ph; };
+    var inY = function (v) { return v >= padT - 1 && v <= padT + ph + 1; };
 
-    var SMIN = G.scaleRange[0], SMAX = G.scaleRange[1];
-    var uid = big ? 'B' : 'S';
-    var s = ['<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The Bay Scale chart: height against wrist-to-floor">'];
-    s.push('<defs><clipPath id="cc' + uid + '"><rect x="' + padL + '" y="' + padT + '" width="' + pw + '" height="' + ph + '" rx="6"/></clipPath></defs>');
+    /* One polyline sampled along the reference curve, offset by `off`. */
+    function curvePts(off) {
+      var p = [];
+      for (var h = h0; h <= h1 + 0.001; h += 0.5) p.push(x(h) + ',' + y(G.levelCentre(h) + off));
+      return p.join(' ');
+    }
+
+    var s = [];
+    s.push('<svg viewBox="0 0 ' + W + ' ' + H + '" class="scale-chart" xmlns="http://www.w3.org/2000/svg" role="img" ' +
+      'aria-label="The Bay Scale: the reference wrist-to-floor for each height, with your measurement plotted against it.">');
     s.push('<rect x="0" y="0" width="' + W + '" height="' + H + '" fill="#0d1210"/>');
+    s.push('<defs><clipPath id="sc' + uid + '"><rect x="' + padL + '" y="' + padT + '" width="' + pw + '" height="' + ph + '"/></clipPath></defs>');
 
-    // scale bands
-    s.push('<g clip-path="url(#cc' + uid + ')">');
-    G.scale.forEach(function (c) {
-      var top = [], bot = [];
-      for (var h = h0; h <= h1 + 0.001; h += 0.25) {
-        var centre = G.levelCentre(h);
-        var lo = c.i === SMIN ? w0 - 4 : centre + c.i - 0.5;
-        var hi = c.i === SMAX ? w1 + 5 : centre + c.i + 0.5;
-        bot.push(x(h) + ',' + y(lo));
-        top.push(x(h) + ',' + y(hi));
-      }
-      s.push('<polygon points="' + top.join(' ') + ' ' + bot.reverse().join(' ') + '" fill="' + c.hex + '"/>');
-    });
-    // hairline between bands, and a brighter edge around LEVEL
-    G.scale.forEach(function (c) {
-      if (c.i === SMIN) return;
-      var pts = [];
-      for (var h = h0; h <= h1 + 0.001; h += 0.25) pts.push(x(h) + ',' + y(G.levelCentre(h) + c.i - 0.5));
-      var isLevelEdge = (c.i === 0 || c.i === 1);
-      s.push('<polyline points="' + pts.join(' ') + '" fill="none" stroke="' +
-        (isLevelEdge ? 'rgba(255,255,255,.55)' : 'rgba(0,0,0,.22)') + '" stroke-width="' +
-        (isLevelEdge ? (big ? 1.8 : 1.2) : (big ? .9 : .6)) + '"/>');
-    });
-    // the reference curve: wrist-to-floor that plays standard lie at each height
-    var refPts = [];
-    for (var rh = h0; rh <= h1 + 0.001; rh += 0.25) refPts.push(x(rh) + ',' + y(G.levelCentre(rh)));
-    s.push('<polyline points="' + refPts.join(' ') + '" fill="none" stroke="#08130D" stroke-width="' +
-      (big ? 2 : 1.4) + '" stroke-dasharray="' + (big ? '7 5' : '4 3') + '" opacity=".7"/>');
-    // grid
-    for (var gw = 29; gw <= 40; gw++) {
-      s.push('<line x1="' + padL + '" y1="' + y(gw) + '" x2="' + (padL + pw) + '" y2="' + y(gw) + '" stroke="rgba(255,255,255,.13)" stroke-width="' + (big ? 1 : .6) + '"/>');
-    }
-    for (var gh = h0; gh <= h1; gh += 1) {
-      s.push('<line x1="' + x(gh) + '" y1="' + padT + '" x2="' + x(gh) + '" y2="' + (padT + ph) + '" stroke="rgba(255,255,255,.08)" stroke-width="' + (big ? 1 : .6) + '"/>');
-    }
+    /* ---- grid ---- */
+    s.push('<g stroke="#ffffff" stroke-opacity=".05" stroke-width="1">');
+    for (var gw = 29; gw <= 40; gw++) s.push('<line x1="' + padL + '" y1="' + y(gw) + '" x2="' + (padL + pw) + '" y2="' + y(gw) + '"/>');
+    for (var gh = h0; gh <= h1; gh += (big ? 1 : 2)) s.push('<line x1="' + x(gh) + '" y1="' + padT + '" x2="' + x(gh) + '" y2="' + (padT + ph) + '"/>');
     s.push('</g>');
-    s.push('<rect x="' + padL + '" y="' + padT + '" width="' + pw + '" height="' + ph + '" rx="6" fill="none" stroke="#2a3630"/>');
 
-    // band labels (big only)
+    var code = (playerH && playerW) ? G.staticLie(playerH, playerW).code : null;
+
+    s.push('<g clip-path="url(#sc' + uid + ')">');
+
+    /* ---- the one band you are in ---- */
+    if (code) {
+      s.push('<polygon points="' + curvePts(code.i - 0.5) + ' ' +
+        curvePts(code.i + 0.5).split(' ').reverse().join(' ') + '" fill="' + code.hex + '" opacity=".13"/>');
+    }
+
+    /* ---- contours between codes ---- */
     if (big) {
-      G.scale.forEach(function (c) {
-        var hMid = 69.5;
-        var yy = y(G.levelCentre(hMid) + c.i);
-        if (yy < padT + 10 || yy > padT + ph - 10) return;
-        // stroke in the band colour so the label stays legible over the
-        // reference dashes and the band hairlines
-        s.push('<text x="' + x(hMid) + '" y="' + (yy + 4.5) + '" text-anchor="middle" font-size="12.5" font-weight="800" letter-spacing=".6" fill="' + c.ink + '" stroke="' + c.hex + '" stroke-width="3.5" paint-order="stroke" stroke-linejoin="round" font-family="ui-sans-serif,system-ui,sans-serif">' +
-          esc(c.code) + '<tspan font-weight="600" letter-spacing="0" opacity=".8">   ' + esc(c.label) + '</tspan></text>');
-      });
+      for (var k = SMIN; k < SMAX; k++) {
+        var edge = k + 0.5;
+        var levelEdge = (k === -1 || k === 0);
+        s.push('<polyline points="' + curvePts(edge) + '" fill="none" stroke="#ffffff" stroke-opacity="' +
+          (levelEdge ? '.16' : '.08') + '" stroke-width="1" stroke-dasharray="' + (levelEdge ? 'none' : '5 6') + '"/>');
+      }
     }
 
-    // axes
-    var axisFill = '#74847b', axisFont = big ? 11 : 8.5;
-    for (var lw = 29; lw <= 40; lw += (big ? 1 : 2)) {
-      s.push('<text x="' + (padL - 8) + '" y="' + (y(lw) + 4) + '" text-anchor="end" font-size="' + axisFont + '" fill="' + axisFill + '" font-family="ui-sans-serif,system-ui,sans-serif">' + lw + '"</text>');
+    /* ---- the reference curve itself ---- */
+    s.push('<polyline points="' + curvePts(0) + '" fill="none" stroke="#34c07a" stroke-width="' +
+      (big ? 2.6 : 2) + '" stroke-linecap="round"/>');
+    s.push('</g>');
+
+    /* ---- frame ---- */
+    s.push('<rect x="' + padL + '" y="' + padT + '" width="' + pw + '" height="' + ph + '" fill="none" stroke="#2a3630"/>');
+
+    var F = 'ui-sans-serif,system-ui,sans-serif';
+    var axis = '#74847b';
+
+    /* ---- code labels at the ends of the contours, not inside the bands ---- */
+    if (big) {
+      var endCentre = G.levelCentre(h1);
+      G.scale.forEach(function (c) {
+        var yy = y(endCentre + c.i);
+        if (!inY(yy)) return;
+        var here = code && c.i === code.i;
+        s.push('<text x="' + (padL + pw + 10) + '" y="' + (yy + 3.5) + '" font-size="11" font-family="' + F + '" ' +
+          'font-weight="' + (here ? '800' : '600') + '" fill="' + (here ? c.hex : axis) + '">' + esc(c.code) + '</text>');
+      });
+      s.push('<text x="' + (padL + pw + 10) + '" y="' + (padT - 10) + '" font-size="9" letter-spacing="1" font-family="' + F + '" fill="' + axis + '">CODE</text>');
     }
-    for (var lh = h0; lh <= h1; lh += (big ? 2 : 4)) {
-      s.push('<text x="' + x(lh + 0.5) + '" y="' + (padT + ph + (big ? 18 : 13)) + '" text-anchor="middle" font-size="' + axisFont + '" fill="' + axisFill + '" font-family="ui-sans-serif,system-ui,sans-serif">' +
+
+    /* ---- label the reference line where there is room ---- */
+    var lx = big ? x(64) : x(63);
+    s.push('<text x="' + lx + '" y="' + (y(G.levelCentre(big ? 64 : 63)) - 9) + '" font-size="' + (big ? 11.5 : 10) +
+      '" font-weight="700" font-family="' + F + '" fill="#34c07a">LEVEL' + (big ? ' — standard lie' : '') + '</text>');
+
+    /* ---- axes ---- */
+    s.push('<g font-size="' + (big ? 10.5 : 9) + '" font-family="' + F + '" fill="' + axis + '">');
+    for (var lw = 29; lw <= 40; lw += (big ? 2 : 3)) {
+      s.push('<text x="' + (padL - 8) + '" y="' + (y(lw) + 3.5) + '" text-anchor="end">' + lw + '"</text>');
+    }
+    for (var lh = h0; lh <= h1; lh += (big ? 3 : 5)) {
+      s.push('<text x="' + x(lh) + '" y="' + (padT + ph + 16) + '" text-anchor="middle">' +
         Math.floor(lh / 12) + "'" + (lh % 12) + '"</text>');
     }
-    s.push('<text x="' + (padL - (big ? 40 : 26)) + '" y="' + (padT + ph / 2) + '" transform="rotate(-90 ' + (padL - (big ? 40 : 26)) + ' ' + (padT + ph / 2) + ')" text-anchor="middle" font-size="' + axisFont + '" fill="' + axisFill + '" font-family="ui-sans-serif,system-ui,sans-serif">Wrist to floor</text>');
-    s.push('<text x="' + (padL + pw / 2) + '" y="' + (H - (big ? 8 : 3)) + '" text-anchor="middle" font-size="' + axisFont + '" fill="' + axisFill + '" font-family="ui-sans-serif,system-ui,sans-serif">Height</text>');
+    s.push('<text x="' + (padL - (big ? 44 : 32)) + '" y="' + (padT + ph / 2) + '" text-anchor="middle" transform="rotate(-90 ' +
+      (padL - (big ? 44 : 32)) + ' ' + (padT + ph / 2) + ')">Wrist to floor</text>');
+    s.push('<text x="' + (padL + pw / 2) + '" y="' + (H - 8) + '" text-anchor="middle">Height</text>');
+    s.push('</g>');
 
-    // length header band (big only)
-    if (big) {
-      G.lengthBands.forEach(function (b) {
-        if (!isFinite(b.min) || !isFinite(b.max)) return;
-        var a = Math.max(b.min, h0), z = Math.min(b.max + 1, h1 + 1);
-        if (z <= a) return;
-        s.push('<rect x="' + x(a) + '" y="' + (padT - 26) + '" width="' + (x(z) - x(a) - 2) + '" height="20" rx="4" fill="#1e2823" stroke="#2a3630"/>');
-        s.push('<text x="' + ((x(a) + x(z)) / 2 - 1) + '" y="' + (padT - 12) + '" text-anchor="middle" font-size="10.5" font-weight="700" fill="#a8b6ae" font-family="ui-sans-serif,system-ui,sans-serif">' +
-          esc(U.fmtAdj(b.adj)) + '</text>');
-      });
-      s.push('<text x="' + padL + '" y="' + (padT - 34) + '" font-size="9.5" font-weight="700" letter-spacing="1.4" fill="#74847b" font-family="ui-sans-serif,system-ui,sans-serif">SHAFT LENGTH ADJUSTMENT</text>');
-    }
-
-    // player marker
-    if (playerH && playerW) {
+    /* ---- you, and the distance from the line that IS your code ---- */
+    if (code) {
       var px = x(Math.max(h0, Math.min(h1, playerH)));
-      var py = y(Math.max(w0, Math.min(w1, playerW)));
-      var r = big ? 9 : 6;
-      s.push('<g>');
-      s.push('<line x1="' + padL + '" y1="' + py + '" x2="' + (padL + pw) + '" y2="' + py + '" stroke="#fff" stroke-width="1.2" stroke-dasharray="4 4" opacity=".85"/>');
-      s.push('<line x1="' + px + '" y1="' + padT + '" x2="' + px + '" y2="' + (padT + ph) + '" stroke="#fff" stroke-width="1.2" stroke-dasharray="4 4" opacity=".85"/>');
-      s.push('<circle cx="' + px + '" cy="' + py + '" r="' + (r + 4) + '" fill="rgba(0,0,0,.45)"/>');
-      s.push('<circle cx="' + px + '" cy="' + py + '" r="' + r + '" fill="none" stroke="#fff" stroke-width="3"/>');
-      s.push('<circle cx="' + px + '" cy="' + py + '" r="2.4" fill="#fff"/>');
-      if (big) {
-        var lx = px > padL + pw - 130 ? px - 118 : px + 14;
-        s.push('<rect x="' + lx + '" y="' + (py - 30) + '" width="104" height="22" rx="5" fill="rgba(13,18,16,.92)" stroke="#fff" stroke-opacity=".5"/>');
-        s.push('<text x="' + (lx + 52) + '" y="' + (py - 15) + '" text-anchor="middle" font-size="11" font-weight="700" fill="#fff" font-family="ui-sans-serif,system-ui,sans-serif">You: ' +
-          esc(U.fmtHeight(playerH)) + ' / ' + esc(U.fmtIn(playerW, 1)) + '</text>');
-      }
+      var pyYou = y(Math.max(w0, Math.min(w1, playerW)));
+      var pyRef = y(G.levelCentre(Math.max(h0, Math.min(h1, playerH))));
+      var delta = G.staticLie(playerH, playerW).preciseDegrees;
+      var tick = big ? 7 : 5;
+
+      s.push('<g stroke="' + code.hex + '" stroke-width="' + (big ? 1.8 : 1.5) + '">');
+      s.push('<line x1="' + px + '" y1="' + pyYou + '" x2="' + px + '" y2="' + pyRef + '"/>');
+      s.push('<line x1="' + (px - tick) + '" y1="' + pyRef + '" x2="' + (px + tick) + '" y2="' + pyRef + '"/>');
       s.push('</g>');
+
+      s.push('<circle cx="' + px + '" cy="' + pyYou + '" r="' + (big ? 7 : 5.5) + '" fill="#0d1210" stroke="' + code.hex + '" stroke-width="3"/>');
+      s.push('<circle cx="' + px + '" cy="' + pyYou + '" r="' + (big ? 2.4 : 2) + '" fill="#f4f7f5"/>');
+
+      /* annotation, flipped to whichever side has room */
+      var left = px > padL + pw * 0.62;
+      var ax = left ? px - (big ? 16 : 12) : px + (big ? 16 : 12);
+      var anchor = left ? 'end' : 'start';
+      var ay = (pyYou + pyRef) / 2;
+      s.push('<text x="' + ax + '" y="' + (ay - 2) + '" text-anchor="' + anchor + '" font-size="' + (big ? 13 : 11.5) +
+        '" font-weight="800" font-family="' + F + '" fill="' + code.hex + '">' +
+        (delta > 0 ? '+' : '') + delta.toFixed(1) + '&#176;</text>');
+      s.push('<text x="' + ax + '" y="' + (ay + (big ? 14 : 12)) + '" text-anchor="' + anchor + '" font-size="' + (big ? 11 : 10) +
+        '" font-weight="700" font-family="' + F + '" fill="' + code.hex + '">' + esc(code.code) + '</text>');
+      if (big) {
+        s.push('<text x="' + ax + '" y="' + (ay + 29) + '" text-anchor="' + anchor + '" font-size="10" font-family="' + F +
+          '" fill="' + axis + '">from the line</text>');
+      }
     }
 
     s.push('</svg>');
