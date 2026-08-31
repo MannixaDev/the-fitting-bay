@@ -12,6 +12,7 @@ golffitting/
 ├── css/styles.css
 ├── js/fitting-engine.js        all fitting logic, pure functions, no DOM
 ├── js/app.js                   wizard UI, SVG rendering, results, audit, persistence
+├── js/lie-bench.js             the interactive lie-angle bench
 ├── tools/bump.js               rewrites the ?v= cache-busters from file hashes
 ├── tests/                      the test suite — no dependencies, no config
 └── .githooks/pre-commit        runs the tests, then bump.js
@@ -243,6 +244,26 @@ Flex bands, shaft weight ranges, driver loft by speed, grip sizing by hand lengt
 and grind, putter length and toe hang, and ball compression bands are the consensus of published
 fitting guidance, cross-checked across multiple independent sources and set out in full on the
 fitting information page.
+
+## The lie-angle bench
+
+`js/lie-bench.js` is an interactive on the fitting-information page. It exists for one lesson that
+almost no fitting article gets right: as loft rises, the **face error** from a given lie error grows
+enormously while the **yards offline** barely move. Both meters are on screen together, so dragging
+the loft slider shows one running away from the other — face 0.69° → 3.46° across the bag at 2° of
+error, while the miss stays between 5.0 and 6.3 yards.
+
+Two rules kept it honest:
+
+- **Every number comes from `GolfFit.lieImpact()`**, so the picture can never disagree with the
+  engine.
+- **Only the picture is exaggerated, and it says so.** Two degrees of lie lifts the toe of a real
+  head about a millimetre — drawn true to scale you would see nothing. The club tilt is shown ×5
+  and the face indicator ×6, both labelled on the graphic.
+
+The result panel splits the miss into the part from the **start line** (geometry, solid) and the
+part from the **curve** (modelled, labelled as such) on a true-to-scale yard ruler, rather than
+drawing a fake flight path.
 
 ## Tests
 

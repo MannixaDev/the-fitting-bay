@@ -22,7 +22,7 @@ const crypto = require('crypto');
 const root = path.resolve(__dirname, '..');
 const check = process.argv.includes('--check');
 
-const ASSETS = ['css/styles.css', 'js/fitting-engine.js', 'js/app.js'];
+const ASSETS = ['css/styles.css', 'js/fitting-engine.js', 'js/app.js', 'js/lie-bench.js'];
 const PAGES = fs.readdirSync(root).filter((f) => f.endsWith('.html'));
 
 function hash(rel) {

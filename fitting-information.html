@@ -18,7 +18,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://mannixadev.github.io/the-fitting-bay/og-image.png">
 <meta name="theme-color" content="#0d1210">
-<link rel="stylesheet" href="css/styles.css?v=48ebf9a9">
+<link rel="stylesheet" href="css/styles.css?v=1cccc92c">
 </head>
 <body>
 
@@ -37,6 +37,7 @@
     </a>
     <nav class="site-nav">
       <a href="index.html#fit">Fitting tool</a>
+      <a href="#bench">Lie bench</a>
       <a href="#scale">The Bay Scale</a>
       <a href="#library">Fitting information</a>
     </nav>
@@ -55,6 +56,21 @@
       <p style="margin-top:20px"><a class="btn btn-primary" href="index.html#fit">Go to the fitting tool</a></p>
     </div>
   </div>
+
+
+  <!-- ================= LIE BENCH ================= -->
+  <section id="bench">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Interactive</p>
+        <h2>The lie-angle bench</h2>
+        <p class="lede">Lie angle is the spec people understand least, because its effect is tangled up with loft in
+          a way nobody guesses. Drag the two sliders. The lesson is in the two meters: the face error grows
+          enormously with loft, and the yards offline hardly move at all.</p>
+      </div>
+      <div class="panel" style="padding:22px" data-lie-bench></div>
+    </div>
+  </section>
 
   <!-- ================= THE SCALE ================= -->
   <section id="scale" style="padding-top:14px">
@@ -465,6 +481,7 @@
 </footer>
 
 <script src="js/fitting-engine.js?v=646da77b"></script>
-<script src="js/app.js?v=ad53200a"></script>
+<script src="js/app.js?v=7da1302c"></script>
+<script src="js/lie-bench.js?v=3023b270"></script>
 </body>
 </html>

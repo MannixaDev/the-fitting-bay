@@ -775,6 +775,8 @@
     if (r.shafts.graphiteReasons.length) ironBody += '<div class="why"><b>On shaft material:</b>' + list(r.shafts.graphiteReasons) + '</div>';
     if (r.shafts.tempoNote) ironBody += '<div class="note">' + esc(r.shafts.tempoNote) + '</div>';
     ironBody += '<div class="note' + (r.dynamicLie.severity === 'warn' ? ' warn' : '') + '">' + esc(r.dynamicLie.text) + '</div>';
+    ironBody += '<p class="small" style="margin-top:12px"><a href="fitting-information.html#bench">See what ' +
+      esc(r.lie.code.code) + ' actually does to a clubface &rarr;</a></p>';
     cards.push(card('Irons', 'I', ironBody));
 
     /* ---- driver ---- */
