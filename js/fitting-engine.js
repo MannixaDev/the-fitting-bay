@@ -391,7 +391,8 @@
     }
 
     return {
-      loft: loft, loftReasons: reasons,
+      loft: loft, loftLo: Math.round(lo * 2) / 2, loftHi: Math.round(hi * 2) / 2,
+      loftReasons: reasons,
       length: target, stockLength: stock,
       lengthDelta: Math.round((stock - target) * 100) / 100,
       head: head,
@@ -442,21 +443,22 @@
      ------------------------------------------------------------------ */
   function gripFit(input) {
     var h = input.handLength;
-    var size, why;
+    var size, why, key;
     if (!isNum(h)) {
       var g = input.gloveSize;
       size = (g === 'S') ? 'Undersize / Standard'
         : (g === 'XL' || g === 'XXL') ? 'Midsize'
         : (g === 'L') ? 'Standard (+2 wraps) or Midsize' : 'Standard';
+      key = (g === 'S') ? 'Standard' : (g === 'XL' || g === 'XXL') ? 'Midsize' : (g === 'L') ? 'Midsize' : 'Standard';
       why = 'Based on glove size alone. Measure hand length (wrist crease to the tip of your middle finger) for a firmer answer.';
     } else if (h < 6.9) {
-      size = 'Undersize'; why = 'Hand length under 6.9". An undersize grip is roughly 1/64" smaller in diameter than standard.';
+      size = 'Undersize'; key = 'Undersize'; why = 'Hand length under 6.9". An undersize grip is roughly 1/64" smaller in diameter than standard.';
     } else if (h < 7.6) {
-      size = 'Standard'; why = 'Hand length 6.9"–7.6" is squarely standard — the size almost every club ships with.';
+      size = 'Standard'; key = 'Standard'; why = 'Hand length 6.9"–7.6" is squarely standard — the size almost every club ships with.';
     } else if (h <= 8.25) {
-      size = 'Midsize (or Standard + 2 wraps)'; why = 'Hand length 7.6"–8.25". Midsize is roughly 1/16" larger in diameter than standard.';
+      size = 'Midsize (or Standard + 2 wraps)'; key = 'Midsize'; why = 'Hand length 7.6"–8.25". Midsize is roughly 1/16" larger in diameter than standard.';
     } else {
-      size = 'Jumbo / Oversize'; why = 'Hand length over 8.25". Jumbo is around 1/8" larger in diameter than standard.';
+      size = 'Jumbo / Oversize'; key = 'Jumbo'; why = 'Hand length over 8.25". Jumbo is around 1/8" larger in diameter than standard.';
     }
 
     var mods = [];
@@ -466,7 +468,7 @@
     if (isNum(input.age) && input.age >= 65) mods.push('Grip diameter tends to want to go up with age as hand strength drops. Midsize is very common past 65.');
     mods.push('Cross-check against your glove: a men’s Medium or Medium-Large glove usually lands on standard; XL and above usually points to midsize.');
     mods.push('Wraps of build-up tape are not a full substitute for a bigger grip — tape thickens the butt end but leaves the lower-hand area largely unchanged.');
-    return { size: size, why: why, mods: mods };
+    return { size: size, key: key, why: why, mods: mods };
   }
 
   /* ---------------------------------------------------------------------
@@ -529,22 +531,27 @@
     var i7 = speeds.iron7Carry;
     var irons, why, woods, hybrids;
 
+    var longestIron;
     if (d < 82) {
+      longestIron = 7;
       irons = '7-iron through pitching wedge';
       hybrids = ['4-hybrid (22°)', '5-hybrid (25°)', '6-hybrid (28°)'];
       woods = ['3-wood or a high-lofted "heaven wood" (16–18°)', '5-wood (18°)', '7-wood (21°)'];
       why = 'Below roughly 82 mph with the driver there is no realistic case for a long iron. Fairway woods and hybrids have a deeper face and a much lower centre of gravity, and they launch off turf where a 4-iron simply will not.';
     } else if (d < 92) {
+      longestIron = 6;
       irons = '6-iron through pitching wedge';
       hybrids = ['4-hybrid (22°)', '5-hybrid (25°)'];
       woods = ['3-wood (15°)', '5-wood (18°)'];
       why = 'At your speed a 5-iron is already marginal from a normal fairway lie. Replacing it and everything above it with hybrids costs you nothing and gains you height and stopping power on long approaches.';
     } else if (d < 102) {
+      longestIron = 5;
       irons = '5-iron through pitching wedge';
       hybrids = ['4-hybrid (22°), or keep the 4-iron if you strike it well'];
       woods = ['3-wood (15°)', '5-wood (18°) or 3-hybrid (19°)'];
       why = 'You have enough speed to use a 5-iron properly. The honest test for the 4-iron: if you do not hit it well from a flat fairway lie at least half the time, that slot belongs to a hybrid.';
     } else {
+      longestIron = 4;
       irons = '4-iron through pitching wedge';
       hybrids = ['Optional 3-hybrid (19°), or a driving iron if you play in wind'];
       woods = ['3-wood (15°)', '5-wood (18°) — or drop it for an extra wedge if you rarely need 240 yards'];
@@ -574,7 +581,7 @@
     for (var w = 0; w < wedges.lofts.length; w++) {
       push(wedges.lofts[w] + '° wedge', pwCarry - (wedges.lofts[w] - wedges.pwLoft) * 2.55);
     }
-    return { irons: irons, hybrids: hybrids, woods: woods, why: why, carries: carries };
+    return { irons: irons, longestIron: longestIron, hybrids: hybrids, woods: woods, why: why, carries: carries };
   }
 
   /* ---------------------------------------------------------------------
@@ -631,24 +638,25 @@
      ------------------------------------------------------------------ */
   function ballFit(speeds, input) {
     var d = speeds.driver, type, compression, why;
+    var key;
     if (d < 85) {
-      type = '2-piece / low-compression soft ball'; compression = '35–65';
+      key = 'soft2p'; type = '2-piece / low-compression soft ball'; compression = '35–65';
       why = 'Below 85 mph you cannot fully compress a tour ball, and you lose both distance and feel trying. A soft, low-compression ball gives you more ball speed and a softer feel at your speed.';
     } else if (d < 95) {
-      type = '3-piece mid-compression, ionomer or soft urethane cover'; compression = '65–85';
+      key = 'mid3p'; type = '3-piece mid-compression, ionomer or soft urethane cover'; compression = '65–85';
       why = 'This is the biggest and best-served speed band in golf. A mid-compression 3-piece gives you most of the greenside spin of a tour ball without the driver-spin penalty.';
     } else if (d < 105) {
-      type = '3-piece urethane (tour performance)'; compression = '85–95';
+      key = 'tour3p'; type = '3-piece urethane (tour performance)'; compression = '85–95';
       why = 'You have the speed to compress a urethane cover and to actually use its wedge spin. This is where the standard tour ball starts to make sense.';
     } else {
-      type = '3- or 4-piece tour urethane, firm'; compression = '95–105';
+      key = 'tourfirm'; type = '3- or 4-piece tour urethane, firm'; compression = '95–105';
       why = 'At 105+ mph a soft ball spins too much off the driver and goes short. A firm, multi-layer tour ball is the fit.';
     }
     var extra = [];
     if (input.skill === 'beginner' || input.skill === 'high') extra.push('Be honest about how much greenside spin you actually use. If most of your shots into greens are running approaches, a low-spin distance ball will save you strokes and a lot of money.');
     if (input.shotShape === 'slice' || input.shotShape === 'hook') extra.push('A lower-spin ball also curves less. Until the curve is under control, that is worth more to you than wedge spin.');
     if (input.priority === 'accuracy') extra.push('Firmer, lower-spin covers curve less, which is consistent with your stated accuracy priority.');
-    return { type: type, compression: compression, why: why, extra: extra };
+    return { type: type, key: key, compression: compression, why: why, extra: extra };
   }
 
   /* ---------------------------------------------------------------------
@@ -753,6 +761,350 @@
     };
   }
 
+  /* ---------------------------------------------------------------------
+     14. AUDIT — diff the clubs you already own against the fit
+     ---------------------------------------------------------------------
+     Most people are not buying a full set. They want to know which of their
+     current clubs is actually wrong, what it is costing them, and what it
+     costs to put right — so the ordering here is impact first and money
+     second, and the cheap-but-significant fixes are called out separately.
+
+     Costs are indicative shop rates for a set of irons unless stated.
+     ------------------------------------------------------------------ */
+  var CUR = '£';
+  var FLEX_IDX = { L: 0, A: 1, R: 2, S: 3, X: 4, XX: 5 };
+  var GRIP_IDX = { Undersize: 0, Standard: 1, Midsize: 2, Jumbo: 3 };
+  var BALL_NAME = {
+    soft2p: '2-piece low-compression',
+    mid3p: '3-piece mid-compression',
+    tour3p: '3-piece tour urethane',
+    tourfirm: 'firm tour urethane'
+  };
+  var SEV_RANK = { high: 3, medium: 2, low: 1, unknown: 0.5, ok: 0 };
+
+  function money(lo, hi) {
+    if (lo === 0 && hi === 0) return 'No extra cost';
+    if (lo === hi) return CUR + lo;
+    return CUR + lo + '–' + CUR + hi;
+  }
+  function fmtDeg(d) {
+    if (Math.abs(d) < 0.05) return 'Standard';
+    return Math.abs(Math.round(d * 10) / 10) + '° ' + (d > 0 ? 'upright' : 'flat');
+  }
+  function isNumOrZero(v) { return typeof v === 'number' && isFinite(v); }
+
+  function audit(result, cur) {
+    cur = cur || {};
+    var f = [];
+
+    function add(o) {
+      if (!o.costLabel) o.costLabel = money(o.costLo, o.costHi);
+      if (o.quickWin === undefined) o.quickWin = SEV_RANK[o.severity] >= 2 && o.costHi <= 120;
+      f.push(o);
+    }
+
+    /* ---- iron lie ---------------------------------------------------- */
+    var recLie = result.lie.code.deg;
+    if (!isNumOrZero(cur.ironLie)) {
+      add({
+        area: 'Iron lie angle', severity: 'unknown', costLo: 0, costHi: 0,
+        current: 'Unknown', recommended: result.lie.code.code + ' (' + result.lie.code.label + ')',
+        detail: 'Worth finding out, because it is both the most commonly wrong spec and the cheapest to fix. Any shop with a loft-lie machine will measure your set in about ten minutes, and most will do it free if you are buying anything. Off-the-rack clubs are stamped standard but frequently leave the factory a degree out.',
+        fix: 'Ask a shop to check the loft and lie on your 7-iron.'
+      });
+    } else {
+      var lieGap = recLie - cur.ironLie;
+      var lieAbs = Math.abs(lieGap);
+      if (lieAbs < 0.5) {
+        add({
+          area: 'Iron lie angle', severity: 'ok', costLo: 0, costHi: 0,
+          current: fmtDeg(cur.ironLie), recommended: fmtDeg(recLie),
+          detail: 'Your lie angle already matches the fit. Leave it alone.'
+        });
+      } else {
+        add({
+          area: 'Iron lie angle', severity: lieAbs > 1.5 ? 'high' : 'medium',
+          costLo: 40, costHi: 70,
+          current: fmtDeg(cur.ironLie), recommended: fmtDeg(recLie),
+          detail: 'You are ' + round1(lieAbs) + '° too ' + (lieGap > 0 ? 'flat' : 'upright') +
+            '. At roughly 4 yards of push or pull per degree, that is about ' + Math.round(lieAbs * 4) +
+            ' yards offline on a 150-yard shot before your swing has had any say — and it bites hardest in the short irons and wedges, where it costs you greens.',
+          fix: 'Bend the set ' + round1(lieAbs) + '° ' + (lieGap > 0 ? 'upright' : 'flat') + '.',
+          caveat: 'Forged heads bend freely. Cast heads usually take 2° either way and no more, and some hollow-body or multi-material heads cannot be bent at all — ask before you pay.'
+        });
+      }
+    }
+
+    /* ---- iron length ------------------------------------------------- */
+    var recLen = result.length.adj;
+    if (!isNumOrZero(cur.ironLength)) {
+      add({
+        area: 'Iron length', severity: 'unknown', costLo: 0, costHi: 0,
+        current: 'Unknown', recommended: U.fmtAdj(recLen),
+        detail: 'Measure your 7-iron: sole it in playing position and measure along the back of the shaft from the ground to the butt end. Standard is 37" for men and 36" for women.',
+        fix: 'Measure your 7-iron and come back.'
+      });
+    } else {
+      var lenGap = cur.ironLength - recLen;
+      var lenAbs = Math.abs(lenGap);
+      if (lenAbs < 0.26) {
+        add({
+          area: 'Iron length', severity: 'ok', costLo: 0, costHi: 0,
+          current: U.fmtAdj(cur.ironLength), recommended: U.fmtAdj(recLen),
+          detail: 'Your length is already right for your height.'
+        });
+      } else {
+        var tooLong = lenGap > 0;
+        add({
+          area: 'Iron length', severity: lenAbs > 0.75 ? 'high' : 'medium',
+          costLo: tooLong ? 40 : 60, costHi: tooLong ? 80 : 140,
+          current: U.fmtAdj(cur.ironLength), recommended: U.fmtAdj(recLen),
+          detail: 'Your irons are ' + U.fmtIn(lenAbs, 2) + ' too ' + (tooLong ? 'long' : 'short') +
+            '. Length does two things at once: it moves where your hands sit at address, and it changes the effective lie by about a degree per inch — so a club that is too long also plays ' +
+            (tooLong ? 'flatter' : 'more upright') + ' than the number stamped on it.',
+          fix: tooLong
+            ? 'Shorten by ' + U.fmtIn(lenAbs, 2) + ' and re-grip. Trimming also stiffens the shaft slightly, which at your speed is usually welcome.'
+            : 'Lengthen by ' + U.fmtIn(lenAbs, 2) + ' with shaft extensions, or reshaft to the correct length. Extensions soften the shaft a little.',
+          caveat: 'Do length and lie in the same visit — changing one changes the other, and paying twice for the same bench time is a waste.'
+        });
+      }
+    }
+
+    /* ---- iron shaft flex --------------------------------------------- */
+    var recFlex = result.shafts.ironFlex;
+    if (!cur.ironFlex) {
+      add({
+        area: 'Iron shaft flex', severity: 'unknown', costLo: 0, costHi: 0,
+        current: 'Unknown', recommended: recFlex,
+        detail: 'Usually printed on the shaft just above the hosel, or on the shaft band near the grip.',
+        fix: 'Look at the shaft.'
+      });
+    } else {
+      var recIdx = FLEX_IDX[recFlex] === undefined ? 2 : FLEX_IDX[recFlex];
+      var flexGap = recIdx - FLEX_IDX[cur.ironFlex];
+      var flexAbs = Math.abs(flexGap);
+      if (flexAbs === 0) {
+        add({
+          area: 'Iron shaft flex', severity: 'ok', costLo: 0, costHi: 0,
+          current: cur.ironFlex, recommended: recFlex,
+          detail: 'Your flex matches. Bear in mind flex is not standardised between brands, so this is a match on the letter rather than on the actual stiffness profile.'
+        });
+      } else {
+        add({
+          area: 'Iron shaft flex', severity: flexAbs >= 2 ? 'high' : 'medium',
+          costLo: 250, costHi: 450,
+          current: cur.ironFlex, recommended: recFlex,
+          detail: flexGap > 0
+            ? 'Your shafts are ' + flexAbs + ' flex' + (flexAbs > 1 ? 'es' : '') + ' too soft for your speed. Too soft shows up as a high, left, inconsistent flight and a shaft that feels like it arrives late.'
+            : 'Your shafts are ' + flexAbs + ' flex' + (flexAbs > 1 ? 'es' : '') + ' too stiff for your speed. Too stiff shows up as a low flight that will not hold a green, shots leaking right, and a harsh feel at impact.',
+          fix: 'Reshaft to ' + recFlex + '. This is the expensive one, so do it last — and only once lie, length and grips are right.',
+          caveat: 'Shaft weight matters at least as much as the letter does. Fix weight and flex together or you have only solved half of it.'
+        });
+      }
+    }
+
+    /* ---- iron shaft material ----------------------------------------- */
+    if (cur.ironMaterial && cur.ironMaterial !== result.shafts.material) {
+      var wantsGraphite = result.shafts.material === 'Graphite';
+      add({
+        area: 'Iron shaft material', severity: wantsGraphite ? 'medium' : 'low',
+        costLo: 250, costHi: 500,
+        current: cur.ironMaterial, recommended: result.shafts.material,
+        detail: wantsGraphite
+          ? 'The fit points to graphite and you are playing steel. At your speed, age or joint profile, a lighter graphite shaft usually buys back clubhead speed and takes a lot of the impact shock out of your hands and elbows.'
+          : 'The fit points to steel and you are playing graphite. Steel would give you more feedback and typically a tighter dispersion at your speed.',
+        fix: 'Test both back to back before committing — this is a feel decision as much as a numbers one.'
+      });
+    }
+
+    /* ---- grips -------------------------------------------------------- */
+    var recGrip = result.grip.key;
+    if (!cur.gripSize) {
+      add({
+        area: 'Grip size', severity: 'unknown', costLo: 0, costHi: 0,
+        current: 'Unknown', recommended: recGrip,
+        detail: 'The size is usually printed on the grip itself, or a shop will tell you in seconds.',
+        fix: 'Check the grip, or ask.'
+      });
+    } else if (GRIP_IDX[cur.gripSize] === GRIP_IDX[recGrip]) {
+      add({
+        area: 'Grip size', severity: 'ok', costLo: 0, costHi: 0,
+        current: cur.gripSize, recommended: recGrip,
+        detail: 'Right size. Replace them when they go shiny or hard — worn grips make you hold on tighter, and grip pressure wrecks more swings than grip size does.'
+      });
+    } else {
+      var gripGap = GRIP_IDX[recGrip] - GRIP_IDX[cur.gripSize];
+      add({
+        area: 'Grip size', severity: Math.abs(gripGap) >= 2 ? 'high' : 'medium',
+        costLo: 60, costHi: 110,
+        current: cur.gripSize, recommended: recGrip,
+        detail: 'Your grips are ' + (gripGap > 0 ? 'too small' : 'too big') + ' by ' + Math.abs(gripGap) +
+          ' size' + (Math.abs(gripGap) > 1 ? 's' : '') + '. Grip diameter is a ball-flight tool: too small lets the hands over-rotate and shut the face, too big stops them releasing and leaves it open.',
+        fix: 'Re-grip the set in ' + recGrip + '.'
+      });
+    }
+
+    /* ---- driver loft --------------------------------------------------- */
+    var lo = result.driver.loftLo, hi = result.driver.loftHi;
+    if (!isNum(cur.driverLoft)) {
+      add({
+        area: 'Driver loft', severity: 'unknown', costLo: 0, costHi: 0,
+        current: 'Unknown', recommended: lo + '°–' + hi + '°',
+        detail: 'Stamped on the sole or on the hosel.',
+        fix: 'Look at the sole of your driver.'
+      });
+    } else if (cur.driverLoft >= lo - 0.25 && cur.driverLoft <= hi + 0.25) {
+      add({
+        area: 'Driver loft', severity: 'ok', costLo: 0, costHi: 0,
+        current: cur.driverLoft + '°', recommended: lo + '°–' + hi + '°',
+        detail: 'Inside your window. Loft is only half the story though — attack angle moves the right answer by two or three degrees, so confirm it on a launch monitor if you get the chance.'
+      });
+    } else {
+      var loftGap = cur.driverLoft < lo ? lo - cur.driverLoft : cur.driverLoft - hi;
+      var fixable = cur.driverAdjustable === true && loftGap <= 2;
+      add({
+        area: 'Driver loft', severity: loftGap > 1.5 ? 'high' : 'medium',
+        costLo: 0, costHi: fixable ? 0 : 400,
+        costLabel: fixable ? 'Free — you already own the fix'
+          : cur.driverAdjustable === false
+            ? CUR + '250–' + CUR + '400 for a head that suits you'
+            : 'Free if your hosel adjusts, ' + CUR + '250–' + CUR + '400 if not',
+        quickWin: fixable,
+        current: cur.driverLoft + '°', recommended: lo + '°–' + hi + '°',
+        detail: 'You are playing ' + round1(loftGap) + '° too ' + (cur.driverLoft < lo ? 'little' : 'much') +
+          ' loft. Too little and you launch low with low spin, and the ball falls out of the sky short. Too much and it climbs, spins, and gets eaten by any wind.',
+        fix: fixable
+          ? 'Turn the hosel. Your driver is adjustable and the gap is inside its range, so this costs nothing but a wrench and ten minutes.'
+          : (cur.driverAdjustable === false
+            ? 'A fixed hosel cannot be changed, so this is one to note for your next driver purchase rather than a reason to buy one now.'
+            : 'Check whether your driver has an adjustable hosel first — most made in the last decade do, and if so this is free.')
+      });
+    }
+
+    /* ---- driver length -------------------------------------------------- */
+    if (isNum(cur.driverLength)) {
+      var dGap = cur.driverLength - result.driver.length;
+      if (dGap > 0.6) {
+        add({
+          area: 'Driver length', severity: 'medium', costLo: 30, costHi: 60,
+          current: U.fmtIn(cur.driverLength, 2), recommended: U.fmtIn(result.driver.length, 2),
+          detail: 'Your driver is ' + U.fmtIn(dGap, 2) + ' longer than the fit suggests. The face is only about four inches wide, and finding the middle of it gets measurably harder with every half inch of shaft. The couple of yards of theoretical speed you give up by shortening is usually paid back several times over in centre contact.',
+          fix: 'Trim the shaft and re-grip. Add a little head weight or lead tape afterwards to keep the swing weight where it was.'
+        });
+      } else {
+        add({
+          area: 'Driver length', severity: 'ok', costLo: 0, costHi: 0,
+          current: U.fmtIn(cur.driverLength, 2), recommended: U.fmtIn(result.driver.length, 2),
+          detail: 'Sensible length. Nothing to do.'
+        });
+      }
+    }
+
+    /* ---- set makeup ------------------------------------------------------ */
+    if (isNum(cur.longestIron)) {
+      var recLongest = result.set.longestIron;
+      if (cur.longestIron < recLongest) {
+        var n = recLongest - cur.longestIron;
+        add({
+          area: 'Long irons', severity: n >= 2 ? 'high' : 'medium',
+          costLo: 120 * n, costHi: 220 * n,
+          current: cur.longestIron + '-iron', recommended: recLongest + '-iron',
+          detail: 'You carry a ' + cur.longestIron + '-iron, but at your speed the longest iron worth carrying is a ' +
+            recLongest + '-iron. A long iron you cannot launch is a wasted slot out of your fourteen — it goes the same distance as the club below it, from a worse lie, with less height to hold a green.',
+          fix: 'Replace the ' + cur.longestIron + '-iron' + (n > 1 ? ' through ' + (recLongest - 1) + '-iron' : '') +
+            ' with hybrid' + (n > 1 ? 's' : '') + ' of matching loft.',
+          caveat: 'The honest test: from a flat fairway lie, do you hit it well at least half the time? If yes, keep it.'
+        });
+      } else {
+        add({
+          area: 'Long irons', severity: 'ok', costLo: 0, costHi: 0,
+          current: cur.longestIron + '-iron', recommended: recLongest + '-iron',
+          detail: 'Your long-iron cut-off suits your speed.'
+        });
+      }
+    }
+
+    /* ---- wedge gapping ---------------------------------------------------- */
+    if (cur.wedgeLofts && cur.wedgeLofts.length) {
+      var lofts = [result.wedges.pwLoft].concat(cur.wedgeLofts).sort(function (a, b) { return a - b; });
+      var worst = 0, worstPair = null;
+      for (var i = 1; i < lofts.length; i++) {
+        var g = lofts[i] - lofts[i - 1];
+        if (g > worst) { worst = g; worstPair = [lofts[i - 1], lofts[i]]; }
+      }
+      if (worst > 7) {
+        add({
+          area: 'Wedge gapping', severity: worst > 9 ? 'high' : 'medium',
+          costLo: 100, costHi: 170,
+          current: lofts.join('° / ') + '°', recommended: 'no gap wider than 6°',
+          detail: 'There is a ' + worst + '° gap between your ' + worstPair[0] + '° and ' + worstPair[1] +
+            '°, which is roughly ' + Math.round(worst * 2.5) + ' yards with no club to cover it. That is the distance you end up manufacturing a half swing for, and half swings with a wedge are where big numbers come from.',
+          fix: 'Add a wedge at about ' + Math.round((worstPair[0] + worstPair[1]) / 2) + '°.'
+        });
+      } else {
+        add({
+          area: 'Wedge gapping', severity: 'ok', costLo: 0, costHi: 0,
+          current: lofts.join('° / ') + '°', recommended: 'no gap wider than 6°',
+          detail: 'Your wedges are evenly spaced. The widest gap is ' + worst + '°.'
+        });
+      }
+    }
+
+    /* ---- ball -------------------------------------------------------------- */
+    if (cur.ball) {
+      if (cur.ball === result.ball.key) {
+        add({
+          area: 'Golf ball', severity: 'ok', costLo: 0, costHi: 0,
+          current: BALL_NAME[cur.ball], recommended: BALL_NAME[result.ball.key],
+          detail: 'Right category for your speed.'
+        });
+      } else {
+        add({
+          area: 'Golf ball', severity: 'medium', costLo: 0, costHi: 0,
+          costLabel: 'No extra cost — you buy balls anyway', quickWin: true,
+          current: BALL_NAME[cur.ball], recommended: BALL_NAME[result.ball.key],
+          detail: result.ball.why,
+          fix: 'Buy a box of the recommended category next time instead of your usual, and play it for three rounds before judging it.'
+        });
+      }
+    }
+
+    /* ---- rank ------------------------------------------------------------- */
+    var actions = f.filter(function (x) { return x.severity !== 'ok' && x.severity !== 'unknown'; });
+    var fine = f.filter(function (x) { return x.severity === 'ok'; });
+    var unknowns = f.filter(function (x) { return x.severity === 'unknown'; });
+
+    actions.sort(function (a, b) {
+      if (SEV_RANK[b.severity] !== SEV_RANK[a.severity]) return SEV_RANK[b.severity] - SEV_RANK[a.severity];
+      if (a.quickWin !== b.quickWin) return a.quickWin ? -1 : 1;
+      return a.costLo - b.costLo;
+    });
+
+    var quick = actions.filter(function (x) { return x.quickWin; });
+    var quickLo = 0, quickHi = 0, allLo = 0, allHi = 0;
+    quick.forEach(function (x) { quickLo += x.costLo; quickHi += x.costHi; });
+    actions.forEach(function (x) { allLo += x.costLo; allHi += x.costHi; });
+
+    var headline;
+    if (!actions.length) {
+      headline = unknowns.length
+        ? 'Nothing you told us about is wrong. Fill in the gaps below and we can check the rest.'
+        : 'Everything checks out. Your clubs already match your fit — spend the money on lessons instead.';
+    } else if (quick.length) {
+      headline = quick.length + ' of your ' + actions.length + ' issue' + (actions.length > 1 ? 's' : '') +
+        ' can be fixed for ' + money(quickLo, quickHi) + ' without buying a single new club. Start there.';
+    } else {
+      headline = actions.length + ' thing' + (actions.length > 1 ? 's' : '') +
+        ' worth changing, but none of them are cheap. Work down the list as budget allows.';
+    }
+
+    return {
+      headline: headline,
+      actions: actions, fine: fine, unknowns: unknowns, quickWins: quick,
+      quickCost: [quickLo, quickHi], totalCost: [allLo, allHi], currency: CUR
+    };
+  }
+
   /* helpers */
   function isNum(v) { return typeof v === 'number' && isFinite(v) && v > 0; }
   function round1(v) { return Math.round(v * 10) / 10; }
@@ -770,6 +1122,7 @@
     estimateSpeeds: estimateSpeeds,
     standardSpecs: STD_SPECS,
     fit: fit,
+    audit: audit,
     FLEX_NAME: FLEX_NAME
   };
 })(window);

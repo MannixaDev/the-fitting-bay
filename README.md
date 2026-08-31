@@ -45,6 +45,9 @@ angle, tempo, turf, priority, putting stroke) it produces:
 - **Set makeup** for all 14 slots with an estimated carry-gap table
 - A **build sheet** table of every club: standard spec, adjustment, and the number to build to
 
+It then offers a second, separate pass — **"check the clubs you already own"** — which diffs your
+current specs against the fit and returns a prioritised, costed list of what to change.
+
 ## Provenance
 
 ### The Bay Scale
@@ -104,6 +107,29 @@ Wrist-to-floor provides an independent second opinion, and when the two disagree
 rather than hiding it — that disagreement is itself the signal that your arms are long or short for
 your height.
 
+### The audit model
+
+Most visitors are not buying a full set; they want to know what on their existing clubs is wrong
+and what to fix first. `audit(fitResult, currentSpecs)` produces one finding per spec, each with a
+severity, the concrete cost of being wrong, the fix, and an indicative price.
+
+Ordering is **impact first, money second**, and findings that are both significant and cheap
+(≤ £120) are tagged as quick wins and surfaced in the headline. That ordering is the whole point:
+a lie bend and a re-grip cost about £100 together and fix two of the most common errors in golf,
+while a reshaft costs £250–£450 and should almost always wait until the cheap work is done.
+
+Three findings can come back free, and they matter disproportionately:
+
+- a **driver loft** error inside the range of an adjustable hosel — a wrench and ten minutes
+- a **ball** in the wrong category — you buy balls anyway
+- anything already correct, which lands in a *"leave this alone"* group, because telling someone
+  what **not** to spend money on is half the value
+
+Unknown specs are not silently skipped. Each returns a finding explaining how to find that number
+out, since "I don't know my lie angle" is the normal state for most golfers.
+
+Costs are indicative UK shop rates, set in one constant (`CUR`) plus the per-finding figures.
+
 ### Speed and distance model
 
 - 7-iron clubhead speed ≈ **0.80 × driver clubhead speed**. This ratio is stable across ability
@@ -136,6 +162,7 @@ console.log(r.lie.code.code, r.lie.preciseDegrees, r.length.adj, r.shafts.ironFl
 
 Each recommendation lives in its own small function (`staticLie`, `shaftFit`, `driverFit`,
 `wedgeFit`, `gripFit`, `putterFit`, `ballFit`, `setMakeup`), so a rule change is a local edit.
+`audit(fitResult, currentSpecs)` is likewise pure and testable on its own.
 
 ## Legal
 

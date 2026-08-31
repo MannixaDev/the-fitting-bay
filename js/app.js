@@ -155,7 +155,9 @@
       formErr.textContent = '';
       var input = buildInput();
       var result = G.fit(input);
+      lastFit = result;
       renderResults(result);
+      resetAuditUI();
       renderChart($('#chartFull'), input.heightIn, input.wtfIn, true);
       $('#wizardSection').style.display = 'none';
       $('#results').classList.add('show');
@@ -464,6 +466,146 @@
   }
 
   /* =====================================================================
+     AUDIT — "check the clubs you already own"
+     ================================================================== */
+  var lastFit = null;
+
+  function initAudit() {
+    var openBtn = $('#auditOpenBtn'), panel = $('#auditPanel'), intro = $('#auditIntro');
+    var form = $('#auditForm'), cancel = $('#auditCancelBtn');
+    if (!form) return;
+
+    openBtn.addEventListener('click', function () {
+      intro.hidden = true;
+      panel.hidden = false;
+      panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    cancel.addEventListener('click', function () {
+      panel.hidden = true;
+      intro.hidden = false;
+      $('#auditResults').innerHTML = '';
+    });
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (!lastFit) return;
+      renderAudit(G.audit(lastFit, readAuditInput()));
+      $('#auditResults').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
+  function selNum(id) {
+    var v = $(id) && $(id).value;
+    if (v === '' || v == null) return null;
+    var n = parseFloat(v);
+    return isFinite(n) ? n : null;
+  }
+  function selStr(id) { return ($(id) && $(id).value) || null; }
+
+  function readAuditInput() {
+    var adj = radio('curAdj');
+    var wedgeRaw = ($('#curWedges') && $('#curWedges').value) || '';
+    var wedges = wedgeRaw.split(/[^0-9.]+/)
+      .map(parseFloat)
+      .filter(function (n) { return isFinite(n) && n >= 44 && n <= 66; })
+      .sort(function (a, b) { return a - b; });
+
+    return {
+      ironLength: selNum('#curIronLength'),
+      ironLie: selNum('#curIronLie'),
+      ironFlex: selStr('#curIronFlex'),
+      ironMaterial: selStr('#curIronMaterial'),
+      gripSize: selStr('#curGripSize'),
+      longestIron: selNum('#curLongestIron'),
+      driverLoft: selNum('#curDriverLoft'),
+      driverLength: selNum('#curDriverLength'),
+      driverAdjustable: adj === 'yes' ? true : adj === 'no' ? false : null,
+      wedgeLofts: wedges.length ? wedges : null,
+      ball: selStr('#curBall')
+    };
+  }
+
+  var SEV_LABEL = { high: 'Fix this first', medium: 'Worth fixing', low: 'Minor' };
+
+  function findingCard(x, n) {
+    var h = ['<div class="finding sev-' + x.severity + '">'];
+    h.push('<div class="finding-head">');
+    h.push('<span class="finding-n">' + n + '</span>');
+    h.push('<div class="finding-title"><b>' + esc(x.area) + '</b>');
+    h.push('<span class="finding-diff">' + esc(x.current) + ' <em>&rarr;</em> ' + esc(x.recommended) + '</span></div>');
+    h.push('<div class="finding-tags">');
+    if (x.quickWin) h.push('<span class="pill">Quick win</span>');
+    h.push('<span class="pill ' + (x.severity === 'high' ? 'warn' : 'brass') + '">' + esc(SEV_LABEL[x.severity] || x.severity) + '</span>');
+    h.push('<span class="cost">' + esc(x.costLabel) + '</span>');
+    h.push('</div></div>');
+    h.push('<p class="finding-detail">' + esc(x.detail) + '</p>');
+    if (x.fix) h.push('<p class="finding-fix"><b>Fix:</b> ' + esc(x.fix) + '</p>');
+    if (x.caveat) h.push('<p class="finding-caveat">' + esc(x.caveat) + '</p>');
+    h.push('</div>');
+    return h.join('');
+  }
+
+  function renderAudit(a) {
+    var o = [];
+    o.push('<div class="panel card" style="margin-top:18px" id="auditReport">');
+    o.push('<h3><span class="ico">&#10003;</span>What to change, and in what order</h3>');
+    o.push('<p class="audit-headline">' + esc(a.headline) + '</p>');
+
+    if (a.actions.length) {
+      o.push('<div class="audit-summary">');
+      o.push('<div><span>Changes worth making</span><b>' + a.actions.length + '</b></div>');
+      o.push('<div><span>Quick wins</span><b>' + a.quickWins.length + '</b></div>');
+      o.push('<div><span>Quick-win cost</span><b>' + esc(costRange(a, a.quickCost)) + '</b></div>');
+      o.push('<div><span>Everything</span><b>' + esc(costRange(a, a.totalCost)) + '</b></div>');
+      o.push('</div>');
+      o.push('<div class="findings">' + a.actions.map(function (x, i) { return findingCard(x, i + 1); }).join('') + '</div>');
+    }
+
+    if (a.fine.length) {
+      o.push('<details class="audit-group"><summary><b>' + a.fine.length +
+        ' thing' + (a.fine.length > 1 ? 's' : '') + ' you should leave alone</b> ' +
+        '<span class="tiny">&mdash; knowing what not to spend money on is half the value</span></summary><div>');
+      a.fine.forEach(function (x) {
+        o.push('<div class="finding sev-ok"><div class="finding-head"><span class="finding-n ok">&#10003;</span>' +
+          '<div class="finding-title"><b>' + esc(x.area) + '</b><span class="finding-diff">' + esc(x.current) + '</span></div></div>' +
+          '<p class="finding-detail">' + esc(x.detail) + '</p></div>');
+      });
+      o.push('</div></details>');
+    }
+
+    if (a.unknowns.length) {
+      o.push('<details class="audit-group"><summary><b>' + a.unknowns.length +
+        ' thing' + (a.unknowns.length > 1 ? 's' : '') + ' we could not check</b> ' +
+        '<span class="tiny">&mdash; how to find each one out</span></summary><div>');
+      a.unknowns.forEach(function (x) {
+        o.push('<div class="finding sev-unknown"><div class="finding-head"><span class="finding-n unk">?</span>' +
+          '<div class="finding-title"><b>' + esc(x.area) + '</b><span class="finding-diff">Recommended: ' + esc(x.recommended) + '</span></div></div>' +
+          '<p class="finding-detail">' + esc(x.detail) + '</p></div>');
+      });
+      o.push('</div></details>');
+    }
+
+    o.push('<div class="note">Prices are indicative UK shop rates for a set of irons and will vary. ' +
+      'The ordering assumes you want the biggest improvement per pound spent, which is why a bend and a re-grip ' +
+      'come before a reshaft even when the reshaft is the larger error.</div>');
+    o.push('</div>');
+    $('#auditResults').innerHTML = o.join('');
+  }
+
+  function resetAuditUI() {
+    if (!$('#auditPanel')) return;
+    $('#auditPanel').hidden = true;
+    $('#auditIntro').hidden = false;
+    $('#auditResults').innerHTML = '';
+  }
+
+  function costRange(a, pair) {
+    if (pair[1] === 0) return 'Nothing';
+    if (pair[0] === pair[1]) return a.currency + pair[0];
+    return a.currency + pair[0] + '–' + a.currency + pair[1];
+  }
+
+  /* =====================================================================
      STATIC TABLES + INITIAL CHART
      ================================================================== */
   function initReferenceTables() {
@@ -494,4 +636,5 @@
   initReferenceTables();
   if ($('#chartFull')) renderChart($('#chartFull'), null, null, true);
   if ($('#fitForm')) initWizard();
+  initAudit();
 })();
