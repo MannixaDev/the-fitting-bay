@@ -13,7 +13,8 @@ golffitting/
 ├── js/fitting-engine.js        all fitting logic, pure functions, no DOM
 ├── js/app.js                   wizard UI, SVG rendering, results, audit, persistence
 ├── tools/bump.js               rewrites the ?v= cache-busters from file hashes
-└── .githooks/pre-commit        runs bump.js so they can never go stale
+├── tests/                      the test suite — no dependencies, no config
+└── .githooks/pre-commit        runs the tests, then bump.js
 ```
 
 `app.js` is shared by both pages and is page-aware: the wizard initialises only where
@@ -232,6 +233,36 @@ and grind, putter length and toe hang, and ball compression bands are the consen
 fitting guidance, cross-checked across multiple independent sources and set out in full on the
 fitting information page.
 
+## Tests
+
+```bash
+node tests/run.js
+```
+
+No framework, no config, no dependencies — `tests/harness.js` is eighty lines and the engine is
+pure functions, so that is all it needs. Roughly **29,000 generated cases** in under a second.
+
+| File | Covers |
+|---|---|
+| `fit.test.js` | Bay Scale anchors and structure, club length, speed estimation, sensitivity, handedness, junior and women's paths, shaft shortlist, plus a sweep over the whole `fit()` surface |
+| `audit.test.js` | Individual findings, ordering, the replace-vs-repair ceiling, budget planning, gapping, plus a sweep asserting internal consistency for every combination of current specs |
+| `regressions.test.js` | Bugs that actually shipped and were caught in review. Each stays so it cannot come back quietly. |
+
+Two ideas do most of the work:
+
+- **Sweeps** generate thousands of inputs and assert invariants rather than exact values — the
+  carry ladder never rises, a "quick win" is never expensive, superseded work never counts toward a
+  total, the replace threshold fires at exactly the benchmark and not a pound either side.
+- **`noPlaceholders()`** greps every user-facing string for `undefined`, `NaN` and
+  `[object Object]`. That single assertion caught a live bug the first time it ran: a flag left
+  over from an earlier scale was printing "undefined (4° Flat)" to real users.
+
+The pre-commit hook runs the suite and refuses the commit if it fails. Enable it once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
 ## Modifying it
 
 `js/fitting-engine.js` is deliberately free of DOM code, so you can `require()` it in Node for
@@ -246,7 +277,9 @@ console.log(r.lie.code.code, r.lie.preciseDegrees, r.length.adj, r.shafts.ironFl
 
 Each recommendation lives in its own small function (`staticLie`, `shaftFit`, `driverFit`,
 `wedgeFit`, `gripFit`, `putterFit`, `ballFit`, `setMakeup`), so a rule change is a local edit.
-`audit(fitResult, currentSpecs)` is likewise pure and testable on its own.
+`audit(fitResult, currentSpecs, budget)` is likewise pure and testable on its own. Add a test
+alongside any rule change — the sweeps will usually catch a structural mistake for free, but a
+changed threshold or a reworded recommendation needs its own case.
 
 ## Legal
 

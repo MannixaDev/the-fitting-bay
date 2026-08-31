@@ -892,13 +892,22 @@
     var womens = womensNotes(input, speeds, shafts);
     var shaftPicks = shaftSuggestions(shafts, input);
 
-    /* How much a measuring error would move the answer. If half an inch of
-       wrist-to-floor changes the code, the player should know that before
-       they pay someone to bend a set. */
-    var sensitivity = [-0.5, 0.5].map(function (d) {
-      var alt = staticLie(heightIn, wtfIn + d);
-      return { delta: d, code: alt.code, changes: alt.code.i !== lie.code.i };
-    });
+    /* How much a measuring error would move the answer.
+
+       Note the metric: a fixed half-inch probe is useless here, because bands
+       are exactly 1" wide, so a half-inch error moves ANYONE who is not dead
+       centre. What matters is the distance to the nearer band edge — that is
+       the size of measuring error this player can actually absorb. */
+    var margin = Math.round((0.5 - Math.abs(lie.bandOffset)) * 100) / 100;
+    var sensitivity = {
+      margin: margin,
+      fragile: margin < 0.25,
+      nearer: codeByIndex(lie.code.i + (lie.bandOffset >= 0 ? 1 : -1)),
+      probes: [-0.5, 0.5].map(function (d) {
+        var alt = staticLie(heightIn, wtfIn + d);
+        return { delta: d, code: alt.code, changes: alt.code.i !== lie.code.i };
+      })
+    };
     var expectedWtf = levelCentre(heightIn);
     var wtfOutlier = Math.abs(wtfIn - expectedWtf) > 2.5;
 
@@ -935,16 +944,18 @@
 
     var flags = [];
     if (lie.clampedOffScale) flags.push({ level: 'warn', text: 'Your height and wrist-to-floor combination lands beyond the ends of the Bay Scale, so the result has been clamped. Re-measure before spending money — wrist-to-floor is the most commonly mis-taken measurement in golf. If it is correct you are a genuine custom build: most cast iron heads only bend reliably 2–3° either way, so you need a head that supports more, and you need to see a fitter in person.' });
-    if (lie.borderline && lie.neighbour) flags.push({ level: 'info', text: 'You sit within 0.15" of the edge of your colour band. ' + lie.neighbour.name + ' (' + lie.neighbour.label + ') is a legitimate alternative, and a half-inch measuring error would put you there. Have both checked on a lie board.' });
+    if (lie.borderline && lie.neighbour) flags.push({ level: 'info', text: 'You sit close to the edge of your band on the Bay Scale. ' + lie.neighbour.code + ' (' + lie.neighbour.label + ') is a legitimate alternative, and a small measuring error would put you there. Have both checked on a lie board.' });
     if (speeds.confidence === 'low') flags.push({ level: 'warn', text: 'You did not supply a swing speed or a carry distance, so everything speed-driven — flex, shaft weight, driver loft, set makeup, ball — is an educated guess from your age, gender and skill level. Fifteen minutes on a launch monitor would move these numbers more than any other input you could give this tool.' });
     if (speeds.confidence === 'medium') flags.push({ level: 'info', text: 'Speed was derived from carry distance, which blends clubhead speed with strike quality. If you strike it poorly for your level, this tool will under-read your speed and under-flex your shaft.' });
     if (isNum(input.age) && input.age >= 60 && shafts.material === 'Steel') flags.push({ level: 'info', text: 'You are 60 or over and the speed numbers still point to steel. That is fine — but test a premium graphite iron shaft anyway. A lot of players in that bracket gain speed and lose nothing in dispersion.' });
     if (wtfOutlier) flags.push({ level: 'warn', text: 'Your wrist-to-floor of ' + U.fmtIn(wtfIn, 1) +
       ' is a long way from the ' + U.fmtIn(expectedWtf, 1) + ' that is typical at ' + U.fmtHeight(heightIn) +
       '. Unusual proportions are real and this may well be right — but the most common cause is measuring from the wrong point. Check it from the crease of the wrist, in your golf shoes, with someone else reading the tape, before you act on this.' });
-    if (sensitivity[0].changes || sensitivity[1].changes) flags.push({ level: 'info', text: 'Half an inch either way on your wrist-to-floor would change your lie code (' +
-      sensitivity[0].code.code + ' at ' + U.fmtIn(wtfIn - 0.5, 1) + ', ' + sensitivity[1].code.code + ' at ' + U.fmtIn(wtfIn + 0.5, 1) +
-      '). Worth re-measuring once to be sure before anyone bends anything.' });
+    /* borderline is a stricter version of fragile, so only one of the two
+       messages is ever worth showing. */
+    if (sensitivity.fragile && !lie.borderline) flags.push({ level: 'info', text: 'You are only ' + U.fmtIn(sensitivity.margin, 2) +
+      ' from the edge of your band, so a measuring error that small would make you ' + sensitivity.nearer.code +
+      ' instead. Re-measure once before anyone bends anything.' });
     flags.push({ level: 'info', text: 'This is a STATIC fit. It gets you to a very good starting point — which is exactly what a fitter uses it for — but only hitting balls off a lie board with a launch monitor produces a DYNAMIC fit, and the two can differ by a full step on the scale.' });
 
     return {
@@ -1061,7 +1072,7 @@
      improvement per pound. Free fixes always go in first — there is no reason
      not to turn an adjustable hosel. */
   function planForBudget(actions, budget, replaceAdvice, benchmark, superseded) {
-    if (!isNum(budget)) return null;
+    if (typeof budget !== 'number' || !isFinite(budget) || budget < 0) return null;
 
     var canAffordSet = !replaceAdvice || replaceAdvice.level !== 'replace' || budget >= benchmark;
     /* If a new set is the right answer but is out of reach, the cheap bench

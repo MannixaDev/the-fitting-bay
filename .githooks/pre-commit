@@ -1,6 +1,8 @@
 #!/bin/sh
-# Keep the ?v= cache-busters in step with the asset contents.
+# 1. keep the ?v= cache-busters in step with the asset contents
+# 2. never commit an engine that fails its own tests
 if command -v node >/dev/null 2>&1; then
+  node tests/run.js || exit 1
   node tools/bump.js || exit 1
   git add -- ./*.html
 fi

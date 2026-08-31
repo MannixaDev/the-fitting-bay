@@ -18,6 +18,13 @@
     var v = parseFloat(el.value);
     return isFinite(v) && v > 0 ? v : null;
   };
+  /* Zero is a real answer to "what can you spend?", so the budget field needs
+     a reader that does not treat it as blank. */
+  var numZero = function (el) {
+    if (!el) return null;
+    var v = parseFloat(el.value);
+    return isFinite(v) && v >= 0 ? v : null;
+  };
   var radio = function (name) {
     var el = document.querySelector('input[name="' + name + '"]:checked');
     return el ? el.value : null;
@@ -344,7 +351,7 @@
       $('#auditPanel').hidden = false;
       var cur = readAuditInput();
       cur.carries = currentCarries();
-      renderAudit(G.audit(lastFit, cur, num($('#curBudget'))));
+      renderAudit(G.audit(lastFit, cur, numZero($('#curBudget'))));
     }
     if (scroll) {
       window.scrollTo({ top: $('#fit').getBoundingClientRect().top + window.pageYOffset - 74, behavior: 'auto' });
@@ -672,13 +679,13 @@
     v.push('</div>');
 
     var sens = r.sensitivity;
-    if (sens && (sens[0].changes || sens[1].changes)) {
-      v.push('<p class="sens-line">If your wrist-to-floor were &frac12;" ' +
-        'either way you would be <b>' + esc(sens[0].code.code) + '</b> or <b>' + esc(sens[1].code.code) +
-        '</b> &mdash; you are close to a band edge, so measure twice before anyone bends anything.</p>');
+    if (sens && sens.fragile) {
+      v.push('<p class="sens-line">You are <b>' + esc(U.fmtIn(sens.margin, 2)) + '</b> from the edge of this band. ' +
+        'A measuring error that small would make you <b>' + esc(sens.nearer.code) + '</b> instead, so measure ' +
+        'twice before anyone bends anything.</p>');
     } else if (sens) {
-      v.push('<p class="sens-line ok">Solidly inside the band: &frac12;" either way on your measurement would ' +
-        'still come out <b>' + esc(r.lie.code.code) + '</b>.</p>');
+      v.push('<p class="sens-line ok">Comfortably inside the band &mdash; your wrist-to-floor would have to be ' +
+        '<b>' + esc(U.fmtIn(sens.margin, 2)) + '</b> out before this stopped reading <b>' + esc(r.lie.code.code) + '</b>.</p>');
     }
 
     if (r.length.note) v.push('<div class="note warn">Height ' + esc(U.fmtHeight(r.input.heightIn)) + ' is ' + esc(r.length.note) + '.</div>');
@@ -885,7 +892,7 @@
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       if (!lastFit) return;
-      var budget = num($('#curBudget'));
+      var budget = numZero($('#curBudget'));
       var cur = readAuditInput();
       cur.carries = currentCarries();
       renderAudit(G.audit(lastFit, cur, budget));
