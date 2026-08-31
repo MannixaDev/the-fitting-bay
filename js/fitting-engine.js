@@ -2,10 +2,8 @@
    fitting-engine.js — pure fitting logic, no DOM.
    All public API on window.GolfFit
    ---------------------------------------------------------------------------
-   Data sources / provenance are documented in README.md. The PING static
-   chart below was reconstructed pixel-by-pixel from the published PING Colour
-   Code Chart ((c) PING 2017) and validated against three independently
-   published worked examples. See README.md > "Provenance".
+   The Bay Scale (section 2) is our own static lie-angle scale. Data sources
+   and validation are documented in README.md > "Provenance".
    ========================================================================== */
 (function (root) {
   'use strict';
@@ -36,82 +34,114 @@
   };
 
   /* ---------------------------------------------------------------------
-     2. THE PING STATIC CHART
+     2. THE BAY SCALE — our static lie-angle scale
      ---------------------------------------------------------------------
-     The chart is a grid of height (x) vs wrist-to-floor (y). Every colour
-     band is exactly 1" of wrist-to-floor tall, so the whole 2-D chart
-     collapses to a single curve: the wrist-to-floor value at the LOWER edge
-     of the BLACK (standard) band, as a function of height.
+     What the scale measures
+     -----------------------
+     Two golfers of the same height can need lie angles several degrees
+     apart, because lie angle is driven by how far the hands sit from the
+     ground at address — which is arm length, not height. Wrist-to-floor
+     captures that; height alone cannot.
 
-     Values below are measured from the official chart artwork, one per inch
-     of height from 5'0" (60") to 6'7" (79"). Note the three regimes visible
-     in the artwork: a steep left section, a nearly flat section across the
-     standard-length heights (5'7"-6'0"), then steep again.
+     So the scale works on the DIFFERENCE between a player's measured
+     wrist-to-floor and the reference wrist-to-floor for their height:
+
+         delta   = measuredWTF − referenceWTF(height)
+         code    = round(delta)        one code per 1" of deviation
+         degrees = delta               reported to one decimal place
+
+     Positive delta means short arms for your height: your hands sit high at
+     address, so the club must be more UPRIGHT. Negative delta means long
+     arms: hands low, club must be FLATTER.
+
+     Codes are self-documenting. U2 means two degrees upright. F1 means one
+     degree flat. LEVEL means standard. No lookup table required.
+
+     The reference curve
+     -------------------
+     REFERENCE_WTF is the wrist-to-floor at the CENTRE of the LEVEL band,
+     per inch of height. It is anchored to the one reference point the whole
+     fitting industry publishes in common — a 5'10" golfer with a 34"
+     wrist-to-floor plays standard length and standard lie — and shaped by
+     two principles:
+
+       1. Inside a length band nothing about the club changes, so the curve
+          rises only with body proportion (about 0.1"/inch of height).
+       2. Crossing a length band changes the club by 1/2", and a 1/2" length
+          change is worth about 1/2 degree of effective lie, so the curve
+          steepens (about 0.4"/inch) where length is changing.
+
+     Values are round quarter-inch figures we chose, not a transcription of
+     any manufacturer's chart. See README.md for validation.
      ------------------------------------------------------------------ */
-  var BLACK_LOWER = {
-    60: 30.16, 61: 30.62, 62: 31.10, 63: 31.57, 64: 32.04,
-    65: 32.50, 66: 32.98, 67: 33.23, 68: 33.26, 69: 33.31,
-    70: 33.35, 71: 33.39, 72: 33.42, 73: 33.66, 74: 34.09,
-    75: 34.58, 76: 35.01, 77: 35.38, 78: 35.81, 79: 36.24
+  var REFERENCE_WTF = {
+    60: 30.75, 61: 31.25, 62: 31.75, 63: 32.25, 64: 32.75,
+    65: 33.00, 66: 33.25, 67: 33.50, 68: 33.60, 69: 33.70,
+    70: 33.80, 71: 33.90, 72: 34.00, 73: 34.25, 74: 34.60,
+    75: 35.00, 76: 35.40, 77: 35.80, 78: 36.20, 79: 36.60
   };
 
-  function blackLower(heightIn) {
-    if (heightIn <= 60) return BLACK_LOWER[60] - (60 - heightIn) * 0.47;
-    if (heightIn >= 79) return BLACK_LOWER[79] + (heightIn - 79) * 0.43;
+  function levelCentre(heightIn) {
+    if (heightIn <= 60) return REFERENCE_WTF[60] - (60 - heightIn) * 0.50;
+    if (heightIn >= 79) return REFERENCE_WTF[79] + (heightIn - 79) * 0.40;
     var lo = Math.floor(heightIn), t = heightIn - lo;
-    return BLACK_LOWER[lo] * (1 - t) + BLACK_LOWER[lo + 1] * t;
+    return REFERENCE_WTF[lo] * (1 - t) + REFERENCE_WTF[lo + 1] * t;
   }
 
-  // index 0 == Black == standard lie
-  var COLOUR_CODES = [
-    { i: -4, name: 'Gold',   lie: -4, label: '4° Flat',    hex: '#F5C458', ink: '#1B1B1B' },
-    { i: -3, name: 'Brown',  lie: -3, label: '3° Flat',    hex: '#96695F', ink: '#FFFFFF' },
-    { i: -2, name: 'Orange', lie: -2, label: '2° Flat',    hex: '#F2913E', ink: '#1B1B1B' },
-    { i: -1, name: 'Red',    lie: -1, label: '1° Flat',    hex: '#E32D23', ink: '#FFFFFF' },
-    { i:  0, name: 'Black',  lie:  0, label: 'Standard',        hex: '#111111', ink: '#FFFFFF' },
-    { i:  1, name: 'Blue',   lie:  1, label: '1° Upright', hex: '#2DB4F0', ink: '#1B1B1B' },
-    { i:  2, name: 'Green',  lie:  2, label: '2° Upright', hex: '#2DAF6E', ink: '#FFFFFF' },
-    { i:  3, name: 'White',  lie:  3, label: '3° Upright', hex: '#F6F6F6', ink: '#1B1B1B' },
-    { i:  4, name: 'Silver', lie:  4, label: '4° Upright', hex: '#C6C6C6', ink: '#1B1B1B' },
-    { i:  5, name: 'Maroon', lie:  5, label: '5° Upright', hex: '#B04666', ink: '#FFFFFF' }
+  /* The Bay Scale. Symmetric, 11 steps, warm for flat through our signature
+     green at level to cool for upright. Index 0 == LEVEL == standard lie. */
+  var BAY_SCALE = [
+    { i: -5, code: 'F5', deg: -5, label: '5° Flat',    hex: '#7A2E1F', ink: '#FFFFFF' },
+    { i: -4, code: 'F4', deg: -4, label: '4° Flat',    hex: '#A84324', ink: '#FFFFFF' },
+    { i: -3, code: 'F3', deg: -3, label: '3° Flat',    hex: '#C7622A', ink: '#FFFFFF' },
+    { i: -2, code: 'F2', deg: -2, label: '2° Flat',    hex: '#E08A34', ink: '#1B1B1B' },
+    { i: -1, code: 'F1', deg: -1, label: '1° Flat',    hex: '#EFBB50', ink: '#1B1B1B' },
+    { i:  0, code: 'LEVEL', deg: 0, label: 'Standard', hex: '#34C07A', ink: '#08130D' },
+    { i:  1, code: 'U1', deg:  1, label: '1° Upright', hex: '#3FC0B4', ink: '#08130D' },
+    { i:  2, code: 'U2', deg:  2, label: '2° Upright', hex: '#3AA5D9', ink: '#08130D' },
+    { i:  3, code: 'U3', deg:  3, label: '3° Upright', hex: '#4F7FE0', ink: '#FFFFFF' },
+    { i:  4, code: 'U4', deg:  4, label: '4° Upright', hex: '#7B62D9', ink: '#FFFFFF' },
+    { i:  5, code: 'U5', deg:  5, label: '5° Upright', hex: '#A85BC9', ink: '#FFFFFF' }
   ];
 
+  var SCALE_MIN = -5, SCALE_MAX = 5;
+
   function codeByIndex(k) {
-    if (k < -4) k = -4;
-    if (k > 5) k = 5;
-    for (var n = 0; n < COLOUR_CODES.length; n++) if (COLOUR_CODES[n].i === k) return COLOUR_CODES[n];
-    return COLOUR_CODES[4];
+    k = Math.max(SCALE_MIN, Math.min(SCALE_MAX, k));
+    for (var n = 0; n < BAY_SCALE.length; n++) if (BAY_SCALE[n].i === k) return BAY_SCALE[n];
+    return BAY_SCALE[5];
   }
 
   /**
    * Static lie-angle fit. heightIn and wtfIn in inches.
+   * Returns the Bay Scale code plus the precise deviation, so a player can
+   * see whether they sit in the middle of a band or on its edge.
    */
   function staticLie(heightIn, wtfIn) {
-    var base = blackLower(heightIn);
-    var raw = wtfIn - base;             // 0..1 == inside the black band
-    var k = Math.floor(raw);
-    var clamped = Math.max(-4, Math.min(5, k));
+    var centre = levelCentre(heightIn);
+    var delta = wtfIn - centre;                 // degrees, unrounded
+    var k = Math.round(delta);
+    var clamped = Math.max(SCALE_MIN, Math.min(SCALE_MAX, k));
     var code = codeByIndex(clamped);
-    var pos = raw - k;                  // 0 = bottom of band, 1 = top of band
-    var borderline = pos < 0.15 || pos > 0.85;
-    var neighbour = null;
-    if (borderline && clamped === k) {
-      neighbour = codeByIndex(pos < 0.15 ? k - 1 : k + 1);
-    }
+    var offset = delta - k;                     // −0.5 .. +0.5 within the band
+    var borderline = Math.abs(offset) > 0.35;
+    var neighbour = (borderline && clamped === k) ? codeByIndex(k + (offset > 0 ? 1 : -1)) : null;
     return {
       code: code,
-      rawIndex: raw,
-      bandPosition: pos,
+      preciseDegrees: Math.round(delta * 10) / 10,
+      bandOffset: Math.round(offset * 100) / 100,
       borderline: borderline,
       neighbour: neighbour,
-      clampedOffChart: k !== clamped,
-      blackBand: [base, base + 1]
+      clampedOffScale: k !== clamped,
+      levelBand: [centre - 0.5, centre + 0.5],
+      levelCentre: centre
     };
   }
 
-  /* PING length-from-height bands, straight off the chart header row. */
+  /* Length from height. Half-inch steps, because that is the increment club
+     builders actually work in. */
   var LENGTH_BANDS = [
-    { min: -Infinity, max: 59.99, adj: -2.0, note: 'below the published chart — extrapolated' },
+    { min: -Infinity, max: 59.99, adj: -2.0, note: 'below the range this table covers — extrapolated' },
     { min: 60, max: 61.99, adj: -1.5 },
     { min: 62, max: 63.99, adj: -1.0 },
     { min: 64, max: 66.99, adj: -0.5 },
@@ -119,7 +149,7 @@
     { min: 73, max: 75.99, adj: 0.5 },
     { min: 76, max: 77.99, adj: 1.0 },
     { min: 78, max: 79.99, adj: 1.5 },
-    { min: 80, max: Infinity, adj: 2.0, note: 'above the published chart — extrapolated' }
+    { min: 80, max: Infinity, adj: 2.0, note: 'above the range this table covers — extrapolated' }
   ];
 
   function staticLength(heightIn) {
@@ -560,7 +590,7 @@
     else if (heightIn < 77) len = 35;
     else len = 35.5;
 
-    var expectedWtf = blackLower(heightIn) + 0.5;
+    var expectedWtf = levelCentre(heightIn);
     var armDelta = wtfIn - expectedWtf;
     var lenNote = null;
     if (armDelta > 1.2) { len -= 0.5; lenNote = 'Shortened ½": your wrist-to-floor is high for your height, so your hands hang lower at address than a height-only chart assumes.'; }
@@ -629,13 +659,13 @@
     if (shape === 'hook' || shape === 'pull') {
       return {
         adjust: -1, severity: 'warn',
-        text: 'Your iron miss is to the left. A lie angle that is too upright produces exactly that — a high pull. If a lie-board test shows a toe-up impact, your dynamic fit may come out 1° flatter than the static ' + staticCode.name + ' result.'
+        text: 'Your iron miss is to the left. A lie angle that is too upright produces exactly that — a high pull. If a lie-board test shows a toe-up impact, your dynamic fit may come out 1° flatter than the static ' + staticCode.code + ' result.'
       };
     }
     if (shape === 'slice' || shape === 'push') {
       return {
         adjust: 1, severity: 'warn',
-        text: 'Your iron miss is to the right. A lie angle that is too flat produces a low push. If a lie-board test shows a heel-down impact, your dynamic fit may come out 1° more upright than the static ' + staticCode.name + ' result. One caution: a slice caused by an open clubface is not a lie-angle problem, and adding upright lie will not fix it.'
+        text: 'Your iron miss is to the right. A lie angle that is too flat produces a low push. If a lie-board test shows a heel-down impact, your dynamic fit may come out 1° more upright than the static ' + staticCode.code + ' result. One caution: a slice caused by an open clubface is not a lie-angle problem, and adding upright lie will not fix it.'
       };
     }
     return { adjust: 0, severity: 'info', text: 'Your ball flight does not suggest a lie-angle error, so the static result stands as your build spec.' };
@@ -683,7 +713,7 @@
       lengthAgreement = {
         status: 'conflict', midpoint: mid,
         text: 'Your height says ' + U.fmtAdj(len.adj) + ' and your wrist-to-floor says ' + U.fmtAdj(wtfCheck.adj) + '. That means your arms are ' +
-          (wtfCheck.adj < len.adj ? 'long' : 'short') + ' relative to your height. PING resolves this by taking length from height and lie from the intersection, which is what the headline recommendation does — but a midpoint build of ' + U.fmtAdj(mid) + ' is legitimate and worth hitting side by side.'
+          (wtfCheck.adj < len.adj ? 'long' : 'short') + ' relative to your height. The Bay Scale resolves this the way fitters do — length comes from height, and the arm-length difference is expressed as lie instead, which is what the headline recommendation does — but a midpoint build of ' + U.fmtAdj(mid) + ' is legitimate and worth hitting side by side.'
       };
     }
 
@@ -701,18 +731,18 @@
         length: Math.round((base + adj) * 100) / 100,
         adj: Math.round(adj * 100) / 100,
         stdLie: r.lie,
-        lie: isIron ? Math.round((r.lie + lie.code.lie) * 10) / 10 : r.lie,
-        lieAdj: isIron ? lie.code.lie : 0
+        lie: isIron ? Math.round((r.lie + lie.code.deg) * 10) / 10 : r.lie,
+        lieAdj: isIron ? lie.code.deg : 0
       };
     });
 
     var flags = [];
-    if (lie.clampedOffChart) flags.push({ level: 'warn', text: 'Your height and wrist-to-floor combination falls outside the range PING’s printed chart covers, so the result has been clamped to the end of the scale. Re-measure before spending money — wrist-to-floor is the most commonly mis-taken measurement in golf. If it is correct, you are a genuine custom build and should see a fitter in person.' });
+    if (lie.clampedOffScale) flags.push({ level: 'warn', text: 'Your height and wrist-to-floor combination lands beyond the ends of the Bay Scale, so the result has been clamped. Re-measure before spending money — wrist-to-floor is the most commonly mis-taken measurement in golf. If it is correct you are a genuine custom build: most cast iron heads only bend reliably 2–3° either way, so you need a head that supports more, and you need to see a fitter in person.' });
     if (lie.borderline && lie.neighbour) flags.push({ level: 'info', text: 'You sit within 0.15" of the edge of your colour band. ' + lie.neighbour.name + ' (' + lie.neighbour.label + ') is a legitimate alternative, and a half-inch measuring error would put you there. Have both checked on a lie board.' });
     if (speeds.confidence === 'low') flags.push({ level: 'warn', text: 'You did not supply a swing speed or a carry distance, so everything speed-driven — flex, shaft weight, driver loft, set makeup, ball — is an educated guess from your age, gender and skill level. Fifteen minutes on a launch monitor would move these numbers more than any other input you could give this tool.' });
     if (speeds.confidence === 'medium') flags.push({ level: 'info', text: 'Speed was derived from carry distance, which blends clubhead speed with strike quality. If you strike it poorly for your level, this tool will under-read your speed and under-flex your shaft.' });
     if (isNum(input.age) && input.age >= 60 && shafts.material === 'Steel') flags.push({ level: 'info', text: 'You are 60 or over and the speed numbers still point to steel. That is fine — but test a premium graphite iron shaft anyway. A lot of players in that bracket gain speed and lose nothing in dispersion.' });
-    flags.push({ level: 'info', text: 'This is a STATIC fit. It gets you to a very good starting point — which is exactly what a fitter uses it for — but only hitting balls off a lie board with a launch monitor produces a DYNAMIC fit, and the two can differ by a full colour code.' });
+    flags.push({ level: 'info', text: 'This is a STATIC fit. It gets you to a very good starting point — which is exactly what a fitter uses it for — but only hitting balls off a lie board with a launch monitor produces a DYNAMIC fit, and the two can differ by a full step on the scale.' });
 
     return {
       input: input, lie: lie, length: len, wtfCheck: wtfCheck,
@@ -730,8 +760,9 @@
 
   root.GolfFit = {
     units: U,
-    blackLower: blackLower,
-    colourCodes: COLOUR_CODES,
+    levelCentre: levelCentre,
+    scale: BAY_SCALE,
+    scaleRange: [SCALE_MIN, SCALE_MAX],
     staticLie: staticLie,
     staticLength: staticLength,
     lengthBands: LENGTH_BANDS,

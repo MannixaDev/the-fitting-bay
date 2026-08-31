@@ -5,11 +5,16 @@ dependencies, no back end. Open `index.html` in a browser and it works.
 
 ```
 golffitting/
-├── index.html              the whole site (wizard, chart, reference library)
+├── index.html                  the fitting tool: wizard, results, Bay Scale chart
+├── fitting-information.html    reference pages: how fitting works, all the tables
 ├── css/styles.css
-├── js/fitting-engine.js    all fitting logic, pure functions, no DOM
-├── js/app.js               wizard UI, SVG chart rendering, results rendering
-└── .claude/launch.json     dev-server config for the preview pane
+├── js/fitting-engine.js        all fitting logic, pure functions, no DOM
+├── js/app.js                   wizard UI, SVG chart rendering, results rendering
+└── .claude/launch.json         dev-server config for the preview pane
+
+`app.js` is shared by both pages and is page-aware: the wizard initialises only where
+`#fitForm` exists, while the chart and reference tables render wherever their host elements
+are present.
 ```
 
 ## Running it
@@ -28,7 +33,7 @@ The `?v=N` query strings on the asset links are cache-busters. Bump them when yo
 From twelve inputs (height, wrist-to-floor, hand length, age, skill, speed, ball flight, attack
 angle, tempo, turf, priority, putting stroke) it produces:
 
-- **Lie angle** as a PING-style colour code, plus per-club lie in degrees
+- **Lie angle** as a Bay Scale code, plus the unrounded deviation and per-club lie in degrees
 - **Club length** from height, cross-checked against wrist-to-floor
 - **Shaft** flex, weight and material for both irons and driver
 - **Driver** loft range, playing length, head bias, swing weight
@@ -42,39 +47,62 @@ angle, tempo, turf, priority, putting stroke) it produces:
 
 ## Provenance
 
-### The lie/length chart
+### The Bay Scale
 
-`BLACK_LOWER` in `js/fitting-engine.js` is the heart of the tool. It was derived by measuring the
-published PING Colour Code Chart artwork directly:
+The Bay Scale is our own lie-angle scale. It exists because lie angle is driven by how far your
+hands sit from the ground at address — which is **arm length**, not height. Two golfers of the same
+height can need lie angles several degrees apart, and wrist-to-floor is what separates them.
 
-1. The chart's axis tick marks were located in the source image to calibrate pixels → inches
-   (269.7 px per inch of wrist-to-floor; 126.6 px per inch of height).
-2. Every pixel in the plot area was classified against the ten band colours, and the band
-   boundaries were read off for each of the twenty height columns from 5'0" to 6'7".
-3. That produced a key structural fact: **every colour band is exactly 1" of wrist-to-floor tall**.
-   So the entire 2-D chart collapses to a single curve — the wrist-to-floor value at the lower edge
-   of the Black (standard) band, as a function of height. That curve is `BLACK_LOWER`.
-4. The colour is then just `floor(wristToFloor − blackLower(height))`, clamped to Gold (−4) …
-   Maroon (+5).
+The scale is the difference between your measured wrist-to-floor and the reference wrist-to-floor
+for your height:
 
-The curve has three visible regimes, which match the artwork: a steep left section (roughly
-0.47" of wrist-to-floor per inch of height), a nearly flat section across the standard-length
-heights of 5'7"–6'0", then steep again (roughly 0.43"/inch).
+```
+delta   = measuredWTF − referenceWTF(height)
+code    = round(delta)      one code per 1" of deviation
+degrees = delta             also reported unrounded
+```
 
-**Validation.** Three worked examples are published independently of the chart image. All three
-reproduce exactly:
+Codes are self-documenting: `U2` is two degrees upright, `F1` is one degree flat, `LEVEL` is
+standard. The scale is symmetric, `F5` … `LEVEL` … `U5`.
 
-| Height | Wrist-to-floor | Published result | Engine result |
+Reporting the unrounded figure alongside the code matters: a player at `+1.4°` and a player at
+`+1.6°` both get a code, but one is comfortably inside U1 and the other is on the edge of U2. The
+tool flags the second case, which is exactly where a fitter would test both.
+
+#### The reference curve
+
+`REFERENCE_WTF` in `js/fitting-engine.js` is the wrist-to-floor at the centre of the LEVEL band,
+per inch of height from 5'0" to 6'7". It is anchored to the one reference point the fitting industry
+publishes in common — **a 5'10" golfer with a 34" wrist-to-floor plays standard length and standard
+lie** — and shaped by two principles:
+
+1. **Inside a length band**, nothing about the club changes, so the curve rises only with body
+   proportion — about 0.1" per inch of height.
+2. **Crossing a length band** changes the club by ½", and a ½" length change is worth roughly ½° of
+   effective lie, so the curve steepens to about 0.4" per inch of height where length is changing.
+
+That produces the shape you see on the chart: gentle across the standard-length heights of
+5'7"–6'0", steeper at both ends. Values are round quarter-inch figures.
+
+**Validation.** The scale is checked against the three body/lie combinations that appear as worked
+examples across the published fitting literature:
+
+| Height | Wrist-to-floor | Published fitting result | Bay Scale |
 |---|---|---|---|
-| 5'10" | 34" | Black (standard) | Black ✓ |
-| 5'6" | 32" | Red (1° flat) | Red ✓ |
-| 6'2" | 36.5" | Green (2° upright) | Green ✓ |
+| 5'10" | 34" | standard lie | `LEVEL` (+0.2°) ✓ |
+| 5'6" | 32" | 1° flat | `F1` (−1.2°) ✓ |
+| 6'2" | 36.5" | 2° upright | `U2` (+1.9°) ✓ |
 
-The length bands are transcribed directly from the chart's header row, including the metric
-equivalents (151–155, 156–160, 161–168, 169–183, 184–191, 192–196, 197–201 cm).
+Outside 5'0"–6'7" the curve is linearly extrapolated, and beyond `F5`/`U5` the result is clamped
+and flagged — most cast iron heads only bend reliably 2–3° either way, so a player off the end of
+the scale needs a head that supports more bending and an in-person fitter.
 
-Outside 5'0"–6'7" the curve is linearly extrapolated and the result is flagged in the UI as being
-off the published chart.
+### Club length
+
+Length comes from height in ½" steps, which is the increment club builders actually work in.
+Wrist-to-floor provides an independent second opinion, and when the two disagree the tool says so
+rather than hiding it — that disagreement is itself the signal that your arms are long or short for
+your height.
 
 ### Speed and distance model
 
@@ -90,8 +118,9 @@ off the published chart.
 ### Everything else
 
 Flex bands, shaft weight ranges, driver loft by speed, grip sizing by hand length, wedge bounce
-and grind, putter length and toe hang, and ball compression bands are the consensus of the
-published fitting guides linked in the Sources section of the page.
+and grind, putter length and toe hang, and ball compression bands are the consensus of published
+fitting guidance, cross-checked across multiple independent sources and set out in full on the
+fitting information page.
 
 ## Modifying it
 
@@ -102,7 +131,7 @@ testing:
 global.window = {};
 require('./js/fitting-engine.js');
 const r = window.GolfFit.fit({ heightIn: 70, wtfIn: 34, skill: 'mid', ironCarry: 150, /* ... */ });
-console.log(r.lie.code.name, r.length.adj, r.shafts.ironFlex);
+console.log(r.lie.code.code, r.lie.preciseDegrees, r.length.adj, r.shafts.ironFlex);
 ```
 
 Each recommendation lives in its own small function (`staticLie`, `shaftFit`, `driverFit`,
@@ -110,7 +139,7 @@ Each recommendation lives in its own small function (`staticLie`, `shaftFit`, `d
 
 ## Legal
 
-Independent and unaffiliated. PING and the colour code system are trademarks of Karsten
-Manufacturing Corporation; Takomo, Titleist/Vokey and all other brand names referenced are the
-trademarks of their respective owners, used for identification only. The chart here is a
-reconstruction for reference, not an official tool of any manufacturer.
+Independent and unaffiliated with any equipment manufacturer. The Bay Scale is our own fitting
+scale. Brand and product names that appear inside recommendations — wedge grinds, for example —
+are the trademarks of their respective owners and are named only to help a reader find comparable
+products.

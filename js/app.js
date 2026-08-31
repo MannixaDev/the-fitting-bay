@@ -26,147 +26,151 @@
   /* =====================================================================
      WIZARD
      ================================================================== */
-  var steps = $$('#fitForm .step');
-  var current = 0;
-  var progress = $('#progress');
-  var stepTitle = $('#stepTitle'), stepNum = $('#stepNum'), stepTotal = $('#stepTotal');
-  var backBtn = $('#backBtn'), nextBtn = $('#nextBtn'), submitBtn = $('#submitBtn');
-  var formErr = $('#formErr');
+  function initWizard() {
+    var steps = $$('#fitForm .step');
+    var current = 0;
+    var progress = $('#progress');
+    var stepTitle = $('#stepTitle'), stepNum = $('#stepNum'), stepTotal = $('#stepTotal');
+    var backBtn = $('#backBtn'), nextBtn = $('#nextBtn'), submitBtn = $('#submitBtn');
+    var formErr = $('#formErr');
 
-  stepTotal.textContent = steps.length;
-  steps.forEach(function (s) {
-    var h = $('[data-role="help"]', s);
-    if (h) h.textContent = s.getAttribute('data-help') || '';
-    progress.insertAdjacentHTML('beforeend', '<i></i>');
-  });
-
-  function showStep(i) {
-    current = Math.max(0, Math.min(steps.length - 1, i));
-    steps.forEach(function (s, n) { s.classList.toggle('active', n === current); });
-    $$('#progress i').forEach(function (b, n) {
-      b.className = n < current ? 'done' : n === current ? 'now' : '';
+    stepTotal.textContent = steps.length;
+    steps.forEach(function (s) {
+      var h = $('[data-role="help"]', s);
+      if (h) h.textContent = s.getAttribute('data-help') || '';
+      progress.insertAdjacentHTML('beforeend', '<i></i>');
     });
-    stepTitle.textContent = steps[current].getAttribute('data-title') || '';
-    stepNum.textContent = current + 1;
-    backBtn.disabled = current === 0;
-    var last = current === steps.length - 1;
-    nextBtn.hidden = last;
-    submitBtn.hidden = !last;
-    formErr.textContent = '';
-    var top = $('#fit').getBoundingClientRect().top + window.pageYOffset - 74;
-    if (window.pageYOffset > top + 40 || current > 0) window.scrollTo({ top: top, behavior: 'smooth' });
-  }
 
-  function validateStep(i) {
-    if (i === 0) {
-      var h = readHeightInches();
-      if (!h) return 'Enter your height.';
-      if (h < 42 || h > 90) return 'That height looks wrong — check the units.';
-      var w = readWtfInches();
-      if (!w) return 'Enter your wrist-to-floor measurement.';
-      if (w < 20 || w > 48) return 'That wrist-to-floor looks wrong — it should be roughly 27"–40" (69–102 cm).';
-      if (w > h * 0.75) return 'Your wrist-to-floor is larger than three quarters of your height, which is not physically possible. Check you have not swapped the two, or mixed inches and centimetres.';
+    function showStep(i) {
+      current = Math.max(0, Math.min(steps.length - 1, i));
+      steps.forEach(function (s, n) { s.classList.toggle('active', n === current); });
+      $$('#progress i').forEach(function (b, n) {
+        b.className = n < current ? 'done' : n === current ? 'now' : '';
+      });
+      stepTitle.textContent = steps[current].getAttribute('data-title') || '';
+      stepNum.textContent = current + 1;
+      backBtn.disabled = current === 0;
+      var last = current === steps.length - 1;
+      nextBtn.hidden = last;
+      submitBtn.hidden = !last;
+      formErr.textContent = '';
+      var top = $('#fit').getBoundingClientRect().top + window.pageYOffset - 74;
+      if (window.pageYOffset > top + 40 || current > 0) window.scrollTo({ top: top, behavior: 'smooth' });
     }
-    return null;
-  }
 
-  nextBtn.addEventListener('click', function () {
-    var err = validateStep(current);
-    if (err) { formErr.textContent = err; return; }
-    showStep(current + 1);
-  });
-  backBtn.addEventListener('click', function () { showStep(current - 1); });
+    function validateStep(i) {
+      if (i === 0) {
+        var h = readHeightInches();
+        if (!h) return 'Enter your height.';
+        if (h < 42 || h > 90) return 'That height looks wrong — check the units.';
+        var w = readWtfInches();
+        if (!w) return 'Enter your wrist-to-floor measurement.';
+        if (w < 20 || w > 48) return 'That wrist-to-floor looks wrong — it should be roughly 27"–40" (69–102 cm).';
+        if (w > h * 0.75) return 'Your wrist-to-floor is larger than three quarters of your height, which is not physically possible. Check you have not swapped the two, or mixed inches and centimetres.';
+      }
+      return null;
+    }
 
-  /* ---------- units ---------- */
-  function isMetric() { return radio('units') === 'metric'; }
-
-  $$('input[name="units"]').forEach(function (r) {
-    r.addEventListener('change', function () {
-      var m = isMetric();
-      $$('[data-unit="imperial"]').forEach(function (el) { el.hidden = m; });
-      $$('[data-unit="metric"]').forEach(function (el) { el.hidden = !m; });
-      $('#wtfHint').innerHTML = (m ? 'Centimetres. ' : 'Inches. ') +
-        'Stand straight on a hard floor, shoulders relaxed, arms hanging naturally at your sides. Measure from the ' +
-        '<b>crease of your wrist</b> straight down to the floor. Get someone else to do it — reaching down ' +
-        'yourself changes the answer.';
-      $('#handHint').innerHTML = (m ? 'Centimetres, ' : 'Inches, ') +
-        'from the crease of your wrist to the tip of your middle finger. Keep the tape flat against your palm — ' +
-        'do not curve it over the fingertip or around the heel pad.';
-      $('#wtf').placeholder = m ? '86' : '34';
-      $('#handLength').placeholder = m ? '19' : '7.5';
+    nextBtn.addEventListener('click', function () {
+      var err = validateStep(current);
+      if (err) { formErr.textContent = err; return; }
+      showStep(current + 1);
     });
-  });
+    backBtn.addEventListener('click', function () { showStep(current - 1); });
 
-  function readHeightInches() {
-    if (isMetric()) {
-      var cm = num($('#heightCm'));
-      return cm ? U.cmToIn(cm) : null;
+    /* ---------- units ---------- */
+    function isMetric() { return radio('units') === 'metric'; }
+
+    $$('input[name="units"]').forEach(function (r) {
+      r.addEventListener('change', function () {
+        var m = isMetric();
+        $$('[data-unit="imperial"]').forEach(function (el) { el.hidden = m; });
+        $$('[data-unit="metric"]').forEach(function (el) { el.hidden = !m; });
+        $('#wtfHint').innerHTML = (m ? 'Centimetres. ' : 'Inches. ') +
+          'Stand straight on a hard floor, shoulders relaxed, arms hanging naturally at your sides. Measure from the ' +
+          '<b>crease of your wrist</b> straight down to the floor. Get someone else to do it — reaching down ' +
+          'yourself changes the answer.';
+        $('#handHint').innerHTML = (m ? 'Centimetres, ' : 'Inches, ') +
+          'from the crease of your wrist to the tip of your middle finger. Keep the tape flat against your palm — ' +
+          'do not curve it over the fingertip or around the heel pad.';
+        $('#wtf').placeholder = m ? '86' : '34';
+        $('#handLength').placeholder = m ? '19' : '7.5';
+      });
+    });
+
+    function readHeightInches() {
+      if (isMetric()) {
+        var cm = num($('#heightCm'));
+        return cm ? U.cmToIn(cm) : null;
+      }
+      var ft = parseFloat($('#heightFt').value);
+      var i = parseFloat($('#heightIn').value);
+      if (!isFinite(ft)) return null;
+      return ft * 12 + (isFinite(i) ? i : 0);
     }
-    var ft = parseFloat($('#heightFt').value);
-    var i = parseFloat($('#heightIn').value);
-    if (!isFinite(ft)) return null;
-    return ft * 12 + (isFinite(i) ? i : 0);
-  }
-  function readWtfInches() {
-    var v = num($('#wtf'));
-    if (!v) return null;
-    return isMetric() ? U.cmToIn(v) : v;
-  }
-  function readHandInches() {
-    var v = num($('#handLength'));
-    if (!v) return null;
-    return isMetric() ? U.cmToIn(v) : v;
-  }
-
-  /* ---------- collect ---------- */
-  function buildInput() {
-    return {
-      heightIn: readHeightInches(),
-      wtfIn: readWtfInches(),
-      handLength: readHandInches(),
-      gloveSize: $('#gloveSize').value || null,
-      age: num($('#age')),
-      gender: radio('gender'),
-      joints: radio('joints') === 'yes',
-      skill: radio('skill'),
-      handicap: (function () { var v = parseFloat($('#handicap').value); return isFinite(v) ? v : null; })(),
-      pwLoft: num($('#pwLoft')),
-      ironCarry: num($('#ironCarry')),
-      ironSpeed: num($('#ironSpeed')),
-      driverSpeed: num($('#driverSpeed')),
-      driverCarry: num($('#driverCarry')),
-      shotShape: radio('shotShape'),
-      trajectory: radio('trajectory'),
-      attack: radio('attack'),
-      tempo: radio('tempo'),
-      turf: radio('turf'),
-      priority: radio('priority'),
-      strokeArc: radio('strokeArc')
-    };
-  }
-
-  $('#fitForm').addEventListener('submit', function (e) {
-    e.preventDefault();
-    for (var i = 0; i < steps.length; i++) {
-      var err = validateStep(i);
-      if (err) { showStep(i); formErr.textContent = err; return; }
+    function readWtfInches() {
+      var v = num($('#wtf'));
+      if (!v) return null;
+      return isMetric() ? U.cmToIn(v) : v;
     }
-    formErr.textContent = '';
-    var input = buildInput();
-    var result = G.fit(input);
-    renderResults(result);
-    renderChart($('#chartFull'), input.heightIn, input.wtfIn, true);
-    $('#wizardSection').style.display = 'none';
-    $('#results').classList.add('show');
-    window.scrollTo({ top: $('#fit').getBoundingClientRect().top + window.pageYOffset - 74, behavior: 'smooth' });
-  });
+    function readHandInches() {
+      var v = num($('#handLength'));
+      if (!v) return null;
+      return isMetric() ? U.cmToIn(v) : v;
+    }
 
-  $('#editBtn').addEventListener('click', function () {
-    $('#results').classList.remove('show');
-    $('#wizardSection').style.display = '';
+    /* ---------- collect ---------- */
+    function buildInput() {
+      return {
+        heightIn: readHeightInches(),
+        wtfIn: readWtfInches(),
+        handLength: readHandInches(),
+        gloveSize: $('#gloveSize').value || null,
+        age: num($('#age')),
+        gender: radio('gender'),
+        joints: radio('joints') === 'yes',
+        skill: radio('skill'),
+        handicap: (function () { var v = parseFloat($('#handicap').value); return isFinite(v) ? v : null; })(),
+        pwLoft: num($('#pwLoft')),
+        ironCarry: num($('#ironCarry')),
+        ironSpeed: num($('#ironSpeed')),
+        driverSpeed: num($('#driverSpeed')),
+        driverCarry: num($('#driverCarry')),
+        shotShape: radio('shotShape'),
+        trajectory: radio('trajectory'),
+        attack: radio('attack'),
+        tempo: radio('tempo'),
+        turf: radio('turf'),
+        priority: radio('priority'),
+        strokeArc: radio('strokeArc')
+      };
+    }
+
+    $('#fitForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      for (var i = 0; i < steps.length; i++) {
+        var err = validateStep(i);
+        if (err) { showStep(i); formErr.textContent = err; return; }
+      }
+      formErr.textContent = '';
+      var input = buildInput();
+      var result = G.fit(input);
+      renderResults(result);
+      renderChart($('#chartFull'), input.heightIn, input.wtfIn, true);
+      $('#wizardSection').style.display = 'none';
+      $('#results').classList.add('show');
+      window.scrollTo({ top: $('#fit').getBoundingClientRect().top + window.pageYOffset - 74, behavior: 'smooth' });
+    });
+
+    $('#editBtn').addEventListener('click', function () {
+      $('#results').classList.remove('show');
+      $('#wizardSection').style.display = '';
+      showStep(0);
+    });
+    $('#printBtn').addEventListener('click', function () { window.print(); });
+
     showStep(0);
-  });
-  $('#printBtn').addEventListener('click', function () { window.print(); });
+  }
 
   /* =====================================================================
      CHART
@@ -181,41 +185,60 @@
     var x = function (h) { return padL + (h - h0) / (h1 - h0) * pw; };
     var y = function (w) { return padT + (w1 - w) / (w1 - w0) * ph; };
 
-    var s = ['<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="PING-style colour code chart">'];
-    s.push('<defs><clipPath id="cc' + (big ? 'B' : 'S') + '"><rect x="' + padL + '" y="' + padT + '" width="' + pw + '" height="' + ph + '" rx="6"/></clipPath></defs>');
+    var SMIN = G.scaleRange[0], SMAX = G.scaleRange[1];
+    var uid = big ? 'B' : 'S';
+    var s = ['<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The Bay Scale chart: height against wrist-to-floor">'];
+    s.push('<defs><clipPath id="cc' + uid + '"><rect x="' + padL + '" y="' + padT + '" width="' + pw + '" height="' + ph + '" rx="6"/></clipPath></defs>');
     s.push('<rect x="0" y="0" width="' + W + '" height="' + H + '" fill="#0d1210"/>');
 
-    // colour bands
-    s.push('<g clip-path="url(#cc' + (big ? 'B' : 'S') + ')">');
-    G.colourCodes.forEach(function (c) {
+    // scale bands
+    s.push('<g clip-path="url(#cc' + uid + ')">');
+    G.scale.forEach(function (c) {
       var top = [], bot = [];
       for (var h = h0; h <= h1 + 0.001; h += 0.25) {
-        var base = G.blackLower(h);
-        var lo = c.i === -4 ? w0 - 2 : base + c.i;
-        var hi = c.i === 5 ? w1 + 4 : base + c.i + 1;
+        var centre = G.levelCentre(h);
+        var lo = c.i === SMIN ? w0 - 4 : centre + c.i - 0.5;
+        var hi = c.i === SMAX ? w1 + 5 : centre + c.i + 0.5;
         bot.push(x(h) + ',' + y(lo));
         top.push(x(h) + ',' + y(hi));
       }
       s.push('<polygon points="' + top.join(' ') + ' ' + bot.reverse().join(' ') + '" fill="' + c.hex + '"/>');
     });
+    // hairline between bands, and a brighter edge around LEVEL
+    G.scale.forEach(function (c) {
+      if (c.i === SMIN) return;
+      var pts = [];
+      for (var h = h0; h <= h1 + 0.001; h += 0.25) pts.push(x(h) + ',' + y(G.levelCentre(h) + c.i - 0.5));
+      var isLevelEdge = (c.i === 0 || c.i === 1);
+      s.push('<polyline points="' + pts.join(' ') + '" fill="none" stroke="' +
+        (isLevelEdge ? 'rgba(255,255,255,.55)' : 'rgba(0,0,0,.22)') + '" stroke-width="' +
+        (isLevelEdge ? (big ? 1.8 : 1.2) : (big ? .9 : .6)) + '"/>');
+    });
+    // the reference curve: wrist-to-floor that plays standard lie at each height
+    var refPts = [];
+    for (var rh = h0; rh <= h1 + 0.001; rh += 0.25) refPts.push(x(rh) + ',' + y(G.levelCentre(rh)));
+    s.push('<polyline points="' + refPts.join(' ') + '" fill="none" stroke="#08130D" stroke-width="' +
+      (big ? 2 : 1.4) + '" stroke-dasharray="' + (big ? '7 5' : '4 3') + '" opacity=".7"/>');
     // grid
     for (var gw = 29; gw <= 40; gw++) {
-      s.push('<line x1="' + padL + '" y1="' + y(gw) + '" x2="' + (padL + pw) + '" y2="' + y(gw) + '" stroke="rgba(255,255,255,.18)" stroke-width="' + (big ? 1 : .6) + '"/>');
+      s.push('<line x1="' + padL + '" y1="' + y(gw) + '" x2="' + (padL + pw) + '" y2="' + y(gw) + '" stroke="rgba(255,255,255,.13)" stroke-width="' + (big ? 1 : .6) + '"/>');
     }
     for (var gh = h0; gh <= h1; gh += 1) {
-      s.push('<line x1="' + x(gh) + '" y1="' + padT + '" x2="' + x(gh) + '" y2="' + (padT + ph) + '" stroke="rgba(255,255,255,.10)" stroke-width="' + (big ? 1 : .6) + '"/>');
+      s.push('<line x1="' + x(gh) + '" y1="' + padT + '" x2="' + x(gh) + '" y2="' + (padT + ph) + '" stroke="rgba(255,255,255,.08)" stroke-width="' + (big ? 1 : .6) + '"/>');
     }
     s.push('</g>');
     s.push('<rect x="' + padL + '" y="' + padT + '" width="' + pw + '" height="' + ph + '" rx="6" fill="none" stroke="#2a3630"/>');
 
     // band labels (big only)
     if (big) {
-      G.colourCodes.forEach(function (c) {
+      G.scale.forEach(function (c) {
         var hMid = 69.5;
-        var yy = y(G.blackLower(hMid) + c.i + 0.5);
-        if (yy < padT + 8 || yy > padT + ph - 8) return;
-        s.push('<text x="' + x(hMid) + '" y="' + (yy + 4) + '" text-anchor="middle" font-size="12.5" font-weight="700" fill="' + c.ink + '" font-family="ui-sans-serif,system-ui,sans-serif">' +
-          esc(c.name) + '  ' + esc(c.label) + '</text>');
+        var yy = y(G.levelCentre(hMid) + c.i);
+        if (yy < padT + 10 || yy > padT + ph - 10) return;
+        // stroke in the band colour so the label stays legible over the
+        // reference dashes and the band hairlines
+        s.push('<text x="' + x(hMid) + '" y="' + (yy + 4.5) + '" text-anchor="middle" font-size="12.5" font-weight="800" letter-spacing=".6" fill="' + c.ink + '" stroke="' + c.hex + '" stroke-width="3.5" paint-order="stroke" stroke-linejoin="round" font-family="ui-sans-serif,system-ui,sans-serif">' +
+          esc(c.code) + '<tspan font-weight="600" letter-spacing="0" opacity=".8">   ' + esc(c.label) + '</tspan></text>');
       });
     }
 
@@ -290,9 +313,11 @@
     var v = [];
     v.push('<div class="panel verdict"><div class="verdict-main">');
     v.push('<p class="eyebrow" style="margin-bottom:.7rem">Static fit &mdash; irons</p>');
-    v.push('<div class="dot-badge"><span class="dot" style="background:' + c.hex + '"></span><span><b>' + esc(c.name) + ' dot</b><em>' + esc(c.label) + ' lie angle</em></span></div>');
+    v.push('<div class="dot-badge"><span class="code-chip" style="background:' + c.hex + ';color:' + c.ink + '">' + esc(c.code) + '</span>' +
+      '<span><b>' + esc(c.label) + ' lie angle</b><em>Bay Scale ' + esc(c.code) + ' · measured deviation ' +
+      (r.lie.preciseDegrees > 0 ? '+' : '') + r.lie.preciseDegrees + '°</em></span></div>');
     v.push('<div class="spec-row">');
-    v.push('<div class="spec-cell"><span>Lie angle</span><b>' + esc(c.label) + '</b><i>7-iron: ' + (62 + c.lie).toFixed(1) + '&deg;</i></div>');
+    v.push('<div class="spec-cell"><span>Lie angle</span><b>' + esc(c.label) + '</b><i>7-iron: ' + (62 + c.deg).toFixed(1) + '&deg;</i></div>');
     v.push('<div class="spec-cell"><span>Length</span><b>' + esc(U.fmtAdj(r.length.adj)) + '</b><i>7-iron: ' + U.fmtIn(specFor(r, '7-iron').length, 2) + '</i></div>');
     v.push('<div class="spec-cell"><span>Iron shaft</span><b>' + esc(r.shafts.ironFlex) + '</b><i>' + esc(r.shafts.material) + ', ' + esc(r.shafts.ironWeight.split(' (')[0]) + '</i></div>');
     v.push('<div class="spec-cell"><span>Grip</span><b>' + esc(r.grip.size.split(' (')[0]) + '</b><i>' + (r.input.handLength ? U.fmtIn(r.input.handLength, 1) + ' hand' : 'from glove size') + '</i></div>');
@@ -303,8 +328,8 @@
     v.push('</div>');
     v.push('<div class="verdict-chart"><h4>Where you sit on the chart</h4><div id="miniChart"></div>' +
       '<p class="tiny" style="margin-top:12px">Height ' + esc(U.fmtHeight(r.input.heightIn)) + ' &middot; wrist-to-floor ' +
-      esc(U.fmtIn(r.input.wtfIn, 1)) + '. Your black-band range for this height is ' +
-      esc(U.fmtIn(r.lie.blackBand[0], 1)) + '&ndash;' + esc(U.fmtIn(r.lie.blackBand[1], 1)) + '.</p></div>');
+      esc(U.fmtIn(r.input.wtfIn, 1)) + '. The LEVEL band at your height runs ' +
+      esc(U.fmtIn(r.lie.levelBand[0], 1)) + '&ndash;' + esc(U.fmtIn(r.lie.levelBand[1], 1)) + '.</p></div>');
     v.push('</div>');
     out.push(v.join(''));
 
@@ -320,7 +345,7 @@
 
     /* ---- irons ---- */
     var ironBody = kv('Head category', esc(r.ironHead.category)) +
-      kv('Lie angle', esc(c.name) + ' &mdash; ' + esc(c.label)) +
+      kv('Lie angle', esc(c.code) + ' &mdash; ' + esc(c.label), 'measured deviation ' + (r.lie.preciseDegrees > 0 ? '+' : '') + r.lie.preciseDegrees + '°') +
       kv('Length', esc(U.fmtAdj(r.length.adj)) + ' from standard') +
       kv('Shaft', esc(r.shafts.material) + ', ' + esc(r.shafts.ironFlexName)) +
       kv('Shaft weight', esc(r.shafts.ironWeight)) +
@@ -444,14 +469,14 @@
   function initReferenceTables() {
     var ct = $('#codeTable');
     if (ct) {
-      ct.innerHTML = G.colourCodes.slice().reverse().map(function (c) {
+      ct.innerHTML = G.scale.slice().reverse().map(function (c) {
         var miss = c.i > 0 ? 'Too upright for you &rarr; pulls and hooks'
           : c.i < 0 ? 'Too flat for you &rarr; pushes and slices'
             : 'Neutral &mdash; the reference point';
-        return '<tr><td><span class="dot-badge" style="padding:3px 12px 3px 4px;margin:0;border:0;background:transparent">' +
-          '<span class="dot" style="width:16px;height:16px;border-width:1px;background:' + c.hex + '"></span>' +
-          '<b style="font-size:.92rem">' + esc(c.name) + '</b></span></td>' +
-          '<td>' + esc(c.label) + '</td><td class="small muted">' + miss + '</td></tr>';
+        var wtf = c.i === 0 ? 'reference' : (c.i > 0 ? '+' : '−') + Math.abs(c.i) + '" vs reference';
+        return '<tr><td><span class="code-chip sm" style="background:' + c.hex + ';color:' + c.ink + '">' + esc(c.code) + '</span></td>' +
+          '<td>' + esc(c.label) + '</td><td class="small muted">' + wtf + '</td>' +
+          '<td class="small muted">' + miss + '</td></tr>';
       }).join('');
     }
     var st = $('#stdTable');
@@ -463,8 +488,10 @@
     }
   }
 
+  /* Both pages share this file. Each block runs only if its host page has
+     the elements for it: index.html has the wizard, fitting-information.html
+     does not, and both render the chart and the reference tables. */
   initReferenceTables();
-  renderChart($('#chartFull'), null, null, true);
-  showStep(0);
-  window.scrollTo(0, 0);
+  if ($('#chartFull')) renderChart($('#chartFull'), null, null, true);
+  if ($('#fitForm')) initWizard();
 })();

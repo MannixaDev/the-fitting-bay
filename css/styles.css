@@ -207,6 +207,14 @@ select { appearance: none; background-image: linear-gradient(45deg, transparent 
   width: 34px; height: 34px; border-radius: 50%;
   border: 2px solid rgba(255,255,255,.22); flex: none;
 }
+/* Bay Scale code chip */
+.code-chip {
+  flex: none; display: inline-grid; place-items: center;
+  min-width: 52px; height: 38px; padding: 0 10px;
+  border-radius: 9px; font-weight: 800; font-size: 1.02rem;
+  letter-spacing: .04em; box-shadow: inset 0 0 0 1px rgba(255,255,255,.18);
+}
+.code-chip.sm { min-width: 40px; height: 26px; font-size: .8rem; border-radius: 6px; }
 .dot-badge b { font-size: 1.15rem; letter-spacing: -.02em; }
 .dot-badge em { font-style: normal; color: var(--ink-2); font-size: .86rem; display: block; margin-top: -2px; }
 
@@ -300,3 +308,11 @@ summary .tag { font-size: .7rem; letter-spacing: .1em; text-transform: uppercase
   .muted, .small, .tiny, .card .kv span, .card .why, .card ul { color: #444 !important; }
   a { color: #111 !important; }
 }
+
+/* Bay Scale formula callout */
+.formula {
+  background: var(--bg); border: 1px solid var(--line); border-left: 3px solid var(--green);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 14px 18px; font-size: .95rem; line-height: 1.7;
+}
+.formula b { color: var(--green); }
