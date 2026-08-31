@@ -290,6 +290,93 @@ module.exports = function () {
     });
   });
 
+  suite('The recommended bag', () => {
+    const PLAYERS = [
+      { n: 'beginner', o: { ironCarry: 105, skill: 'beginner', handicap: 32 } },
+      { n: 'slow', o: { ironCarry: 118, skill: 'high', handicap: 24 } },
+      { n: 'mid-slow', o: { ironCarry: 132 } },
+      { n: 'mid', o: { ironCarry: 150 } },
+      { n: 'fast', o: { driverSpeed: 110, ironCarry: null, skill: 'low', handicap: 6 } },
+      { n: 'very fast', o: { driverSpeed: 122, ironCarry: null, skill: 'scratch', handicap: 0 } }
+    ];
+
+    test('never recommends more than fourteen clubs', () => {
+      PLAYERS.forEach((p) => {
+        const b = fit(p.o).recommendedBag;
+        assert(b.count <= 14, p.n + ' got ' + b.count + ' clubs');
+      });
+    });
+    test('always includes a driver and a putter', () => {
+      PLAYERS.forEach((p) => {
+        const names = fit(p.o).recommendedBag.clubs.map((c) => c.name);
+        assert(names.indexOf('Driver') === 0, p.n + ' has no driver first');
+        assert(names[names.length - 1] === 'Putter', p.n + ' has no putter last');
+      });
+    });
+    test('lofts increase all the way down the bag', () => {
+      PLAYERS.forEach((p) => {
+        const lofts = fit(p.o).recommendedBag.clubs
+          .filter((c) => c.slot !== 'Putter').map((c) => c.loft);
+        for (let i = 1; i < lofts.length; i++) {
+          assert(lofts[i] > lofts[i - 1], p.n + ' loft order: ' + lofts.join(', '));
+        }
+      });
+    });
+
+    /* The strongest check available: a bag we recommend must not fail the
+       gapping test we apply to everybody else's. */
+    test('every recommended bag passes our own gapping check', () => {
+      PLAYERS.forEach((p) => {
+        const r = fit(p.o);
+        const issues = G.reviewGapping(r.set.carries).issues;
+        assert(issues.length === 0,
+          p.n + ' recommended bag has ' + issues.length + ' fault(s): ' +
+          issues.map((i) => i.type + ' ' + i.gap + 'yd ' + i.clubs.join('/')).join('; '));
+      });
+    });
+
+    test('a beginner is told to carry fewer clubs', () => {
+      const b = fit({ ironCarry: 105, skill: 'beginner', handicap: 32 }).recommendedBag;
+      assert(b.starter, 'should be flagged as a starter set');
+      assert(b.count <= 11, 'a beginner does not need ' + b.count + ' clubs');
+      assert(b.notes.some((n) => /not fourteen/.test(n)), 'should explain why');
+    });
+    test('a beginner still gets a club between the pitching and sand wedge', () => {
+      const names = fit({ ironCarry: 105, skill: 'beginner' }).recommendedBag.clubs.map((c) => c.name);
+      assert(names.some((n) => /52/.test(n)), 'no gap wedge: ' + names.join(', '));
+    });
+    test('faster players carry fewer woods and more irons', () => {
+      const slow = fit({ ironCarry: 115, skill: 'high' }).recommendedBag.clubs;
+      const fast = fit({ driverSpeed: 110, ironCarry: null, skill: 'low' }).recommendedBag.clubs;
+      const woods = (c) => c.filter((x) => x.slot === 'Fairway' || x.slot === 'Hybrid').length;
+      const irons = (c) => c.filter((x) => x.slot === 'Iron').length;
+      assert(woods(slow) > woods(fast), 'slow player should carry more woods');
+      assert(irons(fast) > irons(slow), 'fast player should carry more irons');
+    });
+  });
+
+  suite('Gapping thresholds scale with the player', () => {
+    /* A fixed 8-yard "too close" rule told a player whose 7-iron goes 105
+       yards that their perfectly normal 6-yard iron gaps were a fault. */
+    test('six yards is fine for a short hitter and too close for a long one', () => {
+      equal(G.gapVerdict(6, 92), 'ok', 'short hitter');
+      equal(G.gapVerdict(6, 180), 'close', 'long hitter');
+    });
+    test('anything under four yards is always too close', () => {
+      equal(G.gapVerdict(3, 60), 'close');
+    });
+    test('a club that outdrives the one above it is inverted', () => {
+      equal(G.gapVerdict(-4, 150), 'inverted');
+      equal(G.gapVerdict(0, 150), 'inverted');
+    });
+    /* And the mirror image: a long hitter's driver-to-3-wood gap is naturally
+       big and is not a fault. */
+    test('twenty-six yards is fine at the top of a long bag, a hole in a short one', () => {
+      equal(G.gapVerdict(26, 240), 'ok', 'long hitter');
+      equal(G.gapVerdict(26, 120), 'wide', 'short hitter');
+    });
+  });
+
   suite('Shaft shortlist', () => {
     test('suggestions match the recommended flex', () => {
       const r = fit({ driverSpeed: 100, ironCarry: null });

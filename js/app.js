@@ -893,6 +893,45 @@
         '<p class="tiny" style="margin-top:10px">' + esc(j.note) + '</p>'));
     }
 
+    /* ---- the bag to build ---- */
+    var bag = r.recommendedBag;
+    var bagCarries = {};
+    G.buildLadder(r.speeds, bag.ladder).forEach(function (row) { bagCarries[row.club] = row.carry; });
+    function carryOf(c) {
+      if (c.slot === 'Putter') return '—';
+      var key = c.name === 'Pitching wedge' ? 'PW (' + bag.ladder.pwLoft + '°)'
+        : c.name === 'Sand wedge' ? '56° wedge' : c.name;
+      return bagCarries[key] != null ? bagCarries[key] + ' yd' : '—';
+    }
+    var bagRows = bag.clubs.map(function (c) {
+      return '<tr><td><span class="slot-tag">' + esc(c.slot) + '</span></td>' +
+        '<td><b>' + esc(c.name) + '</b></td>' +
+        '<td class="num">' + (c.slot === 'Putter' ? '—' : c.loft + '&deg;') + '</td>' +
+        '<td class="num">' + esc(carryOf(c)) + '</td></tr>';
+    }).join('');
+
+    var bagBody = '<div class="panel card"><h3><span class="ico">&#9971;</span>' +
+      (bag.starter ? 'Your first set' : 'The bag to build') + '</h3>' +
+      '<p class="small muted">' +
+      (bag.starter
+        ? bag.count + ' clubs chosen to cover the course without spending money on clubs you cannot yet use.'
+        : bag.count + ' clubs, gapped and inside the 14-club limit, built around your speed and your wedge lofts.') +
+      '</p>' +
+      '<div class="bag-count"><b>' + bag.count + '</b><span>club' + (bag.count > 1 ? 's' : '') +
+      '</span><i>limit is 14</i></div>' +
+      '<div class="table-scroll"><table><thead><tr><th></th><th>Club</th>' +
+      '<th class="num">Loft</th><th class="num">Est. carry</th></tr></thead><tbody>' + bagRows +
+      '</tbody></table></div>' +
+      bag.notes.map(function (n) { return '<div class="note">' + esc(n) + '</div>'; }).join('') +
+      '<div class="why">Lofts are typical rather than universal — brands vary by two or three degrees, ' +
+      'especially through the short irons. Match the <em>gaps</em>, not the numbers stamped on the sole.</div>' +
+      '</div>';
+
+    var buying = !(r.input.bag && r.input.bag.hasClubs);
+    out.push(group(bag.starter ? 'Your first set' : 'The bag to build',
+      bag.count + ' clubs with lofts and estimated carries',
+      bagBody, buying));
+
     /* ---- set makeup ---- */
     var setBody = kv('Irons', esc(r.set.irons)) +
       '<div class="why"><b>Hybrids / rescues:</b>' + list(r.set.hybrids) + '</div>' +
@@ -1304,19 +1343,16 @@
     });
   }
 
-  function gapClass(gap) {
-    if (gap == null) return '';
-    if (gap <= 0) return 'gap-tight';
-    if (gap < 8) return 'gap-tight';
-    if (gap > 20) return 'gap-wide';
-    return 'gap-ok';
+  /* Both of these defer to the engine so the table and the findings can never
+     disagree about what counts as a bad gap. */
+  function gapClass(gap, carry) {
+    var v = G.gapVerdict(gap, carry);
+    return v === null ? '' : v === 'ok' ? 'gap-ok' : v === 'wide' ? 'gap-wide' : 'gap-tight';
   }
-  function gapWord(gap) {
-    if (gap == null) return '';
-    if (gap <= 0) return 'overlaps';
-    if (gap < 8) return 'too close';
-    if (gap > 20) return 'wide';
-    return 'good';
+  function gapWord(gap, carry) {
+    var v = G.gapVerdict(gap, carry);
+    return v === null ? '' : v === 'inverted' ? 'overlaps' : v === 'close' ? 'too close'
+      : v === 'wide' ? 'wide' : 'good';
   }
 
   function renderCarryRows() {
@@ -1328,8 +1364,8 @@
         '<td>' + esc(r.club) + (r.measured ? ' <span class="pill">measured</span>' : '') + '</td>' +
         '<td class="num"><input type="number" class="carry-input" data-club="' + esc(r.club) +
         '" value="' + r.carry + '" min="10" max="400" step="1" inputmode="numeric" aria-label="Carry for ' + esc(r.club) + '"></td>' +
-        '<td class="num ' + gapClass(gap) + '">' + (gap == null ? '&mdash;' : gap) + '</td>' +
-        '<td class="' + gapClass(gap) + '">' + gapWord(gap) + '</td></tr>';
+        '<td class="num ' + gapClass(gap, r.carry) + '">' + (gap == null ? '&mdash;' : gap) + '</td>' +
+        '<td class="' + gapClass(gap, r.carry) + '">' + gapWord(gap, r.carry) + '</td></tr>';
     }).join('');
     $('#carryRows').innerHTML = html;
 

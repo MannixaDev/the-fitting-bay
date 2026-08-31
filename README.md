@@ -61,6 +61,7 @@ angle, tempo, turf, priority, putting stroke) it produces:
 - **Set makeup** for all 14 slots with an estimated carry-gap table
 - A **build sheet** table of every club: standard spec, adjustment, and the number to build to
 
+- **The bag to build** — an explicit, counted, club-by-club set with lofts and estimated carries
 - **Named shafts** — a shortlist of widely stocked models matching your weight, flex and flight
 - **Junior sizing** where the player is a child, and **women's-set traps** where relevant
 
@@ -194,6 +195,33 @@ same reshaft, not two. When the midpoint of the iron work reaches the benchmark,
 replace-rather-than-repair card goes to the top and the individual iron repairs are demoted into a
 *"repairs you would be paying for instead"* group, out of the running totals. Between 60% and 100%
 of the benchmark it adds a warning to the headline instead.
+
+### The bag to build
+
+`buildBag()` answers the question someone with no clubs actually has: *what do I buy?* Prose like
+"3-wood, 5-wood, maybe a hybrid" does not count, and the version this replaced could recommend
+fifteen clubs to a fast player. It now reserves the fixed slots — driver, irons, wedges, putter —
+and spends what is left on long clubs from a speed-appropriate ladder, taken from the top down
+because the gap below the driver is the one that has to be covered first.
+
+A **beginner** gets ten clubs, not fourteen, with the reasoning stated: buying fourteen mostly buys
+four clubs you cannot yet hit.
+
+The strongest check on all of this is a test asserting that **every bag we recommend passes the
+gapping check we apply to everybody else's**. Three bugs fell out of writing it, all the same
+shape — a fixed threshold applied to players of very different speeds:
+
+- **"Under 8 yards is too close"** told a player whose 7-iron carries 105 yards that their normal
+  6-yard iron gaps were a fault. The too-close test is now proportional to the shorter club's
+  carry, with an absolute floor.
+- **"Over 20 yards is a hole"** flagged a 110 mph player's driver-to-3-wood gap, which is normal and
+  unfillable. That threshold is proportional now too.
+- **Wedge carries** used a flat 2.55 yards per degree of loft, which is right for a 150-yard 7-iron
+  and wrong for everyone else; it now scales with the player.
+
+A fourth was subtler: the bag builder dropped a 5-wood because it sat 2° from the 4-iron, but loft
+alone does not decide distance — the wood's shaft is inches longer and it carries 27 yards further.
+Loft proximity now only rules out *hybrids*, which really do share an iron's shaft length.
 
 ### Budget planning
 

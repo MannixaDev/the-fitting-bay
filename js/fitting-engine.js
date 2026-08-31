@@ -732,10 +732,134 @@
 
     var pwCarry = ironCarry(10);
     push('PW (' + bag.pwLoft + '°)', pwCarry);
+    /* Yards per degree of wedge loft is not a constant — it scales with how
+       far the player hits it. 2.55 is right for a 150-yard 7-iron; a beginner
+       loses proportionally less distance per degree. */
+    var yardsPerDeg = 2.55 * (i7 / 150);
     (bag.wedgeLofts || []).forEach(function (L) {
-      push(L + '° wedge', pwCarry - (L - bag.pwLoft) * 2.55);
+      push(L + '° wedge', pwCarry - (L - bag.pwLoft) * yardsPerDeg);
     });
     return rows;
+  }
+
+  /* ---------------------------------------------------------------------
+     9b. THE BAG TO BUILD
+     ---------------------------------------------------------------------
+     Prose like "3-wood, 5-wood, maybe a hybrid" is no use to somebody buying
+     a set: it does not count, and the old version of this could recommend
+     fifteen clubs to a fast player. This produces an explicit, counted list
+     that respects the fourteen-club limit, with a loft against every slot.
+
+     Long clubs are chosen from a speed-appropriate ladder, taken from the
+     top down, because the gap that has to be covered first is the one
+     directly below the driver.
+     ------------------------------------------------------------------ */
+  var LONG_LADDERS = {
+    slow:    [['3-wood', 16], ['5-wood', 19], ['7-wood', 22], ['9-wood', 25], ['6-hybrid', 28]],
+    midSlow: [['3-wood', 15], ['5-wood', 18], ['7-wood', 21], ['5-hybrid', 25], ['6-hybrid', 28]],
+    mid:     [['3-wood', 15], ['5-wood', 18], ['4-hybrid', 21], ['5-hybrid', 25]],
+    fast:    [['3-wood', 15], ['5-wood', 18], ['3-hybrid', 21]]
+  };
+
+  /* A HYBRID within a couple of degrees of the longest iron is a wasted slot:
+     similar loft, similar shaft, same distance. A fairway wood at the same
+     loft is a different matter — the shaft is inches longer, so it carries
+     far further and earns its place. Loft alone does not decide this. */
+  var MIN_HYBRID_LOFT_GAP = 2.5;
+
+  function recommendedLongestIron(d) {
+    return d < 82 ? 7 : d < 92 ? 6 : d < 102 ? 5 : 4;
+  }
+
+  function ladderFor(driverSpeed) {
+    if (driverSpeed < 82) return LONG_LADDERS.slow;
+    if (driverSpeed < 92) return LONG_LADDERS.midSlow;
+    if (driverSpeed < 102) return LONG_LADDERS.mid;
+    return LONG_LADDERS.fast;
+  }
+
+  function ironLoft(n, pwLoft) { return pwLoft - (10 - n) * 4; }
+
+  function buildBag(speeds, input, wedges, longestIron, driverLoft) {
+    var pw = wedges.pwLoft;
+    var clubs = [];
+    var notes = [];
+    var starter = input.skill === 'beginner';
+
+    if (starter) {
+      /* A beginner does not need fourteen clubs, and buying them is a good
+         way to spend money on clubs you cannot yet use. Nine covers the
+         course, and the gaps get filled as the swing arrives. */
+      clubs.push({ slot: 'Driver', name: 'Driver', loft: driverLoft });
+      clubs.push({ slot: 'Fairway', name: '5-wood', loft: 18 });
+      clubs.push({ slot: 'Hybrid', name: '6-hybrid', loft: 28 });
+      clubs.push({ slot: 'Iron', name: '7-iron', loft: ironLoft(7, pw) });
+      clubs.push({ slot: 'Iron', name: '8-iron', loft: ironLoft(8, pw) });
+      clubs.push({ slot: 'Iron', name: '9-iron', loft: ironLoft(9, pw) });
+      clubs.push({ slot: 'Wedge', name: 'Pitching wedge', loft: pw });
+      clubs.push({ slot: 'Wedge', name: '52° wedge', loft: 52 });
+      clubs.push({ slot: 'Wedge', name: 'Sand wedge', loft: 56 });
+      clubs.push({ slot: 'Putter', name: 'Putter', loft: 3 });
+      notes.push('Ten clubs, not fourteen. You are allowed fourteen, but a beginner who buys fourteen mostly buys four clubs they cannot yet hit. This covers every distance on the course with gaps you can manage, and it costs far less.');
+      notes.push('The 52° matters more than it looks. Without it there is a thirty-yard hole between your pitching wedge and your sand wedge, right in the range you will score from most.');
+      notes.push('Fill the rest as your swing settles — a 5-hybrid next, then the 6-iron.');
+      notes.push('Plenty of beginners score better teeing off with the 5-wood than the driver. Carry the driver, but do not feel obliged to use it.');
+      return {
+        clubs: clubs, count: clubs.length, target: 10, starter: true, notes: notes,
+        longs: ['5-wood', '6-hybrid'],
+        ladder: { longestIron: 7, longs: ['5-wood', '6-hybrid'], pwLoft: pw, wedgeLofts: [52, 56], hasDriver: true }
+      };
+    }
+
+    /* Reserve the fixed slots first, then spend what is left on the long
+       clubs — they are the flexible part of any bag. */
+    var ironNames = [];
+    for (var n = longestIron; n <= 9; n++) ironNames.push(n);
+    var reserved = 1 /* driver */ + 1 /* putter */ + ironNames.length + 1 /* PW */ + wedges.lofts.length;
+    var remaining = Math.max(0, 14 - reserved);
+
+    var topIronLoft = ironLoft(longestIron, pw);
+    var ladder = ladderFor(speeds.driver).filter(function (L) {
+      if (!/hybrid/.test(L[0])) return true;
+      return L[1] <= topIronLoft - MIN_HYBRID_LOFT_GAP;
+    });
+    var longs = ladder.slice(0, remaining);
+
+    clubs.push({ slot: 'Driver', name: 'Driver', loft: driverLoft });
+    longs.forEach(function (L) {
+      clubs.push({ slot: /wood/.test(L[0]) ? 'Fairway' : 'Hybrid', name: L[0], loft: L[1] });
+    });
+    ironNames.forEach(function (n) {
+      clubs.push({ slot: 'Iron', name: n + '-iron', loft: ironLoft(n, pw) });
+    });
+    clubs.push({ slot: 'Wedge', name: 'Pitching wedge', loft: pw });
+    wedges.lofts.forEach(function (L) {
+      clubs.push({ slot: 'Wedge', name: L + '° wedge', loft: L });
+    });
+    clubs.push({ slot: 'Putter', name: 'Putter', loft: 3 });
+
+    if (remaining < ladder.length) {
+      notes.push('There are only ' + remaining + ' slots left between the driver and the ' + longestIron +
+        '-iron once the irons, wedges and putter are counted, so this takes the ' + remaining +
+        ' that cover the biggest gaps. If you would rather carry another wedge, drop the shortest of them.');
+    }
+    if (remaining > ladder.length) {
+      var spare = remaining - ladder.length;
+      notes.push('That leaves ' + spare + ' spare slot' + (spare > 1 ? 's' : '') +
+        ', because anything longer would sit within a couple of degrees of your ' + longestIron +
+        '-iron and go the same distance. An extra wedge is the usual way to spend it — decide that on the course, not in the shop.');
+    }
+    notes.push('Fourteen is a limit, not a target. If two of these go the same distance, leave one at home.');
+
+    var longNames = longs.map(function (L) { return L[0]; });
+    return {
+      clubs: clubs, count: clubs.length, target: 14, starter: false, notes: notes,
+      longs: longNames,
+      ladder: {
+        longestIron: longestIron, longs: longNames, pwLoft: pw,
+        wedgeLofts: wedges.lofts, hasDriver: true
+      }
+    };
   }
 
   function setMakeup(speeds, input, wedges, bag) {
@@ -774,13 +898,19 @@
     }
 
     /* Describe the player's own bag when they have told us what is in it,
-       and the recommended one when they have not. */
+       and the recommended one when they have not — using the same long clubs
+       the bag card recommends, so the two can never disagree. */
     var own = bag && bag.hasClubs;
+    /* When the player has no clubs, the carry table must describe the bag we
+       are actually recommending — including its wedges and its longest iron,
+       not just its woods. */
+    var rec = (!own && bag && bag.recommendedLadder) ? bag.recommendedLadder : null;
     var ladderBag = {
-      longestIron: own && isNum(bag.longestIron) ? bag.longestIron : longestIron,
-      longs: own && bag.longs && bag.longs.length ? bag.longs : defaultLongs,
+      longestIron: own && isNum(bag.longestIron) ? bag.longestIron : (rec ? rec.longestIron : longestIron),
+      longs: own && bag.longs && bag.longs.length ? bag.longs : (rec ? rec.longs : defaultLongs),
       pwLoft: wedges.pwLoft,
-      wedgeLofts: own && bag.wedgeLofts && bag.wedgeLofts.length ? bag.wedgeLofts : wedges.lofts,
+      wedgeLofts: own && bag.wedgeLofts && bag.wedgeLofts.length ? bag.wedgeLofts
+        : (rec ? rec.wedgeLofts : wedges.lofts),
       hasDriver: !own || bag.hasDriver !== false
     };
 
@@ -985,7 +1115,10 @@
     var head = ironHeadFit(input, speeds);
     var grip = gripFit(input);
     var wedges = wedgeFit(input, head);
-    var set = setMakeup(speeds, input, wedges, input.bag);
+    var recommended = buildBag(speeds, input, wedges, recommendedLongestIron(speeds.driver), driver.loftLo);
+    var bagInput = input.bag || {};
+    bagInput.recommendedLadder = recommended.ladder;
+    var set = setMakeup(speeds, input, wedges, bagInput);
     var putter = putterFit(input, heightIn, wtfIn);
     var ball = ballFit(speeds, input);
     var dyn = dynamicLieNote(input, lie.code);
@@ -1065,6 +1198,7 @@
       driver: driver, ironHead: head, grip: grip, wedges: wedges,
       set: set, putter: putter, ball: ball, dynamicLie: dyn,
       junior: junior, womensNotes: womens, shaftPicks: shaftPicks,
+      recommendedBag: recommended,
       sensitivity: sensitivity, expectedWtf: Math.round(expectedWtf * 10) / 10,
       wtfOutlier: wtfOutlier,
       specSheet: specSheet, flags: flags
@@ -1079,6 +1213,20 @@
      numbers are where this earns its keep: two clubs that go the same
      distance is the most common and least noticed fault in a golf bag.
      ------------------------------------------------------------------ */
+  /* A fixed "under 8 yards is too close" rule punishes slow players for
+     nothing: if your 7-iron goes 105 yards then 6 yards between irons is
+     exactly right, and the same 6 yards in a 172-yard player's bag is a
+     wasted slot. So the too-close test is proportional to the shorter club's
+     carry, with an absolute floor. A hole stays absolute, because 20-odd
+     yards with no club is a problem whoever you are. */
+  function gapVerdict(gap, shorterCarry) {
+    if (gap == null) return null;
+    if (gap <= 0) return 'inverted';
+    if (gap < Math.max(4, shorterCarry * 0.045)) return 'close';
+    if (gap > Math.max(20, shorterCarry * 0.13)) return 'wide';
+    return 'ok';
+  }
+
   function reviewGapping(rows) {
     var issues = [], measured = 0;
     rows.forEach(function (r) { if (r.measured) measured++; });
@@ -1086,19 +1234,20 @@
     for (var i = 1; i < rows.length; i++) {
       var a = rows[i - 1], b = rows[i];
       var gap = a.carry - b.carry;
+      var verdict = gapVerdict(gap, b.carry);
       if (gap <= 0) {
         issues.push({
           type: 'inverted', severity: 'high', clubs: [a.club, b.club], gap: gap,
           text: 'Your ' + b.club + ' carries as far as or further than your ' + a.club +
             '. One of those two is doing nothing for you, and it is almost always the longer club — either the loft is wrong or you cannot launch it.'
         });
-      } else if (gap < 8) {
+      } else if (verdict === 'close') {
         issues.push({
           type: 'overlap', severity: 'medium', clubs: [a.club, b.club], gap: gap,
           text: 'Only ' + gap + ' yards between your ' + a.club + ' and your ' + b.club +
             '. That is inside your own shot-to-shot scatter, so you are carrying two clubs to cover one distance and wasting a slot out of your fourteen.'
         });
-      } else if (gap > 20) {
+      } else if (verdict === 'wide') {
         issues.push({
           type: 'hole', severity: gap > 28 ? 'high' : 'medium', clubs: [a.club, b.club], gap: gap,
           text: 'A ' + gap + '-yard hole between your ' + a.club + ' and your ' + b.club +
@@ -1665,10 +1814,12 @@
     audit: audit,
     sides: sides,
     reviewGapping: reviewGapping,
+    gapVerdict: gapVerdict,
     faceChangeFromLie: faceChangeFromLie,
     lieImpact: lieImpact,
     lieFromLengthChange: lieFromLengthChange,
     buildLadder: buildLadder,
+    buildBag: buildBag,
     FLEX_NAME: FLEX_NAME
   };
 })(window);
