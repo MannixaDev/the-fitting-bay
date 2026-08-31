@@ -263,7 +263,19 @@ Two rules kept it honest:
 
 The result panel splits the miss into the part from the **start line** (geometry, solid) and the
 part from the **curve** (modelled, labelled as such) on a true-to-scale yard ruler, rather than
-drawing a fake flight path.
+drawing a fake flight path. The ruler rescales itself rather than letting the marker run off the
+end — four degrees on a lob wedge is over eleven yards.
+
+It appears twice: as a section on the fitting-information page, and inside the results seeded with
+the player's own code — needing `U2` means a standard head sits 2° flat for you, so the bench opens
+showing exactly that, heel in the air.
+
+## Results layout
+
+The results lead with what the reader acts on — the verdict, the warnings, the audit, and the
+bench — and fold the reference detail into `<details>` sections that open on demand: the per-club
+recommendations, the carry gaps and the build sheet. A `beforeprint` handler opens them all, since
+a collapsed section that vanishes from a printout is a trap.
 
 ## Tests
 

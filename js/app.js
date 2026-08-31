@@ -573,7 +573,7 @@
       clearUrl();
       showStep(0);
     });
-    $('#printBtn').addEventListener('click', function () { window.print(); });
+      $('#printBtn').addEventListener('click', function () { window.print(); });
 
     showStep(0);
   }
@@ -703,6 +703,15 @@
   function kv(label, value, sub) {
     return '<div class="kv"><span>' + esc(label) + '</span><b>' + value + (sub ? '<br><i class="tiny">' + esc(sub) + '</i>' : '') + '</b></div>';
   }
+  /* Detail the reader can reach for, rather than has to scroll past. The
+     headline verdict, the warnings and the audit stay open; the per-club
+     breakdown, the yardages and the build sheet fold away. */
+  function group(title, note, body, open) {
+    return '<details class="result-group"' + (open ? ' open' : '') + '>' +
+      '<summary><b>' + esc(title) + '</b>' + (note ? ' <span class="tiny">' + esc(note) + '</span>' : '') + '</summary>' +
+      '<div class="result-group-body">' + body + '</div></details>';
+  }
+
   function card(title, icon, body) {
     return '<div class="panel card"><h3><span class="ico">' + icon + '</span>' + esc(title) + '</h3>' + body + '</div>';
   }
@@ -760,6 +769,20 @@
     /* The audit is the actionable part, so it sits above the explanation of
        the recommendation rather than below it. */
     out.push('<div id="auditResults"></div>');
+
+    /* Seed the bench with what THIS player would feel playing standard-lie
+       clubs. Needing U2 means standard heads sit 2 degrees flat for you,
+       which shows up as heel-up — so the sign flips. */
+    if (r.lie.code.deg !== 0) {
+      var seedErr = Math.max(-4, Math.min(4, -r.lie.code.deg));
+      out.push('<div class="panel card no-print" style="margin-bottom:18px">' +
+        '<h3><span class="ico">&#9678;</span>What ' + esc(r.lie.code.code) + ' actually means</h3>' +
+        '<div data-lie-bench data-lie="' + seedErr + '" data-loft="31" data-intro="' +
+        'You came out ' + esc(r.lie.code.code) + '. That means a standard-lie head sits about ' +
+        Math.abs(r.lie.code.deg) + '\u00b0 too ' + (r.lie.code.deg > 0 ? 'flat' : 'upright') +
+        ' for you, which at impact looks like this. Drag the loft slider to see why it matters more in your wedges."></div>' +
+        '</div>');
+    }
 
     var cards = [];
 
@@ -877,10 +900,12 @@
       '<div class="why">' + esc(r.set.why) + '</div>';
     cards.push(card('Set makeup', 'S', setBody));
 
-    out.push('<div class="cards" style="margin-bottom:18px">' + cards.join('') + '</div>');
+    out.push(group('Every recommendation in detail',
+      cards.length + ' cards — irons, driver, wedges, grips, putter, ball, shafts and set makeup',
+      '<div class="cards">' + cards.join('') + '</div>'));
 
     /* ---- gapping table ---- */
-    out.push('<div class="panel card" style="margin-bottom:18px"><h3><span class="ico">&#8801;</span>Carry gaps</h3>' +
+    var carryCard = ('<div class="panel card"><h3><span class="ico">&#8801;</span>Carry gaps</h3>' +
       '<p class="small muted">' +
       (r.set.ladderIsYours
         ? 'These are <b>your</b> clubs, modelled from your speed. '
@@ -893,6 +918,7 @@
       '<div id="carrySummary" class="note"></div>' +
       '<button type="button" class="btn btn-ghost no-print" id="carryReset" hidden style="margin-top:14px">Reset to estimates</button>' +
       '</div>');
+    out.push(group('Carry gaps', 'your yardage ladder, and the holes in it', carryCard));
 
     /* ---- full spec sheet ---- */
     var specRows = r.specSheet.map(function (s) {
@@ -904,7 +930,7 @@
         '<td class="num">' + (s.lieAdj === 0 ? '&mdash;' : (s.lieAdj > 0 ? '+' : '−') + Math.abs(s.lieAdj) + '&deg;') + '</td>' +
         '<td class="num"><b>' + s.lie.toFixed(1) + '&deg;</b></td></tr>';
     }).join('');
-    out.push('<div class="panel card"><h3><span class="ico">&#9776;</span>Build sheet &mdash; hand this to your fitter</h3>' +
+    var buildCard = ('<div class="panel card"><h3><span class="ico">&#9776;</span>Build sheet &mdash; hand this to your fitter</h3>' +
       '<p class="small muted">Length adjustments come from height; lie adjustments from the colour code. Woods and ' +
       'hybrids take half the iron length adjustment, because their longer shafts are less sensitive to it and ' +
       'over-lengthening them costs you the middle of the face.</p>' +
@@ -914,13 +940,17 @@
       '<div class="note">Ask for these to be <b>checked after building</b>. Loft and lie drift during manufacture, ' +
       'and a set that leaves the factory nominally standard can be a degree out club to club. Any decent fitter has ' +
       'a loft-lie machine and will check the set for you.</div></div>');
+    out.push(group('Build sheet', 'every club, every number, ready to hand over', buildCard));
 
     $('#resultsBody').innerHTML = out.join('');
     renderChart($('#miniChart'), r.input.heightIn, r.input.wtfIn, false);
     renderCarryRows();
     initCarryTable();
+    if (root_LieBench()) root_LieBench().init();
     resultsRendered = true;
   }
+
+  function root_LieBench() { return window.LieBench || null; }
 
   function specFor(r, club) {
     for (var i = 0; i < r.specSheet.length; i++) if (r.specSheet[i].club === club) return r.specSheet[i];
@@ -1390,6 +1420,12 @@
   initAudit();
 
   wireA11y();
+  /* A collapsed section must still print. Open everything before the dialog
+     appears, and leave it open — the reader just asked to see it all. */
+  window.addEventListener('beforeprint', function () {
+    $$('details.result-group, details.audit-group').forEach(function (d) { d.open = true; });
+  });
+
   renderDiagrams();
   applyHandedness();
   initProfiles();

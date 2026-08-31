@@ -602,3 +602,30 @@ tr.measured .pill { font-size: .64rem; padding: 1px 7px; vertical-align: middle;
   padding: 1px 5px; border-radius: 4px; border: 1px solid var(--line);
 }
 @media print { .bench-controls { display: none; } }
+
+/* ---------- collapsible result sections ---------- */
+details.result-group {
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--panel); margin-bottom: 18px; overflow: hidden;
+}
+details.result-group > summary {
+  cursor: pointer; padding: 16px 20px; list-style: none;
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  font-size: 1rem;
+}
+details.result-group > summary::-webkit-details-marker { display: none; }
+details.result-group > summary::after {
+  content: 'Show'; margin-left: auto; color: var(--green);
+  font-size: .82rem; font-weight: 620; white-space: nowrap;
+}
+details.result-group[open] > summary::after { content: 'Hide'; }
+details.result-group[open] > summary { border-bottom: 1px solid var(--line-soft); }
+details.result-group > summary:hover { background: rgba(255,255,255,.02); }
+.result-group-body { padding: 18px; }
+.result-group-body > .panel.card { box-shadow: none; border: 0; padding: 0; background: none; }
+.result-group-body .cards { margin: 0; }
+
+.bench-intro {
+  font-size: .92rem; color: var(--ink-2); margin: 0 0 18px;
+  padding-left: 14px; border-left: 3px solid var(--green);
+}
