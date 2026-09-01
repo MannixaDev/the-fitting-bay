@@ -205,6 +205,47 @@ module.exports = function () {
                                   { club: '5-iron', carry: 178, measured: true }] });
       assert(a.actions.some((x) => /^Gapping/.test(x.area)), 'should raise a gapping finding');
     });
+
+    /* Three separate "27-yard hole" cards said one thing three times and
+       pushed everything else down the list. */
+    test('repeated holes are reported once, not once each', () => {
+      const carries = [
+        { club: 'Driver', carry: 250, measured: true },
+        { club: '3-wood', carry: 218, measured: true },
+        { club: '5-iron', carry: 186, measured: true },
+        { club: '6-iron', carry: 174, measured: true }
+      ];
+      const raw = G.reviewGapping(carries).issues.filter((x) => x.type === 'hole');
+      assert(raw.length > 1, 'fixture should produce more than one hole');
+
+      const found = audit({ carries }).actions.filter((x) => /^Gapping/.test(x.area));
+      equal(found.length, 1);
+      assert(/holes in your ladder/.test(found[0].area), found[0].area);
+      /* Every pair is still named, so nothing is hidden by the merge. */
+      raw.forEach((g) => {
+        assert(found[0].current.indexOf(g.clubs[0]) !== -1, 'names ' + g.clubs[0]);
+        assert(found[0].current.indexOf(g.clubs[1]) !== -1, 'names ' + g.clubs[1]);
+      });
+      assert(found[0].costHi > 0, 'a merged hole still costs money');
+    });
+
+    test('a lone hole keeps its own club-to-club title', () => {
+      const found = audit({
+        carries: [{ club: '3-wood', carry: 220, measured: true },
+                  { club: '5-iron', carry: 180, measured: true }]
+      }).actions.filter((x) => /^Gapping/.test(x.area));
+      equal(found.length, 1);
+      equal(found[0].area, 'Gapping: 3-wood → 5-iron');
+    });
+
+    test('holes and overlaps stay separate findings', () => {
+      const found = audit({
+        carries: [{ club: 'Driver', carry: 250, measured: true },
+                  { club: '3-wood', carry: 210, measured: true },
+                  { club: '5-wood', carry: 207, measured: true }]
+      }).actions.filter((x) => /^Gapping/.test(x.area));
+      equal(found.length, 2);
+    });
   });
 
   /* ----------------------------------------------------------------------

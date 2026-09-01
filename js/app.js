@@ -404,10 +404,30 @@
        runFitFromForm() runs the audit itself once the bag is present. */
     applyAuditState(q);
     runFitFromForm();
-    if (scroll) {
-      window.scrollTo({ top: $('#fit').getBoundingClientRect().top + window.pageYOffset - 74, behavior: 'auto' });
-    }
+    if (scroll) scrollToFit();
     return true;
+  }
+
+  /* Someone opening a link you sent them wants the fit, not the pitch. The
+     browser restores its own scroll position after load, which used to undo
+     this, so ownership of the scroll has to be taken first and the move made
+     after the layout has settled. */
+  function scrollToFit() {
+    try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch (e) { }
+    var go = function () {
+      var el = $('#fit');
+      if (!el) return;
+      /* html { scroll-behavior: smooth } wins over behavior:'auto' passed in
+         the options object, and a glide is wrong here anyway: the reader
+         should already be at the fit, not watch the page travel to it. */
+      var de = document.documentElement, was = de.style.scrollBehavior;
+      de.style.scrollBehavior = 'auto';
+      window.scrollTo(0, el.getBoundingClientRect().top + window.pageYOffset - 74);
+      de.style.scrollBehavior = was;
+    };
+    go();
+    requestAnimationFrame(function () { requestAnimationFrame(go); });
+    window.addEventListener('load', go, { once: true });
   }
 
   function restoreDraft() {
@@ -504,7 +524,9 @@
       stepNum.textContent = current + 1;
       if (painted) stepTitle.focus();
       painted = true;
-      backBtn.disabled = current === 0;
+      /* Disabled it still occupied the row and still looked like a control.
+         There is nothing behind step one, so there is nothing to show. */
+      backBtn.hidden = current === 0;
       var last = current === steps.length - 1;
       nextBtn.hidden = last;
       submitBtn.hidden = !last;
@@ -552,8 +574,10 @@
         $('#handHint').innerHTML = (m ? 'Centimetres, ' : 'Inches, ') +
           'from the crease of your wrist to the tip of your middle finger. Keep the tape flat against your palm — ' +
           'do not curve it over the fingertip or around the heel pad.';
-        $('#wtf').placeholder = m ? '86' : '34';
-        $('#handLength').placeholder = m ? '19' : '7.5';
+        $('#wtf').placeholder = m ? 'e.g. 86' : 'e.g. 34';
+        $('#handLength').placeholder = m ? 'e.g. 19' : 'e.g. 7.5';
+        $('#wtfUnit').textContent = m ? 'cm' : 'in';
+        $('#handUnit').textContent = m ? 'cm' : 'in';
       });
     });
 
@@ -616,8 +640,12 @@
        gradient slices can be sampled coarsely — they are filled shapes, not
        lines, so nobody sees the facets. */
     function curvePts(off, step) {
-      var p = [];
-      for (var h = h0; h <= h1 + 0.001; h += (step || 0.5)) p.push(x(h) + ',' + y(G.levelCentre(h) + off));
+      var p = [], st = step || 0.5;
+      /* The sample step does not divide the height range evenly, so walking it
+         with a <= test used to stop an inch short and leave an unpainted strip
+         down the right edge of the small chart. Finish on h1 explicitly. */
+      for (var h = h0; h < h1 - 0.0001; h += st) p.push(x(h) + ',' + y(G.levelCentre(h) + off));
+      p.push(x(h1) + ',' + y(G.levelCentre(h1) + off));
       return p.join(' ');
     }
     function band(lo, hi, fill, step) {
@@ -677,7 +705,9 @@
     s.push('<rect x="' + padL + '" y="' + padT + '" width="' + pw + '" height="' + ph + '" fill="none" stroke="#2a3630"/>');
 
     var F = 'ui-sans-serif,system-ui,sans-serif';
-    var axis = '#74847b';
+    /* These were set when the plot area was empty. They now sit alongside a
+       fully saturated colour field, and needed to come up to meet it. */
+    var axis = '#94a39a';
 
     /* ---- code labels at the ends of the contours, not inside the bands ---- */
     if (big) {
@@ -699,7 +729,7 @@
       'stroke-linejoin="round">LEVEL' + (big ? ' — standard lie' : '') + '</text>');
 
     /* ---- axes ---- */
-    s.push('<g font-size="' + (big ? 10.5 : 9) + '" font-family="' + F + '" fill="' + axis + '">');
+    s.push('<g font-size="' + (big ? 10.5 : 9.6) + '" font-family="' + F + '" fill="' + axis + '">');
     for (var lw = 29; lw <= 40; lw += (big ? 2 : 3)) {
       s.push('<text x="' + (padL - 8) + '" y="' + (y(lw) + 3.5) + '" text-anchor="end">' + lw + '"</text>');
     }
@@ -763,8 +793,36 @@
       '<div class="result-group-body">' + body + '</div></details>';
   }
 
-  function card(title, icon, body) {
-    return '<div class="panel card"><h3><span class="ico">' + icon + '</span>' + esc(title) + '</h3>' + body + '</div>';
+  /* One vocabulary, drawn the same way, instead of the old mix of single
+     letters (I, D, W, G, P, B, S) and punctuation glyphs. Icons are kept for
+     the structural blocks, where they mark a change of purpose; the eight spec
+     cards drop them, because "Driver" was never ambiguous and eight more
+     decorated squares only added noise to an already long page. */
+  var ICONS = {
+    trust:  '<path d="M8 1.4 14 4v4.2c0 3.4-2.4 5.5-6 6.4-3.6-.9-6-3-6-6.4V4z"/>',
+    warn:   '<path d="M8 1.6 15 14H1z"/><path d="M8 6.2v3.4M8 11.4v.6"/>',
+    bench:  '<circle cx="8" cy="8" r="6.3"/><path d="M3.6 11.2 12.4 4.4"/>',
+    bag:    '<path d="M4.4 5.5h7.2l-.7 8.6H5.1z"/><path d="M6 5.5V3.1M8 5.5V1.9M10 5.5V3.6"/>',
+    ladder: '<path d="M2.2 13.4h11.6"/><path d="M4.4 13.4V9.6M8 13.4V6.2M11.6 13.4V2.9"/>',
+    sheet:  '<rect x="2.4" y="1.9" width="11.2" height="12.2" rx="1.4"/><path d="M5.2 5.6h5.6M5.2 8h5.6M5.2 10.4h3.4"/>',
+    fix:    '<path d="M10.2 1.9a3.6 3.6 0 0 0-3.1 5.4L2 12.4l1.6 1.6 5.1-5.1a3.6 3.6 0 0 0 4.6-4.7l-2 2-1.9-1.9 2-2a3.6 3.6 0 0 0-1.2-.4z"/>'
+  };
+  function icon(name) {
+    return '<span class="ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" ' +
+      'stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      ICONS[name] + '</svg></span>';
+  }
+
+  /* Sixteen sibling panels made "How much to trust this" look exactly as
+     important as "Golf ball". These rules split the page into the answer,
+     what to do about it, and the reference behind it. */
+  function tierHead(label, note) {
+    return '<div class="tier-head"><b>' + esc(label) + '</b>' +
+      (note ? '<i>' + esc(note) + '</i>' : '') + '</div>';
+  }
+
+  function card(title, body) {
+    return '<div class="panel card spec"><h3>' + esc(title) + '</h3>' + body + '</div>';
   }
   function list(items) {
     if (!items || !items.length) return '';
@@ -773,18 +831,18 @@
 
   function renderResults(r) {
     var c = r.lie.code;
+    var sw = r.lie.swatch;
     var out = [];
 
     /* ---- verdict ---- */
     var v = [];
-    v.push('<div class="panel verdict"><div class="verdict-main">');
+    /* The verdict wears the player's own interpolated colour along its top
+       edge — two people in the same code are not quite the same shade. */
+    v.push('<div class="panel verdict" style="--fit-colour:' + sw.hex + '"><div class="verdict-main">');
     v.push('<p class="eyebrow" style="margin-bottom:.7rem">Static fit &mdash; irons</p>');
-    /* The chip carries the player's exact interpolated colour, not the band
-       colour — two people in the same code are not quite the same shade. */
-    var sw = r.lie.swatch;
     v.push('<div class="dot-badge"><span class="code-chip" style="background:' + sw.hex + ';color:' + sw.ink + '">' + esc(c.code) + '</span>' +
-      '<span><b>' + esc(c.label) + ' lie angle</b><em>' + esc(sw.label) + ' · ' + esc(sw.hex) +
-      ' · measured deviation ' + (r.lie.preciseDegrees > 0 ? '+' : '') + r.lie.preciseDegrees + '°</em></span></div>');
+      '<span><b>' + esc(c.label) + ' lie angle</b><em>measured deviation ' +
+      (r.lie.preciseDegrees > 0 ? '+' : '') + r.lie.preciseDegrees + '°</em></span></div>');
     v.push('<div class="spec-row">');
     v.push('<div class="spec-cell"><span>Lie angle</span><b>' + esc(c.label) + '</b><i>7-iron: ' + (62 + c.deg).toFixed(1) + '&deg;</i></div>');
     v.push('<div class="spec-cell"><span>Length</span><b>' + esc(U.fmtAdj(r.length.adj)) + '</b><i>7-iron: ' + U.fmtIn(specFor(r, '7-iron').length, 2) + '</i></div>');
@@ -803,7 +861,8 @@
     }
 
     if (r.length.note) v.push('<div class="note warn">Height ' + esc(U.fmtHeight(r.input.heightIn)) + ' is ' + esc(r.length.note) + '.</div>');
-    v.push('<div class="note">' + esc(r.lengthAgreement.text) + '</div>');
+    v.push('<div class="note ' + (r.lengthAgreement.status === 'agree' ? 'good'
+      : r.lengthAgreement.status === 'conflict' ? 'warn' : '') + '">' + esc(r.lengthAgreement.text) + '</div>');
     v.push('</div>');
     v.push('<div class="verdict-chart"><h4>Where you sit on the chart</h4><div id="miniChart"></div>' +
       '<div class="swatch-line"><span class="swatch-dot" style="background:' + sw.hex + '"></span>' +
@@ -814,10 +873,21 @@
     v.push('</div>');
     out.push(v.join(''));
 
-    /* ---- flags ---- */
+    out.push(tierHead('What to do about it', 'the caveats, the confidence, and the changes worth making'));
+    out.push('<div class="tier-act">');
+
+    /* "Read this first" was the third thing on the page. It is now the first
+       thing after the verdict, which is what the words promise. */
+    if (r.flags.length) {
+      out.push('<div class="panel card" style="margin-bottom:18px"><h3>' + icon('warn') + 'Read this first</h3>' +
+        r.flags.map(function (f) {
+          return '<div class="note' + (f.level === 'warn' ? ' warn' : '') + '">' + esc(f.text) + '</div>';
+        }).join('') + '</div>');
+    }
+
     var cf = r.confidence;
     out.push('<div class="panel card conf conf-' + cf.overall + '" style="margin-bottom:18px">' +
-      '<h3><span class="ico">%</span>How much to trust this' +
+      '<h3>' + icon('trust') + 'How much to trust this' +
       '<span class="conf-badge conf-' + cf.overall + '">' + esc(cf.overall) + ' confidence</span></h3>' +
       '<p class="small">' + esc(cf.headline) + '</p>' +
       '<div class="conf-grid">' + cf.areas.map(function (a) {
@@ -833,13 +903,6 @@
         : '') +
       '</div>');
 
-    if (r.flags.length) {
-      out.push('<div class="panel card" style="margin-bottom:18px"><h3><span class="ico">!</span>Read this first</h3>' +
-        r.flags.map(function (f) {
-          return '<div class="note' + (f.level === 'warn' ? ' warn' : '') + '">' + esc(f.text) + '</div>';
-        }).join('') + '</div>');
-    }
-
     /* The audit is the actionable part, so it sits above the explanation of
        the recommendation rather than below it. */
     out.push('<div id="auditResults"></div>');
@@ -850,13 +913,16 @@
     if (r.lie.code.deg !== 0) {
       var seedErr = Math.max(-4, Math.min(4, -r.lie.code.deg));
       out.push('<div class="panel card no-print" style="margin-bottom:18px">' +
-        '<h3><span class="ico">&#9678;</span>What ' + esc(r.lie.code.code) + ' actually means</h3>' +
+        '<h3>' + icon('bench') + 'What ' + esc(r.lie.code.code) + ' actually means</h3>' +
         '<div data-lie-bench data-lie="' + seedErr + '" data-loft="31" data-intro="' +
         'You came out ' + esc(r.lie.code.code) + '. That means a standard-lie head sits about ' +
         Math.abs(r.lie.code.deg) + '\u00b0 too ' + (r.lie.code.deg > 0 ? 'flat' : 'upright') +
         ' for you, which at impact looks like this. Drag the loft slider to see why it matters more in your wedges."></div>' +
         '</div>');
     }
+
+    out.push('</div>');
+    out.push(tierHead('The detail', 'every recommendation, and the numbers behind it'));
 
     var cards = [];
 
@@ -874,7 +940,7 @@
     ironBody += '<div class="note' + (r.dynamicLie.severity === 'warn' ? ' warn' : '') + '">' + esc(r.dynamicLie.text) + '</div>';
     ironBody += '<p class="small" style="margin-top:12px"><a href="fitting-information.html#bench">See what ' +
       esc(r.lie.code.code) + ' actually does to a clubface &rarr;</a></p>';
-    cards.push(card('Irons', 'I', ironBody));
+    cards.push(card('Irons', ironBody));
 
     /* ---- driver ---- */
     var d = r.driver;
@@ -889,7 +955,7 @@
     }
     drvBody += '<div class="why"><b>Head:</b>' + list(d.head) + '</div>';
     if (d.loftReasons.length) drvBody += '<div class="why"><b>Why this loft:</b>' + list(d.loftReasons) + '</div>';
-    cards.push(card('Driver', 'D', drvBody));
+    cards.push(card('Driver', drvBody));
 
     /* ---- wedges ---- */
     var w = r.wedges;
@@ -901,10 +967,10 @@
       '<div class="why" style="border-top:0;padding-top:0"><b>Grind:</b> ' + esc(w.grindWhy) + '</div>' +
       '<div class="note">' + esc(w.gapNote) + '</div>' +
       '<div class="why">' + esc(w.shaftNote) + '</div>';
-    cards.push(card('Wedges', 'W', wedgeBody));
+    cards.push(card('Wedges', wedgeBody));
 
     /* ---- grip ---- */
-    cards.push(card('Grips', 'G',
+    cards.push(card('Grips',
       kv('Size', esc(r.grip.size)) +
       (r.input.handLength ? kv('Hand length', U.fmtIn(r.input.handLength, 1)) : '') +
       (r.input.gloveSize ? kv('Glove', esc(r.input.gloveSize)) : '') +
@@ -912,7 +978,7 @@
 
     /* ---- putter ---- */
     var p = r.putter;
-    cards.push(card('Putter', 'P',
+    cards.push(card('Putter',
       kv('Length', U.fmtIn(p.length, 1)) +
       kv('Lie', p.lie + '&deg;') +
       kv('Head style', esc(p.head)) +
@@ -923,7 +989,7 @@
       '<div class="note">' + esc(p.check) + '</div>'));
 
     /* ---- ball ---- */
-    cards.push(card('Golf ball', 'B',
+    cards.push(card('Golf ball',
       kv('Type', esc(r.ball.type)) +
       kv('Compression', esc(r.ball.compression)) +
       '<div class="why">' + esc(r.ball.why) + '</div>' + list(r.ball.extra)));
@@ -937,7 +1003,7 @@
           (x.onProfile ? ' <em>&mdash; matches your flight</em>' : '') + '</span></li>';
       }).join('') + '</ul>';
     }
-    cards.push(card('Shafts to ask for', '/',
+    cards.push(card('Shafts to ask for',
       '<h4>Irons &mdash; ' + esc(r.shafts.material) + ', ' + esc(r.shafts.ironFlex) + ', ' + esc(r.shafts.ironWeight) + '</h4>' +
       shaftList(sp.irons) +
       '<h4 style="margin-top:16px">Driver &mdash; ' + esc(r.shafts.driverFlex) + ', ' + esc(r.shafts.driverWeight) + '</h4>' +
@@ -946,7 +1012,7 @@
 
     /* ---- women's specifics ---- */
     if (r.womensNotes && r.womensNotes.length) {
-      cards.push(card('Buying a women\u2019s set', 'W',
+      cards.push(card('Buying a women\u2019s set',
         '<p class="small muted">Women\u2019s stock equipment is built to an average that fits far fewer people than it is sold to. These are the traps.</p>' +
         list(r.womensNotes)));
     }
@@ -954,7 +1020,7 @@
     /* ---- junior ---- */
     if (r.junior) {
       var j = r.junior;
-      cards.push(card('Fitting a junior', 'J',
+      cards.push(card('Fitting a junior',
         (j.band ? kv('Height band', esc(j.band.label)) : '') +
         kv('Driver length', j.driverLength + '"') +
         kv('7-iron length', j.sevenLength + '"') +
@@ -984,7 +1050,7 @@
         '<td class="num">' + esc(carryOf(c)) + '</td></tr>';
     }).join('');
 
-    var bagBody = '<div class="panel card"><h3><span class="ico">&#9971;</span>' +
+    var bagBody = '<div class="panel card"><h3>' + icon('bag') +
       (bag.starter ? 'Your first set' : 'The bag to build') + '</h3>' +
       '<p class="small muted">' +
       (bag.starter
@@ -1011,14 +1077,14 @@
       '<div class="why"><b>Hybrids / rescues:</b>' + list(r.set.hybrids) + '</div>' +
       '<div class="why" style="border-top:0;padding-top:0"><b>Fairway woods:</b>' + list(r.set.woods) + '</div>' +
       '<div class="why">' + esc(r.set.why) + '</div>';
-    cards.push(card('Set makeup', 'S', setBody));
+    cards.push(card('Set makeup', setBody));
 
     out.push(group('Every recommendation in detail',
       cards.length + ' cards — irons, driver, wedges, grips, putter, ball, shafts and set makeup',
       '<div class="cards">' + cards.join('') + '</div>'));
 
     /* ---- gapping table ---- */
-    var carryCard = ('<div class="panel card"><h3><span class="ico">&#8801;</span>Carry gaps</h3>' +
+    var carryCard = ('<div class="panel card"><h3>' + icon('ladder') + 'Carry gaps</h3>' +
       '<p class="small muted">' +
       (r.set.ladderIsYours
         ? 'These are <b>your</b> clubs, modelled from your speed. '
@@ -1043,7 +1109,7 @@
         '<td class="num">' + (s.lieAdj === 0 ? '&mdash;' : (s.lieAdj > 0 ? '+' : '−') + Math.abs(s.lieAdj) + '&deg;') + '</td>' +
         '<td class="num"><b>' + s.lie.toFixed(1) + '&deg;</b></td></tr>';
     }).join('');
-    var buildCard = ('<div class="panel card"><h3><span class="ico">&#9776;</span>Build sheet &mdash; hand this to your fitter</h3>' +
+    var buildCard = ('<div class="panel card"><h3>' + icon('sheet') + 'Build sheet &mdash; hand this to your fitter</h3>' +
       '<p class="small muted">Length adjustments come from height; lie adjustments from the colour code. Woods and ' +
       'hybrids take half the iron length adjustment, because their longer shafts are less sensitive to it and ' +
       'over-lengthening them costs you the middle of the face.</p>' +
@@ -1144,7 +1210,7 @@
   function renderAudit(a) {
     var o = [];
     o.push('<div class="panel card" style="margin-top:18px" id="auditReport">');
-    o.push('<h3><span class="ico">&#10003;</span>What to change, and in what order</h3>');
+    o.push('<h3>' + icon('fix') + 'What to change, and in what order</h3>');
     o.push('<p class="audit-headline">' + esc(a.headline) + '</p>');
 
     if (a.plan) {
@@ -1531,6 +1597,7 @@
      does not, and both render the chart and the reference tables. */
   initReferenceTables();
   if ($('#chartFull')) renderChart($('#chartFull'), null, null, true);
+  if ($('#heroChart')) renderChart($('#heroChart'), null, null, false);
   if ($('#fitForm')) initWizard();
   initAudit();
 

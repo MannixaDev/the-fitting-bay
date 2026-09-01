@@ -379,6 +379,28 @@ The pre-commit hook runs the suite and refuses the commit if it fails. Enable it
 git config core.hooksPath .githooks
 ```
 
+## Page structure
+
+The results page used to be sixteen sibling panels, all the same border, all the same heading, so
+nothing looked more important than anything else. It is now three tiers:
+
+1. **The verdict** — the only panel with a shadow, wearing the player's own interpolated colour
+   along its top edge via `--fit-colour`.
+2. **What to do about it** — the caveats, the confidence report, the costed audit and the lie
+   bench. Flat panels, so the verdict keeps the emphasis.
+3. **The detail** — everything else, collapsed into four `details.result-group` rows that read as
+   an index rather than as more page.
+
+`tierHead(label, note)` draws the rules between them.
+
+Icons survive only on the structural blocks, drawn from one `ICONS` vocabulary. The eight spec
+cards (`card()`, class `.panel .card .spec`) dropped theirs — "Driver" was never ambiguous, and
+eight more decorated squares only added noise to a long page.
+
+Colour is load-bearing and single-meaning: a plain `.note` is neutral small print, `.note.good` is
+a result in your favour, `.note.warn` is a caution. Green had been doing the first two jobs at
+once.
+
 ## Modifying it
 
 `js/fitting-engine.js` is deliberately free of DOM code, so you can `require()` it in Node for

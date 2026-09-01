@@ -1408,6 +1408,65 @@
     return 'ok';
   }
 
+  /* Findings of the same kind are one finding. Order is preserved, and a run
+     is only merged when it is genuinely the same story with the same fix. */
+  function gapIssueGroups(issues) {
+    var groups = [], byType = {};
+    issues.forEach(function (g) {
+      if (byType[g.type]) { byType[g.type].push(g); return; }
+      byType[g.type] = [g];
+      groups.push(byType[g.type]);
+    });
+    return groups;
+  }
+
+  function gapFinding(grp) {
+    var g = grp[0], n = grp.length, isHole = g.type === 'hole';
+
+    if (n === 1) {
+      return {
+        area: 'Gapping: ' + g.clubs[0] + ' → ' + g.clubs[1],
+        severity: g.severity,
+        costLo: isHole ? 100 : 0, costHi: isHole ? 220 : 0,
+        costLabel: isHole ? CUR + '100–' + CUR + '220 for the missing club' : 'Free — drop or re-loft a club',
+        quickWin: !isHole,
+        current: g.gap + ' yards apart', recommended: '10–20 yards apart',
+        detail: g.text,
+        fix: isHole
+          ? 'Add a club to cover the window, or re-loft what you have to spread the ladder.'
+          : 'Take one of the two out of the bag. That slot is worth more as a wedge or a hybrid you do not currently carry.'
+      };
+    }
+
+    var worst = grp.reduce(function (a, b) {
+      return SEV_RANK[b.severity] > SEV_RANK[a.severity] ? b : a;
+    });
+    var pairs = grp.map(function (x) {
+      return x.clubs[0] + ' → ' + x.clubs[1] + ' (' + x.gap + ' yd)';
+    });
+    var label = isHole ? n + ' holes in your ladder'
+      : g.type === 'inverted' ? n + ' clubs out of order'
+      : n + ' pairs too close together';
+
+    return {
+      area: 'Gapping: ' + label,
+      severity: worst.severity,
+      /* Adjacent holes often share a solution — one club dropped into the
+         middle can close two windows — so the low end of the range stays
+         one club rather than n of them. */
+      costLo: isHole ? 100 : 0, costHi: isHole ? 220 * n : 0,
+      costLabel: isHole
+        ? CUR + '100–' + CUR + (220 * n) + ', depending on how many clubs it takes'
+        : 'Free — drop or re-loft a club',
+      quickWin: !isHole,
+      current: pairs.join(', '), recommended: '10–20 yards apart',
+      detail: grp.map(function (x) { return x.text; }).join(' '),
+      fix: isHole
+        ? 'Work from the widest window first. One club in the right place often closes two of these at once, so re-check the ladder after each change rather than buying ' + n + ' clubs.'
+        : 'Take one club out of each pair. Those slots are worth more as wedges or hybrids you do not currently carry.'
+    };
+  }
+
   function reviewGapping(rows) {
     var issues = [], measured = 0;
     rows.forEach(function (r) { if (r.measured) measured++; });
@@ -1837,21 +1896,10 @@
     var gapping = null;
     if (cur.carries && cur.carries.length > 1) {
       gapping = reviewGapping(cur.carries);
-      gapping.issues.forEach(function (g) {
-        var isHole = g.type === 'hole';
-        add({
-          area: 'Gapping: ' + g.clubs[0] + ' → ' + g.clubs[1],
-          severity: g.severity,
-          costLo: isHole ? 100 : 0, costHi: isHole ? 220 : 0,
-          costLabel: isHole ? CUR + '100–' + CUR + '220 for the missing club' : 'Free — drop or re-loft a club',
-          quickWin: !isHole,
-          current: g.gap + ' yards apart', recommended: '10–20 yards apart',
-          detail: g.text,
-          fix: g.type === 'hole'
-            ? 'Add a club to cover the window, or re-loft what you have to spread the ladder.'
-            : 'Take one of the two out of the bag. That slot is worth more as a wedge or a hybrid you do not currently carry.'
-        });
-      });
+      /* Three separate "27-yard hole" findings say one thing three times and
+         push everything else down the list. Same problem, same fix, same
+         price: report it once and name every pair inside it. */
+      gapIssueGroups(gapping.issues).forEach(function (grp) { add(gapFinding(grp)); });
     }
 
     /* ---- ball -------------------------------------------------------------- */
