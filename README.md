@@ -386,6 +386,33 @@ The pre-commit hook runs the suite and refuses the commit if it fails. Enable it
 git config core.hooksPath .githooks
 ```
 
+## Type and palette
+
+**Archivo**, self-hosted in `fonts/`, one variable file per style (35KB roman, 39KB italic,
+latin subset, 400–700). No CDN and no build step — the files are in the repo and the page still
+opens from disk.
+
+It was chosen for its **figures**, not its headlines. Almost everything on this site is a number
+— `37"`, `63.0°`, `+1.3°`, `145 yd`, `#3EB8BF` — so unambiguous digits and real tabular
+figures matter more than a characterful lowercase. Verified rather than assumed: with
+`tabular-nums` on, all ten digits measure exactly the same width, and without it they take seven
+different widths, so the font genuinely ships both figure sets. Tabular is the default for the
+body, tables and controls; prose opts back out, where proportional figures read better
+mid-sentence.
+
+**The palette is the fitting scale.** The eleven Bay Scale codes are CSS variables
+(`--scale-rust` through `--scale-violet`), and a 3px gradient of all eleven sits inside the
+sticky header on every page — inside, so it does not scroll away, which makes it the one element
+present on every screen of the site. It is also the one palette nobody can copy without copying
+the scale underneath it.
+
+Two things fell out of writing it down. `--green` was already *exactly* Fairway, the LEVEL code;
+it had simply never been said. And `--brass` was an unrelated `#d9b168`, now Gold (`#EFBB50`,
+the F1 code), so both accents are derived rather than chosen.
+
+Colour semantics survive intact: the scale is for identity surfaces — rules, marks, section
+heads — while green, amber and red stay reserved for verdicts (`.note.good`, `.note.warn`).
+
 ## Page structure
 
 The results page used to be sixteen sibling panels, all the same border, all the same heading, so

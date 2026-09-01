@@ -1,7 +1,34 @@
 /* ==========================================================================
    The Fitting Bay — stylesheet
-   Dark clubhouse palette: charcoal ground, fairway green, brass accent.
+   ==========================================================================
+
+   TYPE. Archivo, self-hosted, one variable file per style. It is chosen for
+   its figures rather than its headlines, because almost everything on this
+   site is a number: 37", 63.0 degrees, +1.3, 145 yd, #3EB8BF. A grotesque
+   with unambiguous digits and real tabular figures matters more here than a
+   characterful lowercase.
+
+   Variable across 400-700, so every weight the site uses costs nothing extra
+   over the one download. 35KB roman, 39KB italic, latin subset. No CDN and no
+   build step: the files are in the repo and the page still opens from disk.
+
+   COLOUR. The palette is the fitting scale. See below.
    ========================================================================== */
+
+@font-face {
+  font-family: 'Archivo';
+  src: url('../fonts/archivo-latin.woff2') format('woff2');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Archivo';
+  src: url('../fonts/archivo-latin-italic.woff2') format('woff2');
+  font-weight: 400 700;
+  font-style: italic;
+  font-display: swap;
+}
 
 :root {
   --bg:            #0d1210;
@@ -13,9 +40,9 @@
   --ink:           #e8eeea;
   --ink-2:         #a8b6ae;
   --ink-3:         #74847b;
-  --green:         #34c07a;
+  --green:         #34c07a;   /* = Fairway, the LEVEL code */
   --green-deep:    #1f7d4d;
-  --brass:         #d9b168;
+  --brass:         #efbb50;   /* = Gold, the F1 code */
   --brass-deep:    #a8823f;
   --red:           #e35d4f;
   --amber:         #e0a63c;
@@ -23,9 +50,41 @@
   --radius-sm:     9px;
   --shadow:        0 18px 45px rgba(0, 0, 0, .45);
   --maxw:          1120px;
-  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --sans: 'Archivo', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  /* ---------- THE BAY SCALE ----------
+     The site palette IS the fitting scale. These are the eleven codes the
+     tool actually produces, so the colour on a section rule is the same
+     colour a player can come out as. It is the one palette nobody else can
+     copy without copying the scale underneath it.
+
+     Note --green was already exactly Fairway; it had simply never been said.
+     --brass is now Gold rather than an unrelated #d9b168, so both accents
+     are derived rather than chosen. */
+  --scale-rust:    #7A2E1F;   /* F5 */
+  --scale-ember:   #A84324;   /* F4 */
+  --scale-copper:  #C7622A;   /* F3 */
+  --scale-amber:   #E08A34;   /* F2 */
+  --scale-gold:    #EFBB50;   /* F1 */
+  --scale-fairway: #34C07A;   /* LEVEL */
+  --scale-teal:    #3FC0B4;   /* U1 */
+  --scale-sky:     #3AA5D9;   /* U2 */
+  --scale-cobalt:  #4F7FE0;   /* U3 */
+  --scale-indigo:  #7B62D9;   /* U4 */
+  --scale-violet:  #A85BC9;   /* U5 */
+
+  --spectrum: linear-gradient(90deg,
+    var(--scale-rust), var(--scale-ember), var(--scale-copper), var(--scale-amber),
+    var(--scale-gold), var(--scale-fairway), var(--scale-teal), var(--scale-sky),
+    var(--scale-cobalt), var(--scale-indigo), var(--scale-violet));
 }
+
+/* Numbers are the content here, so they line up by default rather than
+   wherever a table happens to ask for it. */
+body, input, select, button, table { font-variant-numeric: tabular-nums; }
+/* Prose is the exception: proportional figures read better mid-sentence. */
+p, li, .note, .why, .hint, .lede, .help { font-variant-numeric: normal; }
 
 * { box-sizing: border-box; }
 
@@ -315,13 +374,15 @@ summary .tag { font-size: .7rem; letter-spacing: .1em; text-transform: uppercase
   .site-header .wrap {
     height: auto; flex-wrap: wrap; gap: 0; padding-top: 11px; padding-bottom: 2px;
   }
+  /* Wrap rather than scroll. A four-item nav in Archivo overruns 390px, and
+     a link that has scrolled off the edge is a link nobody clicks — which is
+     the bug this whole block exists to fix. Two rows beats hidden. */
   .site-nav {
-    margin-left: 0; width: 100%; flex-wrap: nowrap; gap: 2px;
-    overflow-x: auto; scrollbar-width: none;
-    margin-top: 9px; padding-bottom: 8px;
+    margin-left: 0; width: 100%; flex-wrap: wrap; gap: 2px;
+    margin-top: 8px; padding-bottom: 8px;
   }
-  .site-nav::-webkit-scrollbar { display: none; }
-  .site-nav a { white-space: nowrap; padding: 6px 11px; font-size: .84rem; }
+  .site-nav a { white-space: nowrap; padding: 6px 10px; font-size: .82rem; }
+  .site-nav a:first-child { padding-left: 0; }
 }
 @media (max-width: 520px) {
   .step, .verdict-main, .card { padding: 20px; }
@@ -814,3 +875,37 @@ details.result-group > summary { padding: 14px 18px; font-size: .95rem; }
   .verdict::before { display: none; }
   .footer-nav { display: none !important; }
 }
+
+
+/* ==========================================================================
+   Identity
+   ========================================================================== */
+
+/* The scale, under the header on every page. Three pixels of the thing the
+   whole site is about, seen before you have read a word and paid off the
+   moment you reach the chart and recognise it.
+
+   It lives INSIDE the sticky header rather than above it, so it does not
+   scroll away the second you start reading. That makes it the one element
+   present on every screen of every page. */
+.spectrum-rule { height: 3px; background: var(--spectrum); }
+.site-header { border-bottom: 0; }
+
+/* The hero statistics step through the scale instead of repeating one green,
+   which quietly teaches the palette before it means anything. */
+.hero-stats div:nth-child(1) { border-left-color: var(--scale-copper); }
+.hero-stats div:nth-child(2) { border-left-color: var(--scale-fairway); }
+.hero-stats div:nth-child(3) { border-left-color: var(--scale-sky); }
+
+/* Archivo carries tighter than the system stack at display sizes, and the
+   voice on this site is not a friendly one. Let the headings be severe. */
+h1 { font-weight: 700; letter-spacing: -.042em; }
+h2 { font-weight: 700; letter-spacing: -.032em; }
+h3, h4 { font-weight: 650; }
+.eyebrow { letter-spacing: .18em; }
+
+/* Specs are instrument readings, not dashboard copy. */
+.spec-cell b, .audit-summary b, .hero-stats b, .bag-count b {
+  font-weight: 700; letter-spacing: -.028em;
+}
+
