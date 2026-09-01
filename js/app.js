@@ -1334,41 +1334,95 @@
      Everything downstream rests on wrist-to-floor, and a picture removes
      more error than another paragraph of instructions would.
      ================================================================== */
+  /* ---------------------------------------------------------------------
+     The wrist-to-floor diagram.
+
+     Proportions are load-bearing here, not decoration: the drawing is the
+     instruction. The old figure was five heads tall (a child), had one arm
+     swung out in front of it, and ended that arm in a dot — while the label
+     it pointed at said "where palm meets wrist", with no palm anywhere in
+     the picture.
+
+     This one is 7.5 heads, both arms hanging vertically at the sides as the
+     text actually asks for, and it has hands, so the crease has something to
+     be the top of. The measurement comes out at 47% of standing height,
+     against roughly 48.5% in life, so the picture is not quietly lying about
+     the number either.
+
+     No font-family: the text inherits the page's, so it follows the
+     typeface rather than pinning its own.
+     ------------------------------------------------------------------ */
   function wtfDiagram() {
+    var INK = '#a8b6ae', DIM = '#74847b', LINE = '#2a3630';
+    var GREEN = '#34c07a', GOLD = '#efbb50';
+    var FLOOR = 222, WRIST = 130, HAND = 150;
+
+    /* Front view, so both shoes face the reader. Wider than the leg, which is
+       what stops them reading as pegs. */
+    function shoe(x) {
+      return '<path d="M' + (x - 9) + ' 209 h18 q3.5 0 3.5 4 v6 q0 3 -3.5 3 h-18 ' +
+        'q-3.5 0 -3.5 -3 v-6 q0 -4 3.5 -4 z"/>';
+    }
+
+    /* A palm that narrows into fingers. The label says "where palm meets
+       wrist", so there has to be a palm for the crease to be the top of. */
+    function hand(x) {
+      return '<path d="M' + (x - 5.5) + ' ' + WRIST + ' h11 v14 q0 6 -5.5 6 q-5.5 0 -5.5 -6 z"/>';
+    }
+
     return [
-      '<svg viewBox="0 0 300 250" xmlns="http://www.w3.org/2000/svg" class="diagram" role="img"',
-      ' aria-label="Diagram: measure from the crease of the wrist straight down to the floor, standing upright with arms relaxed.">',
-      // ground
-      '<line x1="30" y1="216" x2="278" y2="216" stroke="#2a3630" stroke-width="2"/>',
-      '<path d="M30 222 L278 222" stroke="#1f7d4d" stroke-width="1" stroke-dasharray="3 5" opacity=".7"/>',
-      // figure
-      '<g stroke="#a8b6ae" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round">',
-      '<circle cx="104" cy="40" r="17"/>',
-      '<path d="M104 57 V143"/>',                    // torso
-      '<path d="M104 143 L90 208 M104 143 L120 208"/>', // legs
-      '<path d="M82 208 h18 M112 208 h18"/>',          // feet
-      '<path d="M104 72 C 128 88, 134 112, 132 138"/>', // arm hanging naturally
+      '<svg viewBox="0 0 320 262" xmlns="http://www.w3.org/2000/svg" class="diagram" role="img"',
+      ' aria-label="Diagram: stand tall in your golf shoes with your arms hanging at your sides, and measure from the crease where your palm meets your wrist straight down to the floor.">',
+
+      /* ---- ground ---- */
+      '<line x1="22" y1="' + FLOOR + '" x2="300" y2="' + FLOOR + '" stroke="' + LINE + '" stroke-width="2"/>',
+      '<line x1="22" y1="' + (FLOOR + 6) + '" x2="300" y2="' + (FLOOR + 6) + '" stroke="' + GREEN +
+        '" stroke-width="1" stroke-dasharray="3 5" opacity=".45"/>',
+
+      /* ---- the figure ------------------------------------------------
+         No shoulder or hip cross-bar. Drawn as bars they closed against the
+         arms into a rectangle, and the whole thing read as a crate on legs.
+         The arms angle outward instead, so there is daylight between arm and
+         torso, and the stance is wide enough to show two legs. ---- */
+      '<g stroke="' + INK + '" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round">',
+      '<ellipse cx="106" cy="38" rx="10.5" ry="13"/>',
+      '<path d="M106 51 V126"/>',                               /* neck and spine */
+      '<path d="M88 68 H124"/>',                                /* collar */
+      '<path d="M88 68 Q82 99 80 ' + WRIST + '"/>',             /* far arm */
+      '<path d="M124 68 Q130 99 132 ' + WRIST + '"/>',          /* near arm */
+      '<path d="M106 126 L93 176 L90 209"/>',                   /* far leg */
+      '<path d="M106 126 L119 176 L122 209"/>',                 /* near leg */
       '</g>',
-      // wrist marker
-      '<circle cx="132" cy="140" r="5.5" fill="#34c07a"/>',
-      '<circle cx="132" cy="140" r="10" fill="none" stroke="#34c07a" stroke-width="1.2" opacity=".55"/>',
-      '<line x1="140" y1="134" x2="176" y2="118" stroke="#34c07a" stroke-width="1.2"/>',
-      '<text x="180" y="115" font-size="11" font-weight="700" fill="#34c07a" font-family="ui-sans-serif,system-ui,sans-serif">wrist crease</text>',
-      '<text x="180" y="129" font-size="9.5" fill="#74847b" font-family="ui-sans-serif,system-ui,sans-serif">where palm meets wrist</text>',
-      // dimension line
-      '<g stroke="#d9b168" stroke-width="1.6">',
-      '<line x1="212" y1="140" x2="212" y2="216"/>',
-      '<path d="M207 145 L212 138 L217 145" fill="none"/>',
-      '<path d="M207 211 L212 218 L217 211" fill="none"/>',
-      '<line x1="132" y1="140" x2="218" y2="140" stroke-dasharray="3 4" stroke-width="1" opacity=".6"/>',
+
+      '<g fill="' + INK + '">' + shoe(90) + shoe(122) + hand(80) + hand(132) + '</g>',
+      /* the knuckle line, so the palm reads as a palm and not a mitten */
+      '<path d="M128.5 140 H135.5" stroke="' + LINE + '" stroke-width="1.2" opacity=".55"/>',
+      '<path d="M76.5 140 H83.5" stroke="' + LINE + '" stroke-width="1.2" opacity=".55"/>',
+
+      /* ---- the crease itself ---- */
+      '<line x1="125.5" y1="' + WRIST + '" x2="138.5" y2="' + WRIST + '" stroke="' + GREEN +
+        '" stroke-width="3" stroke-linecap="round"/>',
+      '<circle cx="132" cy="' + WRIST + '" r="11" fill="none" stroke="' + GREEN + '" stroke-width="1.1" opacity=".45"/>',
+      '<path d="M142 124 L170 106" stroke="' + GREEN + '" stroke-width="1.1"/>',
+      '<text x="172" y="103" font-size="11.5" font-weight="700" fill="' + GREEN + '">wrist crease</text>',
+      '<text x="172" y="117" font-size="9.5" fill="' + DIM + '">where palm meets wrist</text>',
+
+      /* ---- the measurement ---- */
+      '<line x1="144" y1="' + WRIST + '" x2="200" y2="' + WRIST + '" stroke="' + GOLD +
+        '" stroke-width="1" stroke-dasharray="3 4" opacity=".6"/>',
+      '<g stroke="' + GOLD + '" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round">',
+      '<line x1="200" y1="' + WRIST + '" x2="200" y2="' + FLOOR + '"/>',
+      '<path d="M195 137 L200 129 L205 137"/>',
+      '<path d="M195 ' + (FLOOR - 7) + ' L200 ' + (FLOOR + 1) + ' L205 ' + (FLOOR - 7) + '"/>',
       '</g>',
-      '<text x="222" y="182" font-size="11.5" font-weight="700" fill="#d9b168" font-family="ui-sans-serif,system-ui,sans-serif">wrist</text>',
-      '<text x="222" y="196" font-size="11.5" font-weight="700" fill="#d9b168" font-family="ui-sans-serif,system-ui,sans-serif">to floor</text>',
-      // posture cue
-      '<text x="30" y="30" font-size="10.5" fill="#74847b" font-family="ui-sans-serif,system-ui,sans-serif">Stand tall,</text>',
-      '<text x="30" y="44" font-size="10.5" fill="#74847b" font-family="ui-sans-serif,system-ui,sans-serif">look ahead,</text>',
-      '<text x="30" y="58" font-size="10.5" fill="#74847b" font-family="ui-sans-serif,system-ui,sans-serif">arms relaxed.</text>',
-      '<text x="30" y="240" font-size="10" fill="#74847b" font-family="ui-sans-serif,system-ui,sans-serif">In the shoes you play in.</text>',
+      '<text x="209" y="172" font-size="12" font-weight="700" fill="' + GOLD + '">wrist</text>',
+      '<text x="209" y="187" font-size="12" font-weight="700" fill="' + GOLD + '">to floor</text>',
+
+      /* ---- the bits people get wrong before they start ---- */
+      '<text x="22" y="30" font-size="10.5" fill="' + DIM + '">Stand tall,</text>',
+      '<text x="22" y="44" font-size="10.5" fill="' + DIM + '">look ahead,</text>',
+      '<text x="22" y="58" font-size="10.5" fill="' + DIM + '">arms relaxed.</text>',
+      '<text x="22" y="246" font-size="10" fill="' + DIM + '">In the shoes you play in.</text>',
       '</svg>'
     ].join('');
   }
