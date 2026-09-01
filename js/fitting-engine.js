@@ -385,14 +385,59 @@
       source = 'estimated from age, gender and skill level (no speed supplied)';
       confidence = 'low';
     }
+    /* Both carries used to be taken at face value whatever the source was,
+       so a player could be handed an R-flex derived from a 222-yard driver
+       sitting directly above a carry table headed "Driver 250". The number
+       we did not believe was still on the page next to the advice.
+
+       Each entered carry is now checked against what the chosen source
+       implies. Off by more than a tenth and the model wins — the source
+       decision is already made and documented on the form — but the
+       disagreement is recorded so it can be said out loud rather than
+       averaged over. Whichever carry IS the source models back to itself
+       exactly, so it can never conflict with itself. */
+    var ironModel = Math.round(ironSS * eff);
+    var driverModel = Math.round(driverSS * se.driverYdsPerMph);
+    var conflict = null;
+
+    function reconcile(entered, model, club) {
+      if (!isNum(entered) || !model) return model;
+      if (Math.abs(entered - model) / model < 0.10) return entered;
+      /* Keep the worse disagreement if somehow both are off. */
+      if (!conflict || Math.abs(entered - model) > Math.abs(conflict.entered - conflict.implied)) {
+        conflict = { club: club, entered: entered, implied: model, source: source };
+      }
+      return model;
+    }
+
+    var iron7Carry = reconcile(input.ironCarry, ironModel, '7-iron');
+    var driverCarry = reconcile(input.driverCarry, driverModel, 'driver');
+
     return {
       driver: round1(driverSS),
       iron7: round1(ironSS),
-      iron7Carry: isNum(input.ironCarry) ? input.ironCarry : Math.round(ironSS * eff),
-      driverCarry: isNum(input.driverCarry) ? input.driverCarry : Math.round(driverSS * se.driverYdsPerMph),
+      iron7Carry: iron7Carry,
+      driverCarry: driverCarry,
       source: source,
       confidence: confidence,
-      efficiency: eff
+      efficiency: eff,
+      carryConflict: conflict
+    };
+  }
+
+  /* What the number we did NOT use would have meant, in the terms that
+     actually change: speed, the other club's carry, and flex. */
+  function conflictDetail(input, c) {
+    var se = skillEff(input.skill);
+    var altDriverSS = c.club === 'driver'
+      ? c.entered / se.driverYdsPerMph
+      : (c.entered / se.ironEff) / 0.80;
+    return {
+      altDriverSpeed: round1(altDriverSS),
+      altOtherCarry: c.club === 'driver'
+        ? Math.round(altDriverSS * 0.80 * se.ironEff)
+        : Math.round(altDriverSS * se.driverYdsPerMph),
+      altFlex: driverFlexFromSpeed(altDriverSS)
     };
   }
 
@@ -1390,7 +1435,28 @@
        band-position flags is ever allowed to fire. */
     if (lie.borderline && lie.neighbour && !sensitivity.onEdge) flags.push({ level: 'info', text: 'You sit close to the edge of your band on the Bay Scale. ' + lie.neighbour.code + ' (' + lie.neighbour.label + ') is a legitimate alternative, and a small measuring error would put you there. Have both checked on a lie board.' });
     if (speeds.confidence === 'low') flags.push({ level: 'warn', text: 'You did not supply a swing speed or a carry distance, so everything speed-driven — flex, shaft weight, driver loft, set makeup, ball — is an educated guess from your age, gender and skill level. Fifteen minutes on a launch monitor would move these numbers more than any other input you could give this tool.' });
-    if (speeds.confidence === 'medium') flags.push({ level: 'info', text: 'Speed was derived from carry distance, which blends clubhead speed with strike quality. If you strike it poorly for your level, this tool will under-read your speed and under-flex your shaft.' });
+    /* A contradiction between the two distances is worth more than the
+       generic caveat about carry distance, and it has a specific fix, so it
+       replaces it rather than stacking on top. */
+    if (speeds.carryConflict) {
+      var cc = speeds.carryConflict;
+      var alt = conflictDetail(input, cc);
+      var other = cc.club === 'driver' ? '7-iron' : 'driver';
+      var flexLine = alt.altFlex === shafts.driverFlex ? ''
+        : ' It also moves your shaft: we have you at ' + shafts.driverFlex + ', and the other number would put you at ' + alt.altFlex + '.';
+      flags.push({
+        level: 'warn',
+        text: 'Your two distances do not describe the same golfer. You told us your ' + cc.club + ' carries ' +
+          cc.entered + ' yards, but your ' + other + ' implies about ' + cc.implied + '. Someone who really carries a ' +
+          cc.club + ' ' + cc.entered + ' yards hits a ' + other + ' about ' + alt.altOtherCarry + '. We have used your ' +
+          other + ', because it is the steadier number, and the table below now shows ' + cc.implied +
+          ' rather than the figure you entered.' + flexLine +
+          ' The usual explanation is roll — ' + cc.entered + ' is a very ordinary total distance for a ' + cc.implied +
+          '-yard carry. If ' + cc.entered + ' really is carry, the fix is to go back and give us a measured clubhead speed instead, because that settles it outright.'
+      });
+    } else if (speeds.confidence === 'medium') {
+      flags.push({ level: 'info', text: 'Speed was derived from carry distance, which blends clubhead speed with strike quality. If you strike it poorly for your level, this tool will under-read your speed and under-flex your shaft.' });
+    }
     if (isNum(input.age) && input.age >= 60 && shafts.material === 'Steel') flags.push({ level: 'info', text: 'You are 60 or over and the speed numbers still point to steel. That is fine — but test a premium graphite iron shaft anyway. A lot of players in that bracket gain speed and lose nothing in dispersion.' });
     if (input.wtfAssumed) flags.push({ level: 'warn', text: 'You did not give us a wrist-to-floor measurement, so we assumed the average arm length for someone ' +
       U.fmtHeight(heightIn) + ' tall — about ' + U.fmtIn(wtfIn, 1) + '. Everything else on this page stands, but the lie angle is the average answer rather than yours, and it is the one spec that most often differs. It takes a minute with a tape measure and someone to read it.' });

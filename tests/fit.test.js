@@ -353,6 +353,67 @@ module.exports = function () {
     });
   });
 
+  /* A real fit arrived with a 145-yard 7-iron and a 250-yard driver carry.
+     Those describe two different golfers — R flex against X — and the tool
+     picked one, said nothing, then printed the other in the carry table. */
+  suite('Two distances that disagree', () => {
+    const both = (ic, dc) => fit({ heightIn: 70, wtfIn: 34, skill: 'mid', ironCarry: ic, driverCarry: dc });
+
+    test('a contradiction is detected, not averaged over', () => {
+      const s = both(145, 250).speeds;
+      assert(s.carryConflict, 'should flag a conflict');
+      equal(s.carryConflict.club, 'driver');
+      equal(s.carryConflict.entered, 250);
+      assert(s.carryConflict.implied < 240, 'implied ' + s.carryConflict.implied);
+    });
+
+    test('the number we did not believe stops being displayed', () => {
+      const r = both(145, 250);
+      equal(r.speeds.driverCarry, r.speeds.carryConflict.implied);
+      assert(r.speeds.driverCarry !== 250, 'must not still show 250');
+      /* and the ladder is built from the coherent number */
+      const driver = r.set.carries.find((c) => c.club === 'Driver');
+      equal(driver.carry, r.speeds.driverCarry);
+    });
+
+    test('the flag names both numbers and what each one means', () => {
+      const f = both(145, 250).flags.find((x) => /do not describe the same golfer/.test(x.text));
+      assert(f, 'should raise the flag');
+      equal(f.level, 'warn');
+      assert(/250/.test(f.text) && /222/.test(f.text), f.text);
+      assert(/roll/.test(f.text), 'should offer the likely explanation');
+    });
+
+    test('the generic carry caveat gives way to the specific one', () => {
+      const f = both(145, 250).flags.filter((x) => /blends clubhead speed with strike quality/.test(x.text));
+      equal(f.length, 0);
+      /* but it is still there when the two agree */
+      const ok = both(145, 222).flags.filter((x) => /blends clubhead speed with strike quality/.test(x.text));
+      equal(ok.length, 1);
+    });
+
+    test('numbers that agree are left exactly as entered', () => {
+      const s = both(145, 222).speeds;
+      equal(s.carryConflict, null);
+      equal(s.iron7Carry, 145);
+      equal(s.driverCarry, 222);
+    });
+
+    test('one distance on its own is never in conflict with itself', () => {
+      [{ ironCarry: 145 }, { driverCarry: 250 }].forEach((o) => {
+        const s = fit(Object.assign({ heightIn: 70, wtfIn: 34, skill: 'mid' }, o)).speeds;
+        equal(s.carryConflict, null);
+      });
+    });
+
+    test('a measured clubhead speed settles it', () => {
+      const r = fit({ heightIn: 70, wtfIn: 34, skill: 'mid', driverSpeed: 96, ironCarry: 145, driverCarry: 250 });
+      equal(r.speeds.source, 'measured driver clubhead speed');
+      assert(r.speeds.carryConflict, 'the 250 still disagrees with a measured 96 mph');
+      assert(r.speeds.driverCarry < 240, r.speeds.driverCarry);
+    });
+  });
+
   suite('Sensitivity and measurement sanity', () => {
     test('a mid-band measurement is reported as robust', () => {
       const r = fit({ wtfIn: G.levelCentre(70) });
