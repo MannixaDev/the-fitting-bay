@@ -539,13 +539,13 @@
       if (i === 0) {
         var h = readHeightInches();
         if (!h) return 'Enter your height.';
-        if (h < 42 || h > 90) return 'That height looks wrong — check the units.';
+        if (h < 42 || h > 90) return 'That height looks wrong. Check the units.';
         /* Optional: without it we assume average proportions for the height
            and say so. Only validate what was actually typed. */
         var w = readWtfInches();
         if (w) {
-          if (w < 20 || w > 48) return 'That wrist-to-floor looks wrong — it should be roughly 27"–40" (69–102 cm). Leave it blank if you have not measured it.';
-          if (w > h * 0.75) return 'Your wrist-to-floor is larger than three quarters of your height, which is not physically possible. Check you have not swapped the two, or mixed inches and centimetres.';
+          if (w < 20 || w > 48) return 'That wrist-to-floor looks wrong. It should be roughly 27"–40" (69–102 cm). Leave it blank if you haven’t measured it.';
+          if (w > h * 0.75) return 'Your wrist-to-floor is larger than three quarters of your height, which isn’t physically possible. Check you haven’t swapped the two, or mixed inches and centimetres.';
         }
       }
       return null;
@@ -569,11 +569,11 @@
         $$('[data-unit="metric"]').forEach(function (el) { el.hidden = !m; });
         $('#wtfHint').innerHTML = (m ? 'Centimetres. ' : 'Inches. ') +
           'Stand straight on a hard floor, shoulders relaxed, arms hanging naturally at your sides. Measure from the ' +
-          '<b>crease of your wrist</b> straight down to the floor. Get someone else to do it — reaching down ' +
+          '<b>crease of your wrist</b> straight down to the floor. Get someone else to do it. Reaching down ' +
           'yourself changes the answer.';
         $('#handHint').innerHTML = (m ? 'Centimetres, ' : 'Inches, ') +
-          'from the crease of your wrist to the tip of your middle finger. Keep the tape flat against your palm — ' +
-          'do not curve it over the fingertip or around the heel pad.';
+          'from the crease of your wrist to the tip of your middle finger. Keep the tape flat against your palm. ' +
+          'don’t curve it over the fingertip or around the heel pad.';
         $('#wtf').placeholder = m ? 'e.g. 86' : 'e.g. 34';
         $('#handLength').placeholder = m ? 'e.g. 19' : 'e.g. 7.5';
         $('#wtfUnit').textContent = m ? 'cm' : 'in';
@@ -863,14 +863,14 @@
     var sens = r.sensitivity;
     if (sens && sens.fragile) {
       v.push(sens.onEdge
-        ? '<p class="sens-line">You are <b>exactly on the line</b> between <b>' + esc(r.lie.code.code) + '</b> and <b>' +
-          esc(sens.nearer.code) + '</b>. Neither is more correct than the other, so do not let anyone bend to this number ' +
+        ? '<p class="sens-line">You’re <b>exactly on the line</b> between <b>' + esc(r.lie.code.code) + '</b> and <b>' +
+          esc(sens.nearer.code) + '</b>. Neither is more correct than the other, so don’t let anyone bend to this number ' +
           'without a lie board.</p>'
-        : '<p class="sens-line">You are <b>' + esc(U.fmtIn(sens.margin, 2)) + '</b> from the edge of this band. ' +
+        : '<p class="sens-line">You’re <b>' + esc(U.fmtIn(sens.margin, 2)) + '</b> from the edge of this band. ' +
           'A measuring error that small would make you <b>' + esc(sens.nearer.code) + '</b> instead, so measure ' +
           'twice before anyone bends anything.</p>');
     } else if (sens) {
-      v.push('<p class="sens-line ok">Comfortably inside the band &mdash; your wrist-to-floor would have to be ' +
+      v.push('<p class="sens-line ok">Comfortably inside the band. Your wrist-to-floor would have to be ' +
         '<b>' + esc(U.fmtIn(sens.margin, 2)) + '</b> out before this stopped reading <b>' + esc(r.lie.code.code) + '</b>.</p>');
     }
 
@@ -911,8 +911,8 @@
           (a.fix ? '<i>' + esc(a.fix) + '</i>' : '') + '</div></div>';
       }).join('') + '</div>' +
       (cf.assumed.length
-        ? '<div class="note">You told us you were not sure about ' + esc(listWords(cf.assumed)) +
-          ', so we used the neutral answer in each case. That is fine &mdash; but the parts marked amber or red above ' +
+        ? '<div class="note">You told us you weren’t sure about ' + esc(listWords(cf.assumed)) +
+          ', so we used the neutral answer in each case. That’s fine, but the parts marked amber or red above ' +
           'are the ones that would change if you came back and filled them in.</div>'
         : '') +
       '</div>');
@@ -1011,7 +1011,7 @@
     /* ---- shaft shortlist ---- */
     var sp = r.shaftPicks;
     function shaftList(items) {
-      if (!items.length) return '<p class="small muted">Nothing in our shortlist covers that weight and flex combination &mdash; ask a fitter what they build in.</p>';
+      if (!items.length) return '<p class="small muted">Nothing in our shortlist covers that weight and flex combination. Ask a fitter what they build in.</p>';
       return '<ul class="shaft-list">' + items.map(function (x) {
         return '<li><b>' + esc(x.name) + '</b><span>' + esc(x.weight) + ' &middot; ' + esc(x.launch) + ' launch' +
           (x.onProfile ? ' <em>&mdash; matches your flight</em>' : '') + '</span></li>';
@@ -1027,7 +1027,7 @@
     /* ---- women's specifics ---- */
     if (r.womensNotes && r.womensNotes.length) {
       cards.push(card('Buying a women\u2019s set',
-        '<p class="small muted">Women\u2019s stock equipment is built to an average that fits far fewer people than it is sold to. These are the traps.</p>' +
+        '<p class="small muted">Women\u2019s stock equipment is built to an average that fits far fewer people than it’s sold to. These are the traps.</p>' +
         list(r.womensNotes)));
     }
 
@@ -1074,7 +1074,7 @@
       '<th class="num">Loft</th><th class="num">Est. carry</th></tr></thead><tbody>' + bagRows +
       '</tbody></table></div>' +
       bag.notes.map(function (n) { return '<div class="note">' + esc(n) + '</div>'; }).join('') +
-      '<div class="why">Lofts are typical rather than universal — brands vary by two or three degrees, ' +
+      '<div class="why">Lofts are typical rather than universal. Brands vary by two or three degrees, ' +
       'especially through the short irons. Match the <em>gaps</em>, not the numbers stamped on the sole.</div>' +
       '</div>';
 
@@ -1097,9 +1097,9 @@
       '<p class="small muted">' +
       (r.set.ladderIsYours
         ? 'These are <b>your</b> clubs, modelled from your speed. '
-        : 'A representative bag for your speed &mdash; tell us what you actually carry on the last question and this ' +
+        : 'A representative bag for your speed. Tell us what you actually carry on the last question and this ' +
           'table will describe your bag instead. ') +
-      '<b>If you know your real numbers, type them straight into the table</b> &mdash; the gaps recalculate as ' +
+      '<b>If you know your real numbers, type them straight into the table</b>. The gaps recalculate as ' +
       'you go, and measured yardages turn this from an illustration into an actual audit of your bag.</p>' +
       '<div class="table-scroll"><table><thead><tr><th>Club</th><th class="num">Carry (yd)</th>' +
       '<th class="num">Gap</th><th>Verdict</th></tr></thead><tbody id="carryRows"></tbody></table></div>' +
@@ -1273,7 +1273,7 @@
 
     if (a.unknowns.length) {
       o.push('<details class="audit-group"><summary><b>' + a.unknowns.length +
-        ' thing' + (a.unknowns.length > 1 ? 's' : '') + ' we could not check</b> ' +
+        ' thing' + (a.unknowns.length > 1 ? 's' : '') + ' we couldn’t check</b> ' +
         '<span class="tiny">&mdash; how to find each one out</span></summary><div>');
       a.unknowns.forEach(function (x) {
         o.push('<div class="finding sev-unknown"><div class="finding-head"><span class="finding-n unk">?</span>' +
@@ -1286,8 +1286,8 @@
     o.push('<div class="note">Prices are indicative UK shop rates for a set of irons and will vary. ' +
       'The ordering assumes you want the biggest improvement per pound spent, which is why a bend and a re-grip ' +
       'come before a reshaft even when the reshaft is the larger error. The ' + esc(a.currency) + esc(a.benchmark) +
-      ' replacement benchmark is a direct-to-consumer set priced <em>as configured</em> &mdash; custom length and lie ' +
-      'come with the build, but premium shafts and non-stock grips add to it, so the sticker price is not what you pay.</div>');
+      ' replacement benchmark is a direct-to-consumer set priced <em>as configured</em>: custom length and lie ' +
+      'come with the build, but premium shafts and non-stock grips add to it, so the sticker price isn’t what you pay.</div>');
     o.push('</div>');
     $('#auditResults').innerHTML = o.join('');
   }
@@ -1400,8 +1400,8 @@
     box.hidden = false;
     box.className = 'hint wtf-live';
     box.innerHTML = '<b>Worth a second look.</b> At ' + esc(U.fmtHeight(h)) + ' a wrist-to-floor of about ' +
-      esc(U.fmtIn(expected, 1)) + ' is typical, and you have entered ' + esc(U.fmtIn(w, 1)) + '. ' +
-      'Unusual proportions are real and this may be exactly right — but the most common cause is measuring ' +
+      esc(U.fmtIn(expected, 1)) + ' is typical, and you’ve entered ' + esc(U.fmtIn(w, 1)) + '. ' +
+      'Unusual proportions are real and this may be exactly right, but the most common cause is measuring ' +
       'from the wrong point. Open the guide above and check before you continue.';
   }
 

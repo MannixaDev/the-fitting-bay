@@ -81,7 +81,7 @@
       <h1>Find out what clubs<br>actually <span>fit you</span>.</h1>
       <p class="lede">Answer a few questions about your body, your swing and your ball flight. You get back a
         complete build sheet: lie angle, club length, shaft flex and weight, driver loft, wedge bounce, grip size,
-        putter specs and a set makeup with yardage gaps — plus, if you already own clubs, exactly which of them is wrong and what it costs to fix.</p>
+        putter specs and a set makeup with yardage gaps. If you already own clubs, you also get exactly which of them is wrong and what it costs to fix.</p>
       <div class="hero-stats">
         <div><b>2 min</b><span>To complete</span></div>
         <div><b>1 tape measure</b><span>All you need</span></div>
@@ -90,7 +90,7 @@
       </div>
       <figure class="hero-figure">
         <div class="panel"><div id="heroChart"></div></div>
-        <figcaption><b>The Bay Scale.</b> Every height has a reference wrist-to-floor &mdash; the arm length
+        <figcaption><b>The Bay Scale.</b> Every height has a reference wrist-to-floor: the arm length
           that plays a standard lie. How far off that line you sit, in inches, is how many degrees your
           lie angle is out. <a href="#chart">See it full size &rarr;</a></figcaption>
       </figure>
@@ -134,7 +134,7 @@
                     <label class="unit-input"><input type="number" id="heightFt" min="3" max="8" step="1" placeholder="e.g. 5" inputmode="numeric" aria-label="Height, feet"><span>ft</span></label>
                     <label class="unit-input"><input type="number" id="heightIn" min="0" max="11.5" step="0.5" placeholder="e.g. 10" inputmode="decimal" aria-label="Height, inches"><span>in</span></label>
                   </div>
-                  <p class="hint">Feet and inches. Measure in the shoes you play in — golf shoes add roughly ½".</p>
+                  <p class="hint">Feet and inches. Measure in the shoes you play in. Golf shoes add roughly ½".</p>
                 </div>
                 <div class="field" data-unit="metric" hidden>
                   <label for="heightCm">Height (cm)</label>
@@ -147,7 +147,7 @@
                   <label class="unit-input"><input type="number" id="wtf" step="0.1" placeholder="e.g. 34" inputmode="decimal"><span id="wtfUnit">in</span></label>
                   <p class="hint" id="wtfHint">Inches. Stand straight on a hard floor, shoulders relaxed, arms hanging
                     naturally at your sides. Measure from the <b>crease of your wrist</b> straight down to the floor.
-                    Get someone else to do it — reaching down yourself changes the answer.</p>
+                    Get someone else to do it. Reaching down yourself changes the answer.</p>
                 </div>
               </div>
               <p class="hint" id="wtfLive" hidden></p>
@@ -162,7 +162,7 @@
                       <li><b>Reaching down.</b> The moment you look at the tape you drop your shoulder and add an inch.
                         Stand still, look ahead, let someone else read it.</li>
                       <li><b>Measuring in socks.</b> Golf shoes add roughly ½", and you play in golf shoes.</li>
-                      <li><b>Measuring from the wrong point.</b> It is the <em>crease</em> where your palm meets your
+                      <li><b>Measuring from the wrong point.</b> It’s the <em>crease</em> where your palm meets your
                         wrist, not the knuckle, not the base of your thumb, and not the tip of your little finger.</li>
                     </ul>
                   </div>
@@ -171,7 +171,7 @@
 
               <div class="note"><b>No tape measure to hand? Carry on without it.</b> Height alone gives you a
                 length, a shaft, a driver loft and a full bag recommendation. Wrist-to-floor is what turns the
-                <em>lie angle</em> from an average into yours — so come back and add it when you can, because it is
+                <em>lie angle</em> from an average into yours. Come back and add it when you can, because it’s
                 the spec that most often differs and the cheapest one to get wrong.</div>
             </div>
 
@@ -183,7 +183,7 @@
                   <label for="handLength">Hand length</label>
                   <label class="unit-input"><input type="number" id="handLength" step="0.1" placeholder="e.g. 7.5" inputmode="decimal"><span id="handUnit">in</span></label>
                   <p class="hint" id="handHint">Inches, from the crease of your wrist to the tip of your middle finger.
-                    Keep the tape flat against your palm — do not curve it over the fingertip or around the heel pad.</p>
+                    Keep the tape flat against your palm. Don’t curve it over the fingertip or around the heel pad.</p>
                 </div>
                 <div class="field">
                   <label for="gloveSize">Glove size <span class="tiny">(cross-check)</span></label>
@@ -254,7 +254,7 @@
                 <div class="field">
                   <label for="handicap">Handicap index <span class="tiny">(optional)</span></label>
                   <input type="number" id="handicap" min="-5" max="54" step="0.1" placeholder="14.2" inputmode="decimal">
-                  <p class="hint">If you have one, it overrides the band above for the head-type recommendation.</p>
+                  <p class="hint">If you’ve one, it overrides the band above for the head-type recommendation.</p>
                 </div>
                 <div class="field">
                   <label for="pwLoft">Your pitching wedge loft <span class="tiny">(optional)</span></label>
@@ -272,7 +272,7 @@
                 <div class="field">
                   <label for="ironCarry">7-iron carry distance</label>
                   <input type="number" id="ironCarry" min="40" max="230" step="1" placeholder="150" inputmode="numeric">
-                  <p class="hint">Yards <b>in the air</b>, on a good strike — not your best ever, and not including roll.</p>
+                  <p class="hint">Yards <b>in the air</b>, on a good strike, not your best ever, and not including roll.</p>
                 </div>
                 <div class="field">
                   <label for="ironSpeed">7-iron clubhead speed</label>
@@ -295,7 +295,7 @@
             </div>
 
             <!-- STEP 6 -->
-            <div class="step" data-title="Your ball flight" data-help="Your miss pattern and trajectory drive driver loft, head bias, shaft profile, grip size and the dynamic lie check. If you are new to this and genuinely do not know, say so — we will tell you what we assumed and how much it matters.">
+            <div class="step" data-title="Your ball flight" data-help="Your miss pattern and trajectory drive driver loft, head bias, shaft profile, grip size and the dynamic lie check. If you’re new to this and genuinely don’t know, say so. We’ll tell you what we assumed and how much it matters.">
               <p class="help" data-role="help"></p>
               <div class="field-grid">
                 <div class="field field-wide">
@@ -303,7 +303,7 @@
                   <div class="opts">
                     <label class="opt"><input type="radio" name="shotShape" value="slice"><span>Slice<em>Starts <span class="dir-home">left</span>-ish, curves hard <span class="dir-away">right</span></em></span></label>
                     <label class="opt"><input type="radio" name="shotShape" value="fade"><span>Fade<em>Gentle <span class="dir-home">left</span>-to-<span class="dir-away">right</span></em></span></label>
-                    <label class="opt"><input type="radio" name="shotShape" value="unsure" checked><span>Not sure<em>We will assume no consistent curve</em></span></label><label class="opt"><input type="radio" name="shotShape" value="straight"><span>Straight<em>No consistent curve</em></span></label>
+                    <label class="opt"><input type="radio" name="shotShape" value="unsure" checked><span>Not sure<em>We’ll assume no consistent curve</em></span></label><label class="opt"><input type="radio" name="shotShape" value="straight"><span>Straight<em>No consistent curve</em></span></label>
                     <label class="opt"><input type="radio" name="shotShape" value="draw"><span>Draw<em>Gentle <span class="dir-away">right</span>-to-<span class="dir-home">left</span></em></span></label>
                     <label class="opt"><input type="radio" name="shotShape" value="hook"><span>Hook<em>Curves hard <span class="dir-home">left</span></em></span></label>
                     <label class="opt"><input type="radio" name="shotShape" value="pull"><span>Pull<em>Straight, but <span class="dir-home">left</span> of target</em></span></label>
@@ -314,7 +314,7 @@
                   <label>Your natural trajectory with irons</label>
                   <div class="opts">
                     <label class="opt"><input type="radio" name="trajectory" value="low"><span>Low<em>Struggle to get it up, shots run out</em></span></label>
-                    <label class="opt"><input type="radio" name="trajectory" value="unsure" checked><span>Not sure<em>We will assume a normal window</em></span></label><label class="opt"><input type="radio" name="trajectory" value="mid"><span>Mid<em>Normal window</em></span></label>
+                    <label class="opt"><input type="radio" name="trajectory" value="unsure" checked><span>Not sure<em>We’ll assume a normal window</em></span></label><label class="opt"><input type="radio" name="trajectory" value="mid"><span>Mid<em>Normal window</em></span></label>
                     <label class="opt"><input type="radio" name="trajectory" value="high"><span>High<em>Ballooning, loses distance in wind</em></span></label>
                   </div>
                 </div>
@@ -329,7 +329,7 @@
                   <label>Your divots with a mid iron</label>
                   <div class="opts">
                     <label class="opt"><input type="radio" name="attack" value="steep"><span>Deep divots<em>Steep angle of attack, you dig</em></span></label>
-                    <label class="opt"><input type="radio" name="attack" value="unsure" checked><span>Not sure<em>We will assume a neutral strike</em></span></label><label class="opt"><input type="radio" name="attack" value="neutral"><span>Shallow divots<em>Neutral — a bruise on the turf</em></span></label>
+                    <label class="opt"><input type="radio" name="attack" value="unsure" checked><span>Not sure<em>We’ll assume a neutral strike</em></span></label><label class="opt"><input type="radio" name="attack" value="neutral"><span>Shallow divots<em>Neutral — a bruise on the turf</em></span></label>
                     <label class="opt"><input type="radio" name="attack" value="shallow"><span>No divot<em>You sweep or pick it clean</em></span></label>
                   </div>
                 </div>
@@ -337,7 +337,7 @@
                   <label>Swing tempo</label>
                   <div class="opts">
                     <label class="opt"><input type="radio" name="tempo" value="smooth"><span>Smooth</span></label>
-                    <label class="opt"><input type="radio" name="tempo" value="unsure" checked><span>Not sure<em>We will assume a moderate transition</em></span></label><label class="opt"><input type="radio" name="tempo" value="moderate"><span>Moderate</span></label>
+                    <label class="opt"><input type="radio" name="tempo" value="unsure" checked><span>Not sure<em>We’ll assume a moderate transition</em></span></label><label class="opt"><input type="radio" name="tempo" value="moderate"><span>Moderate</span></label>
                     <label class="opt"><input type="radio" name="tempo" value="aggressive"><span>Aggressive</span></label>
                   </div>
                   <p class="hint">Think about your transition from the top, not how fast you walk.</p>
@@ -371,18 +371,18 @@
                   <label>Your putting stroke</label>
                   <div class="opts">
                     <label class="opt"><input type="radio" name="strokeArc" value="straight"><span>Straight back, straight through</span></label>
-                    <label class="opt"><input type="radio" name="strokeArc" value="unsure" checked><span>Not sure<em>We will assume a slight arc, which is what most golfers have</em></span></label><label class="opt"><input type="radio" name="strokeArc" value="slight"><span>Slight arc</span></label>
+                    <label class="opt"><input type="radio" name="strokeArc" value="unsure" checked><span>Not sure<em>We’ll assume a slight arc, which is what most golfers have</em></span></label><label class="opt"><input type="radio" name="strokeArc" value="slight"><span>Slight arc</span></label>
                     <label class="opt"><input type="radio" name="strokeArc" value="strong"><span>Strong arc</span></label>
                   </div>
-                  <p class="hint">If you have never checked: put a chalk line down and putt along it. Almost everyone
-                    who thinks they are straight-back-straight-through has a slight arc.</p>
+                  <p class="hint">If you’ve never checked: put a chalk line down and putt along it. Almost everyone
+                    who thinks they’re straight-back-straight-through has a slight arc.</p>
                 </div>
               </div>
             </div>
 
 
             <!-- STEP 9 -->
-            <div class="step" data-title="The clubs you play now" data-help="Last one, and it is optional. Tell us what is in your bag and we will tell you which clubs are actually wrong, what each one is costing you, and what it costs to put right — cheapest and most valuable first. It also means your yardage table shows your clubs rather than a generic set.">
+            <div class="step" data-title="The clubs you play now" data-help="Last one, and it’s optional. Tell us what’s in your bag and we’ll tell you which clubs are actually wrong, what each one is costing you, and what it costs to put right — cheapest and most valuable first. It also means your yardage table shows your clubs rather than a generic set.">
               <p class="help" data-role="help"></p>
 
               <div class="field field-wide" style="margin-bottom:20px">
@@ -396,8 +396,8 @@
               <div class="field field-wide" style="margin-bottom:20px">
                 <label for="curBudget">What can you spend right now? <span class="tiny">(optional)</span></label>
                 <input type="number" id="curBudget" min="0" max="5000" step="10" placeholder="150" inputmode="numeric">
-                <p class="hint">Applies either way. If you have clubs we will pick the combination of fixes that buys
-                  the most improvement for the money; if you are buying, it tells us how much bag to recommend.</p>
+                <p class="hint">Applies either way. If you’ve clubs we’ll pick the combination of fixes that buys
+                  the most improvement for the money; if you’re buying, it tells us how much bag to recommend.</p>
               </div>
 
               <div id="bagFields">
@@ -498,7 +498,7 @@
                   <div class="field">
                     <label for="curDriverLength">Length</label>
                     <input type="number" id="curDriverLength" min="40" max="48" step="0.25" placeholder="45.75" inputmode="decimal">
-                    <p class="hint">Inches. Leave blank if you have never measured it.</p>
+                    <p class="hint">Inches. Leave blank if you’ve never measured it.</p>
                   </div>
                   <div class="field">
                     <label>Adjustable hosel?</label>
@@ -535,7 +535,7 @@
             <p class="err" id="formErr" role="alert"></p>
 
             <div class="draft-notice" id="draftNotice" hidden>
-              <span>We put your answers back &mdash; they were saved in this browser, not sent anywhere.</span>
+              <span>We put your answers back. They were saved in this browser, not sent anywhere.</span>
               <button type="button" id="draftClearBtn">Start fresh</button>
             </div>
 
@@ -573,7 +573,7 @@
         </form>
         <div class="share-note no-print">
           <p class="tiny">Your answers are in this page's address, so you can bookmark it, come back to it, or
-            send it to your pro. Nothing is stored on a server &mdash; the link <em>is</em> the data.</p>
+            send it to your pro. Nothing is stored on a server. The link <em>is</em> the data.</p>
           <div id="shareFallback" hidden>
             <label class="tiny" for="shareUrl">Copy this link:</label>
             <input type="text" id="shareUrl" readonly>
@@ -592,15 +592,15 @@
       <div class="section-head">
         <p class="eyebrow">The chart everything starts from</p>
         <h2>The Bay Scale</h2>
-        <p class="lede">Our lie-angle scale. Every height has a reference wrist-to-floor — the arm length that plays
-          a standard lie — and your code is simply how far off that line you sit, one degree per inch. <b>U2</b> is two
+        <p class="lede">Our lie-angle scale. Every height has a reference wrist-to-floor: the arm length that plays
+          a standard lie. Your code is simply how far off that line you sit, one degree per inch. <b>U2</b> is two
           degrees upright, <b>F1</b> is one degree flat, <b>LEVEL</b> is standard, and the scale runs symmetrically
           from 5° flat to 5° upright.</p>
       </div>
       <div class="panel" style="padding:22px">
         <div id="chartFull"></div>
 <p class="tiny" style="margin-top:14px">Your measurement is plotted once you complete the fitting
-          above, with the distance from the line drawn out — that distance <em>is</em> your code.</p>
+          above, with the distance from the line drawn out. That distance <em>is</em> your code.</p>
       </div>
       <p style="margin-top:22px"><a href="fitting-information.html">Read the fitting information &rarr;</a>
         <span class="tiny">&nbsp; How to take the measurements, what every spec does, and the tables behind
@@ -626,8 +626,8 @@
   </div>
 </footer>
 
-<script src="js/fitting-engine.js?v=cdaa30cf"></script>
-<script src="js/app.js?v=db1606c9"></script>
+<script src="js/fitting-engine.js?v=0910dd94"></script>
+<script src="js/app.js?v=505f3321"></script>
 <script src="js/lie-bench.js?v=cfdf8049"></script>
 </body>
 </html>

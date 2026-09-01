@@ -214,7 +214,7 @@ module.exports = function () {
       assert(r.wtfAssumed, 'should be flagged as assumed');
       near(r.input.wtfIn, G.levelCentre(68), 0.001, 'should assume average proportions');
       equal(r.lie.code.code, 'LEVEL', 'average proportions means a standard lie');
-      assert(r.flags.some((f) => /did not give us a wrist-to-floor/.test(f.text)), 'should say so');
+      assert(r.flags.some((f) => /give us a wrist-to-floor/.test(f.text)), 'should say so');
     });
     test('a supplied measurement is never overridden', () => {
       const r = G.fit({ heightIn: 68, wtfIn: 36 });
@@ -377,7 +377,7 @@ module.exports = function () {
     });
 
     test('the flag names both numbers and what each one means', () => {
-      const f = both(145, 250).flags.find((x) => /do not describe the same golfer/.test(x.text));
+      const f = both(145, 250).flags.find((x) => /describe the same golfer/.test(x.text));
       assert(f, 'should raise the flag');
       equal(f.level, 'warn');
       assert(/250/.test(f.text) && /222/.test(f.text), f.text);
