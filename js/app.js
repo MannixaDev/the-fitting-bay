@@ -1060,13 +1060,10 @@
         '<td class="num">' + esc(carryOf(c)) + '</td></tr>';
     }).join('');
 
-    var bagBody = '<div class="panel card"><h3>' + icon('bag') +
-      (bag.starter ? 'Your first set' : 'The bag to build') + '</h3>' +
-      '<p class="small muted">' +
-      (bag.starter
-        ? bag.count + ' clubs chosen to cover the course without spending money on clubs you cannot yet use.'
-        : bag.count + ' clubs, gapped and inside the 14-club limit, built around your speed and your wedge lofts.') +
-      '</p>' +
+    /* Title and lead come from the engine, because both turn on whether the
+       player already owns clubs and the view should not be re-deciding it. */
+    var bagBody = '<div class="panel card"><h3>' + icon('bag') + esc(bag.title) + '</h3>' +
+      '<p class="small muted">' + esc(bag.lead) + '</p>' +
       '<div class="bag-count"><b>' + bag.count + '</b><span>club' + (bag.count > 1 ? 's' : '') +
       '</span><i>limit is 14</i></div>' +
       '<div class="table-scroll"><table><thead><tr><th></th><th>Club</th>' +
@@ -1078,9 +1075,7 @@
       '</div>';
 
     var buying = !(r.input.bag && r.input.bag.hasClubs);
-    out.push(group(bag.starter ? 'Your first set' : 'The bag to build',
-      bag.count + ' clubs with lofts and estimated carries',
-      bagBody, buying));
+    out.push(group(bag.title, bag.count + ' clubs with lofts and estimated carries', bagBody, buying));
 
     /* ---- set makeup ---- */
     var setBody = kv('Irons', esc(r.set.irons)) +

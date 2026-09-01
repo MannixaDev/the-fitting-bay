@@ -842,11 +842,14 @@
     var clubs = [];
     var notes = [];
     var starter = input.skill === 'beginner';
+    /* Whether this is a set to buy or a set to carry changes every word we
+       put around it. It used to change none of them, so a beginner who told
+       us they already owned clubs was still handed "Your first set". */
+    var owns = !!(input.bag && input.bag.hasClubs);
 
     if (starter) {
-      /* A beginner does not need fourteen clubs, and buying them is a good
-         way to spend money on clubs you cannot yet use. Nine covers the
-         course, and the gaps get filled as the swing arrives. */
+      /* A beginner does not need fourteen clubs. Ten covers the course, and
+         the gaps get filled as the swing arrives. */
       clubs.push({ slot: 'Driver', name: 'Driver', loft: driverLoft });
       clubs.push({ slot: 'Fairway', name: '5-wood', loft: 18 });
       clubs.push({ slot: 'Hybrid', name: '6-hybrid', loft: 28 });
@@ -857,12 +860,21 @@
       clubs.push({ slot: 'Wedge', name: '52° wedge', loft: 52 });
       clubs.push({ slot: 'Wedge', name: 'Sand wedge', loft: 56 });
       clubs.push({ slot: 'Putter', name: 'Putter', loft: 3 });
-      notes.push('Ten clubs, not fourteen. You are allowed fourteen, but a beginner who buys fourteen mostly buys four clubs they cannot yet hit. This covers every distance on the course with gaps you can manage, and it costs far less.');
+      notes.push(owns
+        ? 'Ten clubs, not fourteen. You are allowed fourteen, but a beginner carrying fourteen mostly carries four clubs they cannot yet hit. These ten cover every distance on the course with gaps you can manage. If you already own more than this, leave the extras at home rather than replacing them — that costs nothing and makes the bag easier to play.'
+        : 'Ten clubs, not fourteen. You are allowed fourteen, but a beginner who buys fourteen mostly buys four clubs they cannot yet hit. This covers every distance on the course with gaps you can manage, and it costs far less.');
       notes.push('The 52° matters more than it looks. Without it there is a thirty-yard hole between your pitching wedge and your sand wedge, right in the range you will score from most.');
-      notes.push('Fill the rest as your swing settles — a 5-hybrid next, then the 6-iron.');
+      notes.push(owns
+        ? 'Add the rest as your swing settles — a 5-hybrid next, then the 6-iron. Check the audit above before you buy either: one of them may already be in your bag.'
+        : 'Fill the rest as your swing settles — a 5-hybrid next, then the 6-iron.');
       notes.push('Plenty of beginners score better teeing off with the 5-wood than the driver. Carry the driver, but do not feel obliged to use it.');
       return {
-        clubs: clubs, count: clubs.length, target: 10, starter: true, notes: notes,
+        clubs: clubs, count: clubs.length, target: 10, starter: true, owns: owns,
+        title: owns ? 'The clubs worth carrying' : 'Your first set',
+        lead: owns
+          ? clubs.length + ' clubs that cover the course while you are learning. You may already own some of them.'
+          : clubs.length + ' clubs chosen to cover the course without spending money on clubs you cannot yet use.',
+        notes: notes,
         longs: ['5-wood', '6-hybrid'],
         ladder: { longestIron: 7, longs: ['5-wood', '6-hybrid'], pwLoft: pw, wedgeLofts: [52, 56], hasDriver: true }
       };
@@ -910,7 +922,10 @@
 
     var longNames = longs.map(function (L) { return L[0]; });
     return {
-      clubs: clubs, count: clubs.length, target: 14, starter: false, notes: notes,
+      clubs: clubs, count: clubs.length, target: 14, starter: false, owns: owns,
+      title: owns ? 'The bag to aim for' : 'The bag to build',
+      lead: clubs.length + ' clubs, gapped and inside the 14-club limit, built around your speed and your wedge lofts.',
+      notes: notes,
       longs: longNames,
       ladder: {
         longestIron: longestIron, longs: longNames, pwLoft: pw,

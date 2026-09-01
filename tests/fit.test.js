@@ -467,6 +467,50 @@ module.exports = function () {
     });
   });
 
+  /* "Your first set" was shown to anyone who answered "beginner", including
+     people who had just told us exactly what was already in their bag. */
+  suite('The bag knows whether you own clubs', () => {
+    const bagFor = (skill, hasClubs) => fit({
+      heightIn: 69, wtfIn: 35, skill, ironCarry: 140,
+      bag: hasClubs === null ? undefined : { hasClubs }
+    }).recommendedBag;
+
+    test('a beginner who owns clubs is not sold a first set', () => {
+      const b = bagFor('beginner', true);
+      equal(b.starter, true);
+      equal(b.owns, true);
+      assert(!/first set/i.test(b.title), b.title);
+      assert(!/first set/i.test(b.lead), b.lead);
+    });
+
+    test('a beginner starting from nothing still gets one', () => {
+      equal(bagFor('beginner', false).title, 'Your first set');
+      equal(bagFor('beginner', null).title, 'Your first set');
+    });
+
+    test('owning clubs changes the words, not the ten-club set', () => {
+      equal(bagFor('beginner', true).count, bagFor('beginner', false).count);
+    });
+
+    test('an owner is never told to spend money they need not spend', () => {
+      const buying = bagFor('beginner', false).notes.join(' ');
+      const owning = bagFor('beginner', true).notes.join(' ');
+      assert(/costs far less/.test(buying), 'the buying case still says it');
+      assert(!/costs far less/.test(owning), 'the owning case must not');
+      assert(/leave the extras at home/.test(owning), owning);
+    });
+
+    test('every skill level produces a title and a lead', () => {
+      ['beginner', 'high', 'mid', 'low', 'scratch'].forEach((skill) => {
+        [true, false].forEach((has) => {
+          const b = bagFor(skill, has);
+          assert(b.title && b.title.length > 3, skill + '/' + has + ' title');
+          assert(b.lead && b.lead.length > 10, skill + '/' + has + ' lead');
+        });
+      });
+    });
+  });
+
   suite('Gapping thresholds scale with the player', () => {
     /* A fixed 8-yard "too close" rule told a player whose 7-iron goes 105
        yards that their perfectly normal 6-yard iron gaps were a fault. */
