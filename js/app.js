@@ -675,9 +675,19 @@
        any height and you are the same green.
 
        FIELD is the one number to change if this wants to be louder or
-       quieter. 1 is fully saturated; below about 0.4 the axis labels start
-       winning and the point is lost. */
-    var FIELD = 0.62;
+       quieter. It was 0.62, on the reasoning that full strength would fight
+       the axis labels. That reasoning was wrong: the axis labels, the height
+       ticks and the code ruler are all drawn OUTSIDE the plot frame, on the
+       page background, so this opacity never touched them. Everything inside
+       the frame — the reference curve, the LEVEL label, the marker and its
+       annotation — is white on a dark halo precisely so it survives a
+       saturated field.
+
+       Dimming it also broke the promise the swatch makes. At 0.62 a fit named
+       Teal 63 (#3EB8BF, 50% lightness) was painted #2B7B79 at 33% — the right
+       hue, a third too dark — so people looked for their colour on the chart
+       and could not find it. At 1 the chart shows the colour it names. */
+    var FIELD = 1;
     var slice = big ? 0.2 : 0.3;
     var sample = big ? 1 : 1.5;
 

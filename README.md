@@ -85,8 +85,15 @@ from the nearest code (Rust, Ember, Copper, Amber, Gold, Fairway, Teal, Sky, Cob
 Violet) and the number runs 00–100 across the whole scale. Ink colour is chosen by relative
 luminance so the chip stays readable on any shade.
 
-`FIELD` in `renderChart` is the single constant controlling intensity — currently `0.62`. Below
-about `0.4` the axis labels start winning and the point is lost.
+`FIELD` in `renderChart` is the single constant controlling intensity. It is `1`, and it should
+stay there unless something changes: at `0.62` the field was drawn over the near-black page at 62%,
+so a fit named **`Teal 63`** (`#3EB8BF`, 50% lightness) was actually painted `#2B7B79` at 33% — the
+right hue, a third too dark. People looked for their colour on the chart and could not find it.
+
+Dimming it was never necessary. The axis labels, height ticks and code ruler are all drawn
+**outside** the plot frame, on the page background, so `FIELD` never touched them. Everything
+inside the frame — the reference curve, the LEVEL label, the marker and its annotation — is white
+over a dark halo (`paint-order="stroke"`) precisely so it survives a saturated field.
 
 **The reference is deliberately ours.** Pantone's library is licensed and actively enforced — Adobe
 removed it from Photoshop in 2022 over licensing. Escaping one proprietary system by adopting
