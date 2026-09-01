@@ -74,6 +74,60 @@ module.exports = function () {
     });
   });
 
+  /* Math.round sends every half toward +Infinity, so -1.5 came out F1 while
+     +1.5 came out U2 — every tie in a scale we publish as symmetric leaned
+     the same way, upright. Found by a real user landing on a boundary. */
+  suite('Bay Scale — the boundaries are symmetric', () => {
+    const codeAt = (h, delta) => {
+      const centre = G.staticLie(h, 34).levelCentre;
+      return G.staticLie(h, centre + delta).code.i;
+    };
+
+    test('a flat tie and an upright tie get the same size of bend', () => {
+      [60, 64, 67, 70, 73, 76, 79].forEach((h) => {
+        [0.5, 1.5, 2.5, 3.5].forEach((d) => {
+          equal(codeAt(h, d), -codeAt(h, -d), h + '" at +/-' + d);
+        });
+      });
+    });
+
+    test('a tie rounds to the smaller bend, not the larger', () => {
+      const c = G.staticLie(70, 34).levelCentre;
+      equal(G.staticLie(70, c + 0.5).code.code, 'LEVEL');
+      equal(G.staticLie(70, c - 0.5).code.code, 'LEVEL');
+      equal(G.staticLie(70, c + 1.5).code.code, 'U1');
+      equal(G.staticLie(70, c - 1.5).code.code, 'F1');
+    });
+
+    test('a hair either side of a tie still moves the answer', () => {
+      const c = G.staticLie(70, 34).levelCentre;
+      equal(G.staticLie(70, c + 1.51).code.code, 'U2');
+      equal(G.staticLie(70, c + 1.49).code.code, 'U1');
+    });
+
+    /* Telling someone a measuring error of 0" would move them is nonsense,
+       and it is what they got: "You are 0" from the edge of this band. A
+       measuring error that small would make you F2 instead." */
+    test('sitting exactly on a boundary is called that, once', () => {
+      const c = G.staticLie(70, 34).levelCentre;
+      const r = fit({ heightIn: 70, wtfIn: c + 1.5, skill: 'mid', ironCarry: 150 });
+      equal(r.sensitivity.margin, 0);
+      equal(r.sensitivity.onEdge, true);
+
+      const band = r.flags.filter((f) => /edge of your band|exactly on the line|close to the edge/.test(f.text));
+      equal(band.length, 1);
+      assert(/exactly on the line/.test(band[0].text), band[0].text);
+      assert(!/error that small/.test(band[0].text), 'must not blame an error of zero');
+    });
+
+    test('a real margin still reads as a margin', () => {
+      const c = G.staticLie(70, 34).levelCentre;
+      const r = fit({ heightIn: 70, wtfIn: c + 1.2, skill: 'mid', ironCarry: 150 });
+      equal(r.sensitivity.onEdge, false);
+      assert(r.sensitivity.margin > 0, 'margin ' + r.sensitivity.margin);
+    });
+  });
+
   suite('Lie-angle physics', () => {
     /* face change = arctan( sin(lie error) x tan(loft) ), derived from the
        rotation of the face normal about the target line and checked against a

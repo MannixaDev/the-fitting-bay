@@ -862,9 +862,13 @@
 
     var sens = r.sensitivity;
     if (sens && sens.fragile) {
-      v.push('<p class="sens-line">You are <b>' + esc(U.fmtIn(sens.margin, 2)) + '</b> from the edge of this band. ' +
-        'A measuring error that small would make you <b>' + esc(sens.nearer.code) + '</b> instead, so measure ' +
-        'twice before anyone bends anything.</p>');
+      v.push(sens.onEdge
+        ? '<p class="sens-line">You are <b>exactly on the line</b> between <b>' + esc(r.lie.code.code) + '</b> and <b>' +
+          esc(sens.nearer.code) + '</b>. Neither is more correct than the other, so do not let anyone bend to this number ' +
+          'without a lie board.</p>'
+        : '<p class="sens-line">You are <b>' + esc(U.fmtIn(sens.margin, 2)) + '</b> from the edge of this band. ' +
+          'A measuring error that small would make you <b>' + esc(sens.nearer.code) + '</b> instead, so measure ' +
+          'twice before anyone bends anything.</p>');
     } else if (sens) {
       v.push('<p class="sens-line ok">Comfortably inside the band &mdash; your wrist-to-floor would have to be ' +
         '<b>' + esc(U.fmtIn(sens.margin, 2)) + '</b> out before this stopped reading <b>' + esc(r.lie.code.code) + '</b>.</p>');

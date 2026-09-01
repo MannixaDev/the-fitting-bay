@@ -254,10 +254,22 @@
    * Returns the Bay Scale code plus the precise deviation, so a player can
    * see whether they sit in the middle of a band or on its edge.
    */
+  /* Math.round sends every half toward +Infinity, so -1.5 came out F1 while
+     +1.5 came out U2: every boundary in a scale we document as symmetric
+     tipped the same way, upright. With wrist-to-floor entered to a tenth of
+     an inch, roughly one player in ten lands exactly on one.
+
+     Round half toward zero instead. That is symmetric, and where the number
+     genuinely cannot decide it errs on the smaller bend — the one you can
+     undo, and the one our own copy tells people to prefer. */
+  function roundCode(d) {
+    return (d < 0 ? -1 : 1) * Math.ceil(Math.abs(d) - 0.5);
+  }
+
   function staticLie(heightIn, wtfIn) {
     var centre = levelCentre(heightIn);
     var delta = wtfIn - centre;                 // degrees, unrounded
-    var k = Math.round(delta);
+    var k = roundCode(delta);
     var clamped = Math.max(SCALE_MIN, Math.min(SCALE_MAX, k));
     var code = codeByIndex(clamped);
     var offset = delta - k;                     // −0.5 .. +0.5 within the band
@@ -1323,6 +1335,10 @@
     var sensitivity = {
       margin: margin,
       fragile: margin < 0.25,
+      /* Sitting exactly on a boundary is not "a small margin", it is no
+         margin, and it needs its own words: telling someone a measuring
+         error of 0" would move them is nonsense. */
+      onEdge: margin < 0.05,
       nearer: codeByIndex(lie.code.i + (lie.bandOffset >= 0 ? 1 : -1)),
       probes: [-0.5, 0.5].map(function (d) {
         var alt = staticLie(heightIn, wtfIn + d);
@@ -1370,7 +1386,9 @@
 
     var flags = [];
     if (lie.clampedOffScale) flags.push({ level: 'warn', text: 'Your height and wrist-to-floor combination lands beyond the ends of the Bay Scale, so the result has been clamped. Re-measure before spending money — wrist-to-floor is the most commonly mis-taken measurement in golf. If it is correct you are a genuine custom build: most cast iron heads only bend reliably 2–3° either way, so you need a head that supports more, and you need to see a fitter in person.' });
-    if (lie.borderline && lie.neighbour) flags.push({ level: 'info', text: 'You sit close to the edge of your band on the Bay Scale. ' + lie.neighbour.code + ' (' + lie.neighbour.label + ') is a legitimate alternative, and a small measuring error would put you there. Have both checked on a lie board.' });
+    /* onEdge says the same thing more precisely, so only one of the three
+       band-position flags is ever allowed to fire. */
+    if (lie.borderline && lie.neighbour && !sensitivity.onEdge) flags.push({ level: 'info', text: 'You sit close to the edge of your band on the Bay Scale. ' + lie.neighbour.code + ' (' + lie.neighbour.label + ') is a legitimate alternative, and a small measuring error would put you there. Have both checked on a lie board.' });
     if (speeds.confidence === 'low') flags.push({ level: 'warn', text: 'You did not supply a swing speed or a carry distance, so everything speed-driven — flex, shaft weight, driver loft, set makeup, ball — is an educated guess from your age, gender and skill level. Fifteen minutes on a launch monitor would move these numbers more than any other input you could give this tool.' });
     if (speeds.confidence === 'medium') flags.push({ level: 'info', text: 'Speed was derived from carry distance, which blends clubhead speed with strike quality. If you strike it poorly for your level, this tool will under-read your speed and under-flex your shaft.' });
     if (isNum(input.age) && input.age >= 60 && shafts.material === 'Steel') flags.push({ level: 'info', text: 'You are 60 or over and the speed numbers still point to steel. That is fine — but test a premium graphite iron shaft anyway. A lot of players in that bracket gain speed and lose nothing in dispersion.' });
@@ -1381,7 +1399,10 @@
       '. Unusual proportions are real and this may well be right — but the most common cause is measuring from the wrong point. Check it from the crease of the wrist, in your golf shoes, with someone else reading the tape, before you act on this.' });
     /* borderline is a stricter version of fragile, so only one of the two
        messages is ever worth showing. */
-    if (!input.wtfAssumed && sensitivity.fragile && !lie.borderline) flags.push({ level: 'info', text: 'You are only ' + U.fmtIn(sensitivity.margin, 2) +
+    if (!input.wtfAssumed && sensitivity.onEdge) flags.push({ level: 'info', text: 'Your measurement falls exactly on the line between ' +
+      lie.code.code + ' and ' + sensitivity.nearer.code + '. Both are defensible and the arithmetic cannot pick for you, so this is the one case where a lie board is not optional. We show ' +
+      lie.code.code + ' because the scale rounds toward the smaller bend when it is a genuine tie.' });
+    else if (!input.wtfAssumed && sensitivity.fragile && !lie.borderline) flags.push({ level: 'info', text: 'You are only ' + U.fmtIn(sensitivity.margin, 2) +
       ' from the edge of your band, so a measuring error that small would make you ' + sensitivity.nearer.code +
       ' instead. Re-measure once before anyone bends anything.' });
     flags.push({ level: 'info', text: 'This is a STATIC fit. It gets you to a very good starting point — which is exactly what a fitter uses it for — but only hitting balls off a lie board with a launch monitor produces a DYNAMIC fit, and the two can differ by a full step on the scale.' });
