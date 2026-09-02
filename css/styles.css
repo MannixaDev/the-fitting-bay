@@ -909,3 +909,18 @@ h3, h4 { font-weight: 650; }
   font-weight: 700; letter-spacing: -.028em;
 }
 
+
+
+/* ---------- why this exists ----------
+   Deliberately quiet. It is a note, not a pitch, and it earns its place by
+   naming the limitation before a reader finds it: a static fit works from
+   the body, which barely changes, rather than the swing, which will. */
+.why-note {
+  border-left: 3px solid var(--scale-gold);
+  padding: 4px 0 4px 22px;
+  max-width: 62ch;
+}
+.why-note p { color: var(--ink-2); font-size: .95rem; }
+.why-note p:last-child { margin-bottom: 0; }
+.why-note b { color: var(--ink); font-weight: 650; }
+@media (max-width: 520px) { .why-note { padding-left: 16px; } }
