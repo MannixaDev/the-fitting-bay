@@ -924,3 +924,11 @@ h3, h4 { font-weight: 650; }
 .why-note p:last-child { margin-bottom: 0; }
 .why-note b { color: var(--ink); font-weight: 650; }
 @media (max-width: 520px) { .why-note { padding-left: 16px; } }
+
+
+/* A carry outside 10-400 yards is a typo. The browser marks it :invalid from
+   the min/max already on the input; this is just making that visible. */
+.carry-input:invalid {
+  border-color: var(--red);
+  background: rgba(227, 93, 79, .07);
+}

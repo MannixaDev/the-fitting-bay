@@ -1563,19 +1563,60 @@
       : v === 'wide' ? 'wide' : 'good';
   }
 
+  /* ---------------------------------------------------------------------
+     The carry table.
+
+     This used to be one function that rebuilt the whole tbody with
+     innerHTML, on a 600ms debounce, every time a key was pressed. Rebuilding
+     the tbody destroys and recreates every <input> in it, so the box you were
+     typing into stopped existing 600ms after you typed a digit — and since a
+     pause of more than 600ms between digits is just ordinary typing, you lost
+     focus after almost every character.
+
+     So the rebuild and the recalculation are now separate things. The inputs
+     are the source of truth and are never re-created while you are in them;
+     only the derived cells are rewritten. Row order comes straight from the
+     bag and never re-sorts, so cell-for-cell updating is safe.
+     ------------------------------------------------------------------ */
+  var CARRY_MIN = 10, CARRY_MAX = 400;
+
   function renderCarryRows() {
+    $('#carryRows').innerHTML = currentCarries().map(function (r) {
+      return '<tr>' +
+        '<td class="carry-club"></td>' +
+        '<td class="num"><input type="number" class="carry-input" data-club="' + esc(r.club) +
+        '" value="' + r.carry + '" min="10" max="400" step="1" inputmode="numeric" aria-label="Carry for ' +
+        esc(r.club) + '"></td>' +
+        '<td class="num"></td><td></td></tr>';
+    }).join('');
+    updateCarryDerived();
+  }
+
+  /* Everything that follows from the numbers, without touching the numbers. */
+  function updateCarryDerived() {
+    var host = $('#carryRows');
+    if (!host) return;
     var rows = currentCarries();
     var review = G.reviewGapping(rows);
-    var html = rows.map(function (r, i, arr) {
-      var gap = i === 0 ? null : arr[i - 1].carry - r.carry;
-      return '<tr' + (r.measured ? ' class="measured"' : '') + '>' +
-        '<td>' + esc(r.club) + (r.measured ? ' <span class="pill">measured</span>' : '') + '</td>' +
-        '<td class="num"><input type="number" class="carry-input" data-club="' + esc(r.club) +
-        '" value="' + r.carry + '" min="10" max="400" step="1" inputmode="numeric" aria-label="Carry for ' + esc(r.club) + '"></td>' +
-        '<td class="num ' + gapClass(gap, r.carry) + '">' + (gap == null ? '&mdash;' : gap) + '</td>' +
-        '<td class="' + gapClass(gap, r.carry) + '">' + gapWord(gap, r.carry) + '</td></tr>';
-    }).join('');
-    $('#carryRows').innerHTML = html;
+    var trs = host.children;
+
+    rows.forEach(function (r, i) {
+      var tr = trs[i];
+      if (!tr) return;
+      var gap = i === 0 ? null : rows[i - 1].carry - r.carry;
+      var cls = gapClass(gap, r.carry);
+
+      if (tr.classList.contains('measured') !== !!r.measured) {
+        tr.classList.toggle('measured', !!r.measured);
+      }
+      var want = esc(r.club) + (r.measured ? ' <span class="pill">measured</span>' : '');
+      if (tr.cells[0].innerHTML !== want) tr.cells[0].innerHTML = want;
+
+      tr.cells[2].className = 'num ' + cls;
+      tr.cells[2].innerHTML = gap == null ? '&mdash;' : gap;
+      tr.cells[3].className = cls;
+      tr.cells[3].textContent = gapWord(gap, r.carry);
+    });
 
     var sum = $('#carrySummary');
     var measured = review.measuredCount;
@@ -1597,15 +1638,48 @@
       var club = el.getAttribute('data-club');
       var est = null;
       lastFit.set.carries.forEach(function (r) { if (r.club === club) est = r.carry; });
-      if (isFinite(v) && v > 0 && Math.round(v) !== est) carryOverrides[club] = Math.round(v);
-      else delete carryOverrides[club];
+      /* min and max on a number input are advisory: nothing stops someone
+         typing 172172, and the table happily reported a gap of -171,972.
+         Out-of-range values are ignored rather than rewritten, because
+         rewriting the box mid-word moves the caret, and half a number is
+         out of range on the way to a good one. The input goes :invalid on
+         its own, which is the feedback, and change fixes it on the way out. */
+      if (isFinite(v) && v >= CARRY_MIN && v <= CARRY_MAX && Math.round(v) !== est) {
+        carryOverrides[club] = Math.round(v);
+      } else {
+        delete carryOverrides[club];
+      }
+      /* Cheap and non-destructive, so it can run on every keystroke: the
+         gaps move as you type and the caret stays where you put it. */
+      updateCarryDerived();
+      /* The audit is the expensive part and nobody needs it mid-number. */
       clearTimeout(host._t);
       host._t = setTimeout(function () {
-        renderCarryRows();
         if (hasClubs()) runAudit();
         saveDraft();
       }, 600);
     });
+    /* Leaving the field is the moment to tidy up: the number is finished, so
+       correcting it cannot interrupt anyone.
+
+       An out-of-range carry is put BACK to the estimate rather than clamped
+       to the nearest bound. Clamping reads as agreement: 172172 would have
+       become a 400-yard 5-iron, which then outdrives the driver and earns a
+       finding about an inverted ladder. Nobody typing 172172 meant 400. */
+    host.addEventListener('change', function (e) {
+      var el = e.target;
+      if (!el.classList.contains('carry-input')) return;
+      var v = parseFloat(el.value);
+      if (isFinite(v) && v >= CARRY_MIN && v <= CARRY_MAX) return;
+      var club = el.getAttribute('data-club'), est = null;
+      lastFit.set.carries.forEach(function (r) { if (r.club === club) est = r.carry; });
+      delete carryOverrides[club];
+      if (est != null) el.value = est;
+      updateCarryDerived();
+      if (hasClubs()) runAudit();
+      saveDraft();
+    });
+
     $('#carryReset').addEventListener('click', function () {
       carryOverrides = {};
       renderCarryRows();
