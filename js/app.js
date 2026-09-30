@@ -870,6 +870,22 @@
     ['heelClear', 'Clearly toward the heel, or only the heel']
   ];
 
+  /* Realistically almost nobody tapes a clubface, so this is one collapsed
+     row rather than a panel, and it costs a line instead of a screen. It
+     opens itself for anyone who has actually done it, because at that point
+     it is the most important thing on the page: a measured lie beats every
+     other number here, including the headline. */
+  function boardGroup(r) {
+    var b = r.lieBoard;
+    var note = b
+      ? (b.specLo === 0 && b.specHi === 0
+          ? 'measured \u2014 standard lie arrives flat for you'
+          : 'measured \u2014 build to ' + (b.specLo > 0 ? '+' : '') + b.specLo +
+            '\u00b0 to ' + (b.specHi > 0 ? '+' : '') + b.specHi + '\u00b0')
+      : 'optional \u2014 the one measurement that beats this estimate';
+    return group('Check it on a lie board', note, boardBlockHtml(r), !!b);
+  }
+
   function boardBlockHtml(r) {
     var sel = function (id, label, opts, current) {
       return '<div class="field"><label for="' + id + '">' + esc(label) + '</label><select id="' + id + '">' +
@@ -878,10 +894,9 @@
         }).join('') + '</select></div>';
     };
     var b = r.input.lieBoard || {};
-    return '<div class="panel card no-print" style="margin-bottom:18px"><h3>' + icon('board') +
-      'Check it on a lie board</h3>' +
-      '<p class="small muted">Optional, and the only thing on this page you cannot do at a keyboard. It is also the ' +
-      'one that turns the number above from an estimate into a measurement, and it costs a roll of masking tape.</p>' +
+    return '<div class="no-print">' +
+      '<p class="small muted" style="margin-top:0">The only thing on this page you cannot do at a keyboard, and the ' +
+      'one that turns the lie angle above from an estimate into a measurement. It costs a roll of masking tape.</p>' +
       '<ol class="board-steps">' +
       '<li>Tape the <b>sole</b> of a 7-iron. Masking tape is fine. Impact tape is neater.</li>' +
       '<li>Hit five or six shots off something <b>flat and hard</b>. A lie board if you have one, a firm mat if not. ' +
@@ -898,21 +913,46 @@
       '<div id="boardResult"></div></div>';
   }
 
+  /* The summary line and the open state belong here rather than in the
+     markup. On a restored link the selects are populated AFTER the results
+     have rendered, so anything baked in at render time still reads
+     "optional" for someone who has actually done the test. */
+  function setBoardSummary(note, open) {
+    var host = $('#boardResult');
+    var group = host && host.closest ? host.closest('details.result-group') : null;
+    if (!group) return;
+    var tag = group.querySelector('summary .tiny');
+    if (tag) tag.textContent = note;
+    if (open) group.open = true;
+  }
+
   function renderBoardResult() {
     var host = $('#boardResult');
     if (!host || !lastFit) return;
     var mark = $('#boardMark') ? $('#boardMark').value : '';
-    if (!mark) { host.innerHTML = ''; return; }
+    if (!mark) {
+      host.innerHTML = '';
+      setBoardSummary('optional \u2014 the one measurement that beats this estimate', false);
+      return;
+    }
 
     var board = G.lieBoardCheck({
       mark: mark,
       surface: $('#boardSurface') ? $('#boardSurface').value : 'indoor',
       clubLie: hasClubs() ? selNum('#curIronLie') : null
     }, lastFit.lie);
-    if (!board) { host.innerHTML = ''; return; }
+    if (!board) {
+      host.innerHTML = '';
+      setBoardSummary('optional \u2014 the one measurement that beats this estimate', false);
+      return;
+    }
 
     var fmt = function (v) { return (v > 0 ? '+' : '') + v + '\u00b0'; };
     var range = board.specLo === board.specHi ? fmt(board.specLo) : fmt(board.specLo) + ' to ' + fmt(board.specHi);
+
+    setBoardSummary(board.specLo === 0 && board.specHi === 0
+      ? 'measured \u2014 standard lie arrives flat for you'
+      : 'measured \u2014 build to ' + range, true);
 
     host.innerHTML =
       '<div class="board-verdict ' + (board.agrees ? 'ok' : 'differs') + '">' +
@@ -1036,7 +1076,7 @@
        here you cannot do sitting at the keyboard. The verdict renders into
        its own container rather than re-running the whole page, because a
        re-render would destroy the selects the reader is using. */
-    out.push(boardBlockHtml(r));
+    out.push(boardGroup(r));
 
     var cards = [];
 

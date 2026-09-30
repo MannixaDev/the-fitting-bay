@@ -968,3 +968,9 @@ h3, h4 { font-weight: 650; }
 .board-verdict-head b { font-size: 1.02rem; letter-spacing: -.01em; }
 .board-verdict p { margin: 0 0 8px; }
 .board-verdict p:last-child { margin-bottom: 0; }
+
+
+/* The lie-board row is a form inside a collapsed group, not a stack of
+   cards, so it wants the padding the card reset takes away. */
+.result-group-body > .no-print > .board-steps { margin-top: 12px; }
+.result-group-body .board-verdict { margin-bottom: 2px; }
