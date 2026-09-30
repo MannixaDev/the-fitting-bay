@@ -523,6 +523,83 @@ module.exports = function () {
     });
   });
 
+  /* Every static fitting ends by admitting only a lie board gives the real
+     answer, and then leaves you there. */
+  suite('The lie-board check', () => {
+    const lie = G.staticLie(70, 35);
+    const check = (o) => G.lieBoardCheck(o, lie);
+
+    test('no test entered means no verdict, not a guess', () => {
+      equal(check(null), null);
+      equal(check({}), null);
+      equal(check({ mark: 'nonsense' }), null);
+      assert(!fit({ heightIn: 70, wtfIn: 35, skill: 'mid' }).lieBoard, 'absent from the fit too');
+    });
+
+    /* Toe means flat. Worth a test because the web contradicts itself on it:
+       one page asserted both directions two sentences apart. */
+    test('a toe mark asks for upright, a heel mark asks for flat', () => {
+      assert(check({ mark: 'toeSlight', surface: 'indoor' }).specLo > 0, 'toe should go upright');
+      assert(check({ mark: 'heelSlight', surface: 'indoor' }).specHi < 0, 'heel should go flat');
+    });
+
+    test('a bigger mark means a bigger correction', () => {
+      const slight = check({ mark: 'toeSlight', surface: 'indoor' });
+      const clear = check({ mark: 'toeClear', surface: 'indoor' });
+      assert(clear.specHi > slight.specHi, 'clear should exceed slight');
+    });
+
+    test('an even mark is the answer, and asks for nothing', () => {
+      const c = check({ mark: 'centre', surface: 'indoor' });
+      equal(c.specLo, 0);
+      equal(c.specHi, 0);
+    });
+
+    /* A board on turf sits above your feet, lifts the toe and slides the
+       mark heelward, so it asks you to go flatter than you need. */
+    test('an outdoor board is corrected back toward upright', () => {
+      const inside = check({ mark: 'toeSlight', surface: 'indoor' });
+      const outside = check({ mark: 'toeSlight', surface: 'outdoor' });
+      equal(outside.specLo - inside.specLo, 1);
+      equal(outside.specHi - inside.specHi, 1);
+      assert(/corrected a degree back toward upright/.test(outside.notes.join(' ')), 'and says so');
+    });
+
+    test('the answer is a range, because the conversion is disputed', () => {
+      const c = check({ mark: 'toeClear', surface: 'indoor' });
+      assert(c.specHi > c.specLo, 'must not collapse to one number');
+      assert(/eighth and a half inch/.test(c.notes.join(' ')), 'and says why');
+    });
+
+    test('clubs already bent are added on, not ignored', () => {
+      const standard = check({ mark: 'toeSlight', surface: 'indoor', clubLie: 0 });
+      const bent = check({ mark: 'toeSlight', surface: 'indoor', clubLie: 2 });
+      equal(bent.specLo - standard.specLo, 2);
+      equal(standard.testedAssumed, false);
+      equal(check({ mark: 'toeSlight', surface: 'indoor' }).testedAssumed, true);
+    });
+
+    test('it says whether it backs the static fit or overrules it', () => {
+      /* 5ft10 with a 35in wrist-to-floor comes out U1, so a slight toe mark
+         landing on +1 to +2 should agree, and a heel mark should not. */
+      equal(lie.code.code, 'U1');
+      equal(check({ mark: 'toeSlight', surface: 'indoor' }).agrees, true);
+      equal(check({ mark: 'heelClear', surface: 'indoor' }).agrees, false);
+    });
+
+    test('every mark and surface combination produces a usable verdict', () => {
+      ['centre', 'toeSlight', 'toeClear', 'heelSlight', 'heelClear'].forEach((mark) => {
+        ['indoor', 'outdoor'].forEach((surface) => {
+          const c = check({ mark, surface });
+          assert(c.specLo <= c.specHi, mark + '/' + surface + ' range is backwards');
+          assert(c.code && c.code.code, mark + '/' + surface + ' needs a code');
+          assert(c.notes.length > 0, mark + '/' + surface + ' needs an explanation');
+          assert(Math.abs(c.midpoint) <= 5, mark + '/' + surface + ' is off the scale');
+        });
+      });
+    });
+  });
+
   suite('Handedness', () => {
     test('shot-shape vocabulary is handedness-neutral', () => {
       equal(G.sides({ handedness: 'right' }).away, 'right');

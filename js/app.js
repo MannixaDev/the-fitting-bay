@@ -85,6 +85,16 @@
     };
   }
 
+  function readBoard() {
+    var m = $('#boardMark');
+    if (!m || !m.value) return null;
+    return {
+      mark: m.value,
+      surface: $('#boardSurface') ? $('#boardSurface').value : 'indoor',
+      clubLie: hasClubs() ? selNum('#curIronLie') : null
+    };
+  }
+
   /* ---------- collect ---------- */
   function buildInput() {
     return {
@@ -98,6 +108,7 @@
       skill: radio('skill'),
       handicap: (function () { var v = parseFloat($('#handicap').value); return isFinite(v) ? v : null; })(),
       pwLoft: num($('#pwLoft')),
+      lieBoard: readBoard(),
       club150: $('#club150').value || null,
       ironCarry: num($('#ironCarry')),
       ironSpeed: num($('#ironSpeed')),
@@ -223,7 +234,7 @@
   /* fit answers: [query key, element id or radio name, kind] */
   var FIT_FIELDS = [
     ['gl', 'gloveSize', 'val'], ['age', 'age', 'val'], ['hcp', 'handicap', 'val'],
-    ['c150', 'club150', 'val'],
+    ['c150', 'club150', 'val'], ['lbM', 'boardMark', 'val'], ['lbS', 'boardSurface', 'val'],
     ['pw', 'pwLoft', 'val'], ['ic', 'ironCarry', 'val'], ['is', 'ironSpeed', 'val'],
     ['ds', 'driverSpeed', 'val'], ['dc', 'driverCarry', 'val'],
     ['gd', 'gender', 'enum:gender'], ['sk', 'skill', 'enum:skill'],
@@ -406,6 +417,14 @@
        runFitFromForm() runs the audit itself once the bag is present. */
     applyAuditState(q);
     runFitFromForm();
+    /* The board selects live inside the results, so they do not exist until
+       the fit has been rendered. Restore them afterwards and redraw just the
+       verdict, which is self-contained and needs no second full render. */
+    if (q.lbM) {
+      setVal('boardMark', q.lbM);
+      if (q.lbS) setVal('boardSurface', q.lbS);
+      renderBoardResult();
+    }
     if (scroll) scrollToFit();
     return true;
   }
@@ -817,7 +836,8 @@
     bag:    '<path d="M4.4 5.5h7.2l-.7 8.6H5.1z"/><path d="M6 5.5V3.1M8 5.5V1.9M10 5.5V3.6"/>',
     ladder: '<path d="M2.2 13.4h11.6"/><path d="M4.4 13.4V9.6M8 13.4V6.2M11.6 13.4V2.9"/>',
     sheet:  '<rect x="2.4" y="1.9" width="11.2" height="12.2" rx="1.4"/><path d="M5.2 5.6h5.6M5.2 8h5.6M5.2 10.4h3.4"/>',
-    fix:    '<path d="M10.2 1.9a3.6 3.6 0 0 0-3.1 5.4L2 12.4l1.6 1.6 5.1-5.1a3.6 3.6 0 0 0 4.6-4.7l-2 2-1.9-1.9 2-2a3.6 3.6 0 0 0-1.2-.4z"/>'
+    fix:    '<path d="M10.2 1.9a3.6 3.6 0 0 0-3.1 5.4L2 12.4l1.6 1.6 5.1-5.1a3.6 3.6 0 0 0 4.6-4.7l-2 2-1.9-1.9 2-2a3.6 3.6 0 0 0-1.2-.4z"/>',
+    board:  '<path d="M1.6 12.6h12.8"/><path d="M4.6 12.6 9 3.2"/><path d="M9 3.2l2.2 1"/><path d="M3.4 12.6h3"/>'
   };
   function icon(name) {
     return '<span class="ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" ' +
@@ -839,6 +859,77 @@
   function list(items) {
     if (!items || !items.length) return '';
     return '<ul>' + items.map(function (i) { return '<li>' + esc(i) + '</li>'; }).join('') + '</ul>';
+  }
+
+  var BOARD_OPTS = [
+    ['', 'I have not done this yet'],
+    ['centre', 'Even, right across the sole'],
+    ['toeSlight', 'Slightly toward the toe'],
+    ['toeClear', 'Clearly toward the toe, or only the toe'],
+    ['heelSlight', 'Slightly toward the heel'],
+    ['heelClear', 'Clearly toward the heel, or only the heel']
+  ];
+
+  function boardBlockHtml(r) {
+    var sel = function (id, label, opts, current) {
+      return '<div class="field"><label for="' + id + '">' + esc(label) + '</label><select id="' + id + '">' +
+        opts.map(function (o) {
+          return '<option value="' + esc(o[0]) + '"' + (o[0] === current ? ' selected' : '') + '>' + esc(o[1]) + '</option>';
+        }).join('') + '</select></div>';
+    };
+    var b = r.input.lieBoard || {};
+    return '<div class="panel card no-print" style="margin-bottom:18px"><h3>' + icon('board') +
+      'Check it on a lie board</h3>' +
+      '<p class="small muted">Optional, and the only thing on this page you cannot do at a keyboard. It is also the ' +
+      'one that turns the number above from an estimate into a measurement, and it costs a roll of masking tape.</p>' +
+      '<ol class="board-steps">' +
+      '<li>Tape the <b>sole</b> of a 7-iron. Masking tape is fine. Impact tape is neater.</li>' +
+      '<li>Hit five or six shots off something <b>flat and hard</b>. A lie board if you have one, a firm mat if not. ' +
+      'Indoors, with the ball level with your feet, is the reading we can trust most.</li>' +
+      '<li>Look at where the scrape sits across the sole, not at the clubface.</li>' +
+      '</ol>' +
+      '<div class="field-grid" style="margin-top:4px">' +
+      sel('boardMark', 'Where did the mark land?', BOARD_OPTS, b.mark || '') +
+      sel('boardSurface', 'What did you hit off?', [
+        ['indoor', 'A board or hard flat surface, indoors'],
+        ['outdoor', 'A board or mat resting on turf, outdoors']
+      ], b.surface || 'indoor') +
+      '</div>' +
+      '<div id="boardResult"></div></div>';
+  }
+
+  function renderBoardResult() {
+    var host = $('#boardResult');
+    if (!host || !lastFit) return;
+    var mark = $('#boardMark') ? $('#boardMark').value : '';
+    if (!mark) { host.innerHTML = ''; return; }
+
+    var board = G.lieBoardCheck({
+      mark: mark,
+      surface: $('#boardSurface') ? $('#boardSurface').value : 'indoor',
+      clubLie: hasClubs() ? selNum('#curIronLie') : null
+    }, lastFit.lie);
+    if (!board) { host.innerHTML = ''; return; }
+
+    var fmt = function (v) { return (v > 0 ? '+' : '') + v + '\u00b0'; };
+    var range = board.specLo === board.specHi ? fmt(board.specLo) : fmt(board.specLo) + ' to ' + fmt(board.specHi);
+
+    host.innerHTML =
+      '<div class="board-verdict ' + (board.agrees ? 'ok' : 'differs') + '">' +
+      '<div class="board-verdict-head"><b>' + (board.specLo === 0 && board.specHi === 0
+        ? 'Standard lie is arriving flat for you'
+        : 'Build to ' + esc(range) + ' from standard') + '</b>' +
+      '<span class="pill' + (board.agrees ? '' : ' warn') + '">' +
+      (board.agrees ? 'agrees with the static fit' : 'differs from the static fit') + '</span></div>' +
+      '<p class="small">The static fit said <b>' + esc(lastFit.lie.code.code) + '</b> (' +
+      esc(fmt(lastFit.lie.code.deg)) + '). ' +
+      (board.agrees
+        ? 'Your lie board agrees with it, which is as good as this gets without a launch monitor. Build to it.'
+        : 'Your lie board says otherwise, and the board wins. A dynamic reading already contains your posture, your ' +
+          'shaft droop and your club length, which the arithmetic cannot see. It is also the one reading that is safe ' +
+          'to bend to while the length is still unresolved.') + '</p>' +
+      board.notes.map(function (n) { return '<p class="small muted">' + esc(n) + '</p>'; }).join('') +
+      '</div>';
   }
 
   function renderResults(r) {
@@ -939,6 +1030,13 @@
 
     out.push('</div>');
     out.push(tierHead('The detail', 'every recommendation, and the numbers behind it'));
+
+    /* ---- the lie board ----------------------------------------------
+       Optional, and deliberately last in this tier: it is the only thing
+       here you cannot do sitting at the keyboard. The verdict renders into
+       its own container rather than re-running the whole page, because a
+       re-render would destroy the selects the reader is using. */
+    out.push(boardBlockHtml(r));
 
     var cards = [];
 
@@ -1152,6 +1250,7 @@
     renderChart($('#miniChart'), r.input.heightIn, r.input.wtfIn, false);
     renderCarryRows();
     initCarryTable();
+    renderBoardResult();
     if (root_LieBench()) root_LieBench().init();
     resultsRendered = true;
   }
@@ -1721,6 +1820,18 @@
     $('#carryReset').hidden = !measured;
   }
 
+  /* Delegated, because the block is generated with the rest of the results. */
+  function initBoardInputs() {
+    var host = $('#resultsBody');
+    if (!host) return;
+    host.addEventListener('change', function (e) {
+      if (e.target.id !== 'boardMark' && e.target.id !== 'boardSurface') return;
+      renderBoardResult();
+      writeUrl(false, hasClubs());
+      saveDraft();
+    });
+  }
+
   function initCarryTable() {
     var host = $('#carryRows');
     if (!host) return;
@@ -1829,6 +1940,7 @@
   if ($('#chartFull')) renderChart($('#chartFull'), null, null, true);
   if ($('#heroChart')) renderChart($('#heroChart'), null, null, false);
   if ($('#fitForm')) initWizard();
+  initBoardInputs();
   initBallTool();
   initAudit();
 

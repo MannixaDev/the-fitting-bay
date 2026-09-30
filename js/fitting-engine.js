@@ -1313,6 +1313,117 @@
   }
 
   /* ---------------------------------------------------------------------
+     THE LIE-BOARD CHECK
+
+     Every static fitting, including this one, ends by admitting that only a
+     lie board gives the real answer. Then it leaves you there. This closes
+     that, because the at-home version costs a roll of masking tape.
+
+     Tape the sole, hit balls off something flat and hard, look at where the
+     scrape is.
+
+       Mark toward the TOE  -> the toe is digging  -> too FLAT     -> bend upright
+       Mark toward the HEEL -> the heel is digging -> too UPRIGHT  -> bend flat
+
+     That direction is worth stating plainly because the web contradicts
+     itself on it. One page we read asserted both directions two sentences
+     apart. Toe means flat.
+
+     TWO HONEST CAVEATS, both of which this returns rather than hides:
+
+     1. The conversion is genuinely disputed. Reputable clubmaking sources
+        put it anywhere between an eighth of an inch and a half inch of mark
+        offset per degree, which is a fourfold disagreement. So this reports
+        a RANGE and says so, rather than inventing a decimal.
+
+     2. A board resting on grass outdoors sits slightly above your feet,
+        which is the same as standing below the ball: the toe lifts, the mark
+        slides toward the heel, and the board tells you to go flatter than
+        you should. Roughly a degree of it. Tested that way, the answer is
+        corrected back toward upright.
+
+     A dynamic reading already contains your posture, your shaft droop AND
+     your club length, which is why it beats the arithmetic, and why it is
+     also the only reading that is safe to bend to while the length is still
+     unresolved.
+     ------------------------------------------------------------------ */
+  var BOARD_MARKS = {
+    centre:     { lo: 0, hi: 0, dir: 0,  label: 'even across the sole' },
+    toeSlight:  { lo: 1, hi: 2, dir: 1,  label: 'slightly toward the toe' },
+    toeClear:   { lo: 2, hi: 4, dir: 1,  label: 'clearly toward the toe, or only the toe' },
+    heelSlight: { lo: 1, hi: 2, dir: -1, label: 'slightly toward the heel' },
+    heelClear:  { lo: 2, hi: 4, dir: -1, label: 'clearly toward the heel, or only the heel' }
+  };
+
+  /* Where it was hit. A hard flat indoor surface with the ball level with
+     your feet is the reference; anything outdoors on turf reads upright. */
+  var BOARD_SURFACES = {
+    indoor:  { correction: 0, label: 'indoors on a board or other hard flat surface' },
+    outdoor: { correction: 1, label: 'outdoors, board or mat resting on turf' }
+  };
+
+  /**
+   * board = { mark: <key>, surface: <key>, clubLie: <deg from standard, or null> }
+   * Returns null when no test has been entered, so callers can just skip it.
+   */
+  function lieBoardCheck(board, staticLie) {
+    if (!board || !board.mark || !BOARD_MARKS[board.mark]) return null;
+    var m = BOARD_MARKS[board.mark];
+    var surf = BOARD_SURFACES[board.surface] || BOARD_SURFACES.indoor;
+
+    /* What was tested. If they have told the audit what their irons are bent
+       to we use it; otherwise the honest default is standard, said out loud. */
+    var tested = isNum(board.clubLie) || board.clubLie === 0 ? board.clubLie : 0;
+    var testedAssumed = !(isNum(board.clubLie) || board.clubLie === 0);
+
+    /* The board says the clubs tested need this much more upright (+) or
+       flat (-), before the surface correction. */
+    var lo = m.dir * m.lo + surf.correction;
+    var hi = m.dir * m.hi + surf.correction;
+    if (lo > hi) { var t = lo; lo = hi; hi = t; }
+
+    /* And so the build spec, relative to standard, is the tested club plus
+       the correction. */
+    var specLo = round1(tested + lo);
+    var specHi = round1(tested + hi);
+    var mid = round1((specLo + specHi) / 2);
+
+    var staticDeg = staticLie.code.deg;
+    var agrees = staticDeg >= Math.min(specLo, specHi) - 0.5 && staticDeg <= Math.max(specLo, specHi) + 0.5;
+
+    var notes = [];
+    if (m.dir === 0) {
+      notes.push('An even mark is the result you want. It means the sole is arriving flat, which is the whole object of the exercise.');
+    } else {
+      notes.push('The mark is ' + m.label + ', so the ' + (m.dir > 0 ? 'toe' : 'heel') +
+        ' is reaching the ground first. That means the club is playing too ' +
+        (m.dir > 0 ? 'flat for you, and wants bending upright' : 'upright for you, and wants bending flatter') + '.');
+    }
+    if (surf.correction) {
+      notes.push('You tested ' + surf.label + '. A board sitting on turf is slightly above your feet, which lifts the toe and slides the mark toward the heel, so a reading taken that way asks you to go flatter than you really need. We have corrected a degree back toward upright. Re-test on a hard indoor surface if you can, because that correction is an average rather than your number.');
+    }
+    if (testedAssumed && m.dir !== 0) {
+      notes.push('We have assumed the irons you tested are standard lie. If they are already bent, add whatever they are bent to on top of this, or tell us in the bag question and we will do it.');
+    }
+    if (m.dir !== 0) {
+      notes.push('The range is wide because the conversion genuinely is. Clubmaking sources put it anywhere between an eighth and a half inch of mark offset per degree, so anyone quoting you a single decimal from a sole mark is inventing precision that the method does not have.');
+    }
+
+    return {
+      mark: board.mark, markLabel: m.label,
+      surface: surf === BOARD_SURFACES.outdoor ? 'outdoor' : 'indoor',
+      surfaceLabel: surf.label,
+      tested: tested, testedAssumed: testedAssumed,
+      shiftLo: lo, shiftHi: hi,
+      specLo: specLo, specHi: specHi, midpoint: mid,
+      code: codeByIndex(clamp(Math.round(mid), SCALE_MIN, SCALE_MAX)),
+      agrees: agrees,
+      staticDegrees: staticDeg,
+      notes: notes
+    };
+  }
+
+  /* ---------------------------------------------------------------------
      12. DYNAMIC LIE CONSIDERATION
      ------------------------------------------------------------------ */
   function dynamicLieNote(input, staticCode) {
@@ -1550,6 +1661,7 @@
     var putter = putterFit(input, heightIn, wtfIn);
     var ball = ballFit(speeds, input);
     var dyn = dynamicLieNote(input, lie.code);
+    var board = lieBoardCheck(input.lieBoard, lie);
     var conf = null;   // filled in below, once speeds exist
     var junior = juniorFit(input);
     var womens = womensNotes(input, speeds, shafts);
@@ -1662,7 +1774,7 @@
       input: input, lie: lie, length: len, wtfCheck: wtfCheck,
       lengthAgreement: lengthAgreement, speeds: speeds, shafts: shafts,
       driver: driver, ironHead: head, grip: grip, wedges: wedges,
-      set: set, putter: putter, ball: ball, dynamicLie: dyn,
+      set: set, putter: putter, ball: ball, dynamicLie: dyn, lieBoard: board,
       junior: junior, womensNotes: womens, shaftPicks: shaftPicks,
       recommendedBag: recommended,
       confidence: confidence(input, speeds),
@@ -2351,6 +2463,8 @@
     wtfLengthCheck: wtfLengthCheck,
     estimateSpeeds: estimateSpeeds,
     ironCarryFromClub: ironCarryFromClub,
+    lieBoardCheck: lieBoardCheck,
+    boardMarks: BOARD_MARKS,
     clubRatios: CLUB_RATIO,
     ballFit: ballFit,
     standardSpecs: STD_SPECS,

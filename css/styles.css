@@ -951,3 +951,20 @@ h3, h4 { font-weight: 650; }
 .ball-picks {
   margin: 7px 0 0; font-size: .84rem; color: var(--ink-2); font-weight: 550;
 }
+
+
+/* ---------- the lie-board check ---------- */
+.board-steps { margin: 14px 0 18px; padding-left: 20px; font-size: .9rem; color: var(--ink-2); }
+.board-steps li { margin-bottom: 8px; }
+.board-steps li::marker { color: var(--scale-gold); font-weight: 700; }
+.board-verdict {
+  margin-top: 16px; padding: 14px 16px;
+  border: 1px solid var(--line); border-left-width: 3px;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0; background: var(--bg);
+}
+.board-verdict.ok { border-left-color: var(--green-deep); background: rgba(52,192,122,.05); }
+.board-verdict.differs { border-left-color: var(--amber); background: rgba(224,166,60,.05); }
+.board-verdict-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.board-verdict-head b { font-size: 1.02rem; letter-spacing: -.01em; }
+.board-verdict p { margin: 0 0 8px; }
+.board-verdict p:last-child { margin-bottom: 0; }

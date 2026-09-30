@@ -66,6 +66,14 @@ angle, tempo, turf, priority, putting stroke) it produces:
 - **Named shafts** — a shortlist of widely stocked models matching your weight, flex and flight
 - **Junior sizing** where the player is a child, and **women's-set traps** where relevant
 
+After the fit, an optional **lie-board check** closes the gap the tool otherwise only admits to.
+Tape the sole of a 7-iron, hit half a dozen off something flat and hard, and say where the scrape
+landed. A toe mark means the club is playing flat and wants bending upright; a heel mark means the
+opposite. It returns a **range**, not a decimal, because the conversion from mark offset to degrees
+is genuinely disputed in the clubmaking literature (an eighth of an inch to a half inch per degree),
+and it corrects a degree back toward upright if the board was resting on turf, because a board above
+your feet lifts the toe and asks you to go flatter than you need.
+
 The final question asks what is already in your bag. Answer it and you also get an **audit** — a
 prioritised, costed list of which of your clubs is wrong and what it costs to put right, optionally
 filtered to a budget — and the yardage table describes your clubs rather than a generic set. Say
