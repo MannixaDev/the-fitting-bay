@@ -1567,6 +1567,80 @@
     });
   }
 
+  /* =====================================================================
+     THE STANDALONE BALL FITTING
+     ---------------------------------------------------------------------
+     Four questions and an optional speed, on its own page, because plenty
+     of people want a ball answer and do not want a nine-step club fitting
+     to get one. It renders the same ball card the full fit produces, from
+     the same engine function, so the two can never drift apart.
+
+     Only initialises where #ballForm exists, like everything else here.
+     ================================================================== */
+  function ballCardHtml(b) {
+    return '<div class="panel card spec"><h3>Your ball</h3>' +
+      kv('Buy', esc(b.type), esc(b.price)) +
+      kv('Spin profile', esc(b.profile === 'low' ? 'Lower spin' : b.profile === 'high' ? 'Higher spin' : 'Mid spin')) +
+      '<div class="why">' + esc(b.why) + '</div>' +
+      '<div class="why" style="border-top:0;padding-top:0">' + esc(b.profileWhy) + '</div>' +
+      '<div class="ball-tiers">' + b.tiers.map(function (t) {
+        return '<div class="ball-tier' + (t.recommended ? ' is-pick' : '') + '">' +
+          '<div class="ball-tier-head"><b>' + esc(t.label) + '</b>' +
+          (t.recommended ? '<span class="pill">your pick</span>' : '') +
+          '<i>' + esc(t.price) + '</i></div>' +
+          '<p class="tiny">' + esc(t.what) + '</p>' +
+          '<p class="ball-picks">' + t.picks.map(esc).join(' \u00b7 ') + '</p></div>';
+      }).join('') + '</div>' +
+      '<p class="tiny" style="margin-top:10px">Widely stocked examples, reviewed ' + esc(b.reviewed) +
+      '. Names are a starting point, not a ranking \u2014 balls change between releases more than anyone expects.</p>' +
+      list(b.extra) + '</div>';
+  }
+
+  function initBallTool() {
+    var form = $('#ballForm');
+    if (!form) return;
+    var out = $('#ballResults'), err = $('#ballErr');
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var carry = num($('#bIronCarry'));
+      var speed = num($('#bDriverSpeed'));
+
+      if (carry && (carry < 40 || carry > 230)) {
+        err.textContent = 'That 7-iron carry looks wrong. Leave it blank if you are not sure.';
+        return;
+      }
+      if (speed && (speed < 40 || speed > 145)) {
+        err.textContent = 'That driver speed looks wrong. It should be clubhead speed in mph, not ball speed.';
+        return;
+      }
+      err.textContent = '';
+
+      var input = {
+        ironCarry: carry,
+        driverSpeed: speed,
+        age: num($('#bAge')),
+        gender: radio('bGender'),
+        skill: radio('bSkill'),
+        shotShape: radio('bShape'),
+        turf: radio('bTurf'),
+        priority: radio('bPriority')
+      };
+      var speeds = G.estimateSpeeds(input);
+      var ball = G.ballFit(speeds, input);
+
+      var head = '<div class="tier-head"><b>Your ball</b><i>from ' + esc(speeds.source) + '</i></div>';
+      var note = (speed || carry) ? ''
+        : '<div class="note warn">You gave us neither a carry distance nor a clubhead speed, so the speed behind this ' +
+          'is an estimate from your age, gender and skill level. It moves the answer less here than it would for a ' +
+          'shaft, because what separates these balls is mostly the cover rather than your speed \u2014 but it is still ' +
+          'a guess, and we would rather say so.</div>';
+
+      out.innerHTML = head + ballCardHtml(ball) + note;
+      out.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
   /* Both of these defer to the engine so the table and the findings can never
      disagree about what counts as a bad gap. */
   function gapClass(gap, carry) {
@@ -1752,6 +1826,7 @@
   if ($('#chartFull')) renderChart($('#chartFull'), null, null, true);
   if ($('#heroChart')) renderChart($('#heroChart'), null, null, false);
   if ($('#fitForm')) initWizard();
+  initBallTool();
   initAudit();
 
   wireA11y();

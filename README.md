@@ -6,6 +6,7 @@ dependencies, no back end. Open `index.html` in a browser and it works.
 ```
 golffitting/
 ├── index.html                  the fitting tool: wizard, results, audit, Bay Scale chart
+├── ball-fitting.html           the ball fitting on its own, four questions
 ├── fitting-information.html    reference: how fitting works, all the tables
 ├── favicon.svg
 ├── og-image.png                social share card (1200×630)
@@ -18,7 +19,7 @@ golffitting/
 └── .githooks/pre-commit        runs the tests, then bump.js
 ```
 
-`app.js` is shared by both pages and is page-aware: the wizard initialises only where
+`app.js` is shared by all three pages and is page-aware: the wizard initialises only where
 `#fitForm` exists, while the chart, diagrams and reference tables render wherever their host
 elements are present.
 

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Golf Ball Fitting — The Fitting Bay</title>
+<meta name="description" content="A free golf ball fitting. Four questions and you get a ball recommendation at three price points, with what the extra money actually buys — greenside spin, not distance.">
+<link rel="icon" href="favicon.svg?v=1" type="image/svg+xml">
+<link rel="canonical" href="https://fittingbay.com/ball-fitting.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="The Fitting Bay">
+<meta property="og:url" content="https://fittingbay.com/ball-fitting.html">
+<meta property="og:title" content="Golf Ball Fitting — what you're actually paying for">
+<meta property="og:description" content="Four questions. A ball recommendation at three price points, and an honest account of what the extra money buys.">
+<meta property="og:image" content="https://fittingbay.com/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Golf Ball Fitting — The Fitting Bay">
+<meta name="twitter:description" content="Four questions. A ball at three price points, and what the extra money actually buys.">
+<meta name="theme-color" content="#0d1210">
+<link rel="preload" href="fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/styles.css?v=6c5ef1ed">
+</head>
+<body>
+
+<a class="skip-link" href="#top">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="7" r="4.6" stroke="#34c07a" stroke-width="1.6"/>
+        <circle cx="10.3" cy="5.6" r=".85" fill="#34c07a"/><circle cx="13.4" cy="6.4" r=".85" fill="#34c07a"/>
+        <circle cx="11.4" cy="8.7" r=".85" fill="#34c07a"/>
+        <path d="M12 11.6V19M8.4 21.2h7.2" stroke="#d9b168" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+      <span>The Fitting <i>Bay</i></span>
+    </a>
+    <nav class="site-nav">
+      <a href="index.html#fit">Golf club fitting</a>
+      <a href="ball-fitting.html">Ball fitting</a>
+      <a href="index.html#chart">The Bay Scale</a>
+      <a href="fitting-information.html">Fitting information</a>
+    </nav>
+  </div>
+  <div class="spectrum-rule" aria-hidden="true"></div>
+</header>
+
+<main id="top">
+
+  <div class="hero">
+    <div class="wrap narrow">
+      <p class="eyebrow">Ball fitting</p>
+      <h1>What ball, and <span>what for</span>.</h1>
+      <p class="lede">The ball is the only thing you use on every shot, and the cheapest equipment decision you&rsquo;ll
+        make. Four questions and you&rsquo;ll get an answer at three price points, plus an honest account of what the
+        extra money buys. It buys greenside spin. It barely buys distance.</p>
+    </div>
+  </div>
+
+  <section id="ball">
+    <div class="wrap narrow">
+      <div class="panel" style="padding:26px">
+        <form id="ballForm" novalidate>
+
+          <div class="field-grid" style="margin-bottom:22px">
+            <div class="field">
+              <label for="bIronCarry">7-iron carry distance</label>
+              <label class="unit-input"><input type="number" id="bIronCarry" min="40" max="230" step="1" placeholder="e.g. 150" inputmode="numeric"><span>yd</span></label>
+              <p class="hint">Yards <b>in the air</b>, on a good strike. Leave it blank if you don&rsquo;t know and
+                we&rsquo;ll estimate.</p>
+            </div>
+            <div class="field">
+              <label for="bDriverSpeed">Driver clubhead speed</label>
+              <label class="unit-input"><input type="number" id="bDriverSpeed" min="40" max="145" step="0.5" placeholder="e.g. 96" inputmode="decimal"><span>mph</span></label>
+              <p class="hint">If you&rsquo;ve ever been on a launch monitor. Beats the carry distance.</p>
+            </div>
+          </div>
+
+          <fieldset style="border:0;padding:0;margin:0 0 22px">
+            <legend class="field"><label style="display:block;margin-bottom:9px">How would you describe your golf?</label></legend>
+            <div class="opts">
+              <label class="opt"><input type="radio" name="bSkill" value="beginner"><span>New to it<em>Still learning to make contact</em></span></label>
+              <label class="opt"><input type="radio" name="bSkill" value="high" checked><span>Improving<em>Around 18+ handicap</em></span></label>
+              <label class="opt"><input type="radio" name="bSkill" value="mid"><span>Decent<em>Roughly 10&ndash;18</em></span></label>
+              <label class="opt"><input type="radio" name="bSkill" value="low"><span>Good<em>Single figures</em></span></label>
+              <label class="opt"><input type="radio" name="bSkill" value="scratch"><span>Very good<em>Scratch or better</em></span></label>
+            </div>
+          </fieldset>
+
+          <fieldset style="border:0;padding:0;margin:0 0 22px">
+            <legend class="field"><label style="display:block;margin-bottom:9px">Your typical miss</label></legend>
+            <div class="opts">
+              <label class="opt"><input type="radio" name="bShape" value="slice"><span>It curves right<em>Slice, for a right-hander</em></span></label>
+              <label class="opt"><input type="radio" name="bShape" value="straight" checked><span>Fairly straight<em>Or I&rsquo;m not sure</em></span></label>
+              <label class="opt"><input type="radio" name="bShape" value="hook"><span>It curves left<em>Hook, for a right-hander</em></span></label>
+            </div>
+          </fieldset>
+
+          <fieldset style="border:0;padding:0;margin:0 0 22px">
+            <legend class="field"><label style="display:block;margin-bottom:9px">The turf you usually play on</label></legend>
+            <div class="opts">
+              <label class="opt"><input type="radio" name="bTurf" value="soft"><span>Soft and wet<em>Winter golf, parkland, it plugs</em></span></label>
+              <label class="opt"><input type="radio" name="bTurf" value="normal" checked><span>Normal<em>Or it varies</em></span></label>
+              <label class="opt"><input type="radio" name="bTurf" value="firm"><span>Firm and dry<em>Links, or high summer</em></span></label>
+            </div>
+          </fieldset>
+
+          <fieldset style="border:0;padding:0;margin:0 0 22px">
+            <legend class="field"><label style="display:block;margin-bottom:9px">What you most want from a ball</label></legend>
+            <div class="opts">
+              <label class="opt"><input type="radio" name="bPriority" value="forgiveness" checked><span>Forgiveness<em>Keep the bad ones playable</em></span></label>
+              <label class="opt"><input type="radio" name="bPriority" value="distance"><span>Distance<em>Every yard I can get</em></span></label>
+              <label class="opt"><input type="radio" name="bPriority" value="accuracy"><span>Accuracy<em>Straighter, less curve</em></span></label>
+            </div>
+          </fieldset>
+
+          <details class="how-to" style="margin-bottom:22px">
+            <summary>I left the speed blank &mdash; what else helps?</summary>
+            <div style="padding:4px 16px 18px">
+              <p class="small muted" style="margin-bottom:14px">Only used if you gave us neither a carry distance nor a
+                clubhead speed. Both are optional.</p>
+              <div class="field-grid">
+                <div class="field">
+                  <label for="bAge">Age</label>
+                  <input type="number" id="bAge" min="6" max="100" step="1" placeholder="e.g. 38" inputmode="numeric">
+                </div>
+                <div class="field">
+                  <label style="margin-bottom:7px">Gender</label>
+                  <div class="opts two">
+                    <label class="opt"><input type="radio" name="bGender" value="male" checked><span>Male</span></label>
+                    <label class="opt"><input type="radio" name="bGender" value="female"><span>Female</span></label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </details>
+
+          <p class="err" id="ballErr" style="margin:0 0 12px"></p>
+          <button type="submit" class="btn btn-primary" id="ballSubmit">Show me the ball</button>
+        </form>
+      </div>
+
+      <div id="ballResults" style="margin-top:24px"></div>
+
+      <p style="margin-top:26px"><a href="index.html#fit">Do the full club fitting &rarr;</a>
+        <span class="tiny">&nbsp; Lie angle, length, shaft, loft, bounce, grips, putter and a full build sheet.
+        It includes this ball recommendation.</span></p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <nav class="footer-nav">
+      <a href="index.html">Golf club fitting</a>
+      <a href="ball-fitting.html">Ball fitting</a>
+      <a href="index.html#chart">The Bay Scale</a>
+      <a href="fitting-information.html">Fitting information</a>
+    </nav>
+    <p><b>The Fitting Bay</b> &mdash; an independent static club-fitting calculator. Not affiliated with, endorsed by or
+      connected to any equipment manufacturer. The Bay Scale is our own fitting scale. Brand and product names
+      appearing in recommendations are the trademarks of their respective owners and are referenced only to help you
+      find comparable products.</p>
+    <p>Recommendations are a starting point, not a prescription. Nothing here replaces hitting balls in front of a
+      qualified fitter with a launch monitor.</p>
+  </div>
+</footer>
+
+<script src="js/fitting-engine.js?v=c2864dbc"></script>
+<script src="js/app.js?v=b000e24d"></script>
+</body>
+</html>

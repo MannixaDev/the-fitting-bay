@@ -2279,6 +2279,7 @@
     lengthBands: LENGTH_BANDS,
     wtfLengthCheck: wtfLengthCheck,
     estimateSpeeds: estimateSpeeds,
+    ballFit: ballFit,
     standardSpecs: STD_SPECS,
     fit: fit,
     audit: audit,
