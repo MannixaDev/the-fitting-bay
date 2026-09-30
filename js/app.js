@@ -98,6 +98,7 @@
       skill: radio('skill'),
       handicap: (function () { var v = parseFloat($('#handicap').value); return isFinite(v) ? v : null; })(),
       pwLoft: num($('#pwLoft')),
+      club150: $('#club150').value || null,
       ironCarry: num($('#ironCarry')),
       ironSpeed: num($('#ironSpeed')),
       driverSpeed: num($('#driverSpeed')),
@@ -222,6 +223,7 @@
   /* fit answers: [query key, element id or radio name, kind] */
   var FIT_FIELDS = [
     ['gl', 'gloveSize', 'val'], ['age', 'age', 'val'], ['hcp', 'handicap', 'val'],
+    ['c150', 'club150', 'val'],
     ['pw', 'pwLoft', 'val'], ['ic', 'ironCarry', 'val'], ['is', 'ironSpeed', 'val'],
     ['ds', 'driverSpeed', 'val'], ['dc', 'driverCarry', 'val'],
     ['gd', 'gender', 'enum:gender'], ['sk', 'skill', 'enum:skill'],
@@ -1617,6 +1619,7 @@
       err.textContent = '';
 
       var input = {
+        club150: $('#bClub150').value || null,
         ironCarry: carry,
         driverSpeed: speed,
         age: num($('#bAge')),
@@ -1630,7 +1633,7 @@
       var ball = G.ballFit(speeds, input);
 
       var head = '<div class="tier-head"><b>Your ball</b><i>from ' + esc(speeds.source) + '</i></div>';
-      var note = (speed || carry) ? ''
+      var note = (speed || carry || input.club150) ? ''
         : '<div class="note warn">You gave us neither a carry distance nor a clubhead speed, so the speed behind this ' +
           'is an estimate from your age, gender and skill level. It moves the answer less here than it would for a ' +
           'shaft, because what separates these balls is mostly the cover rather than your speed \u2014 but it is still ' +

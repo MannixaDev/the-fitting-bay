@@ -63,6 +63,25 @@
         <form id="ballForm" novalidate>
 
           <div class="field-grid" style="margin-bottom:22px">
+            <div class="field field-wide">
+              <label for="bClub150">Which club do you hit from 150 yards?</label>
+              <select id="bClub150">
+                <option value="">Not sure, or I don&rsquo;t reach 150</option>
+                <option value="Driver">Driver</option>
+                <option value="3-wood">3-wood</option>
+                <option value="5-wood">5-wood</option>
+                <option value="Hybrid">Hybrid</option>
+                <option value="4-iron">4-iron</option>
+                <option value="5-iron">5-iron</option>
+                <option value="6-iron">6-iron</option>
+                <option value="7-iron">7-iron</option>
+                <option value="8-iron">8-iron</option>
+                <option value="9-iron">9-iron</option>
+                <option value="PW">Pitching wedge</option>
+              </select>
+              <p class="hint">The easiest question here to answer honestly, so it&rsquo;s the one we&rsquo;d rather
+                have. Skip it if you never get near 150.</p>
+            </div>
             <div class="field">
               <label for="bIronCarry">7-iron carry distance</label>
               <label class="unit-input"><input type="number" id="bIronCarry" min="40" max="230" step="1" placeholder="e.g. 150" inputmode="numeric"><span>yd</span></label>
@@ -167,7 +186,7 @@
   </div>
 </footer>
 
-<script src="js/fitting-engine.js?v=c2864dbc"></script>
-<script src="js/app.js?v=b000e24d"></script>
+<script src="js/fitting-engine.js?v=551c8d65"></script>
+<script src="js/app.js?v=28b7db62"></script>
 </body>
 </html>

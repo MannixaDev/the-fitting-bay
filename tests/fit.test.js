@@ -380,7 +380,9 @@ module.exports = function () {
       const f = both(145, 250).flags.find((x) => /describe the same golfer/.test(x.text));
       assert(f, 'should raise the flag');
       equal(f.level, 'warn');
-      assert(/250/.test(f.text) && /222/.test(f.text), f.text);
+      const implied = both(145, 250).speeds.carryConflict.implied;
+      assert(/250/.test(f.text), f.text);
+      assert(new RegExp(String(implied)).test(f.text), 'should name the implied ' + implied);
       assert(/roll/.test(f.text), 'should offer the likely explanation');
     });
 
@@ -411,6 +413,85 @@ module.exports = function () {
       equal(r.speeds.source, 'measured driver clubhead speed');
       assert(r.speeds.carryConflict, 'the 250 still disagrees with a measured 96 mph');
       assert(r.speeds.driverCarry < 240, r.speeds.driverCarry);
+    });
+  });
+
+  /* The efficiency table used to run to 2.00 for scratch and 1.94 for a
+     single-figure player, both better than the PGA Tour average of 1.911,
+     and put a 10-18 handicapper above an LPGA professional at 1.855. */
+  suite('Speed efficiency is inside what has been measured', () => {
+    const PGA = { ironEff: 172 / 90, drv: 275 / 113 };
+    const LPGA = { ironEff: 141 / 76, drv: 220 / 94 };
+
+    test('nobody is credited with better striking than the PGA Tour', () => {
+      ['beginner', 'high', 'mid', 'low', 'scratch'].forEach((skill) => {
+        const s = fit({ heightIn: 70, wtfIn: 34, skill, ironCarry: 150 }).speeds;
+        /* recover the efficiency the engine used */
+        const eff = 150 / s.iron7;
+        assert(eff <= PGA.ironEff + 0.001, skill + ' ironEff ' + eff.toFixed(3) +
+          ' exceeds the PGA Tour average of ' + PGA.ironEff.toFixed(3));
+      });
+    });
+
+    test('a mid handicapper is not credited above an LPGA professional', () => {
+      const s = fit({ heightIn: 70, wtfIn: 34, skill: 'mid', ironCarry: 150 }).speeds;
+      assert(150 / s.iron7 < LPGA.ironEff, 'mid should sit below ' + LPGA.ironEff.toFixed(3));
+    });
+
+    test('efficiency rises with skill and never goes backwards', () => {
+      const order = ['beginner', 'high', 'mid', 'low', 'scratch'];
+      let prev = 0;
+      order.forEach((skill) => {
+        const s = fit({ heightIn: 70, wtfIn: 34, skill, ironCarry: 150 }).speeds;
+        const eff = 150 / s.iron7;
+        assert(eff > prev, skill + ' must be more efficient than the band below');
+        prev = eff;
+      });
+    });
+
+    /* Cross-check against an anchor the table is not built from: TrackMan's
+       average male amateur is 93 mph for a 133-yard 7-iron, so a 150-yard
+       7-iron should scale to about 105 mph. */
+    test('a 150-yard 7-iron implies roughly a 105 mph driver', () => {
+      const s = fit({ heightIn: 70, wtfIn: 34, skill: 'mid', ironCarry: 150 }).speeds;
+      near(s.driver, (150 / 133) * 93, 2, 'got ' + s.driver);
+    });
+  });
+
+  /* Carry distance is the most inflated input we take. Club selection is
+     not: you either get there with a 7-iron or you don't. */
+  suite('The club you hit 150 yards', () => {
+    const sp = (o) => fit(Object.assign({ heightIn: 70, wtfIn: 34, skill: 'mid' }, o)).speeds;
+
+    test('a 7-iron from 150 means a 150-yard 7-iron', () => {
+      equal(G.ironCarryFromClub('7-iron', 150), 150);
+    });
+
+    test('longer clubs from 150 mean a shorter player', () => {
+      const clubs = ['PW', '9-iron', '8-iron', '7-iron', '6-iron', '5-iron', '4-iron', 'Hybrid', '3-wood', 'Driver'];
+      let prev = Infinity;
+      clubs.forEach((c) => {
+        const v = G.ironCarryFromClub(c, 150);
+        assert(v < prev, c + ' should imply less than the club before it');
+        prev = v;
+      });
+    });
+
+    test('it outranks a self-reported carry, and a measured speed outranks it', () => {
+      equal(sp({ club150: '7-iron', ironCarry: 190 }).source, 'the club you hit 150 yards');
+      equal(sp({ club150: '7-iron', driverSpeed: 100 }).source, 'measured driver clubhead speed');
+    });
+
+    test('an unanswerable question is simply skipped', () => {
+      equal(G.ironCarryFromClub('', 150), null);
+      equal(G.ironCarryFromClub(null, 150), null);
+      equal(sp({ club150: null, ironCarry: 150 }).source, '7-iron carry distance');
+    });
+
+    test('an inflated carry beside an honest club answer is caught', () => {
+      const s = sp({ club150: '7-iron', ironCarry: 190 });
+      assert(s.carryConflict, 'a 190-yard 7-iron does not fit a 7-iron from 150');
+      equal(s.carryConflict.club, '7-iron');
     });
   });
 

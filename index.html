@@ -267,13 +267,34 @@
             </div>
 
             <!-- STEP 5 -->
-            <div class="step" data-title="Your speed" data-help="Fill in whatever you actually know. A measured clubhead speed beats a carry distance; a carry distance beats a guess. Leave them all blank and the tool will estimate from your age, gender and skill — and will say so.">
+            <div class="step" data-title="Your speed" data-help="Answer whichever you can. A measured clubhead speed wins, then the club you hit 150 yards, then a carry distance. Leave them all blank and the tool estimates from your age, gender and skill, and says so.">
               <p class="help" data-role="help"></p>
               <div class="field-grid">
+                <div class="field field-wide">
+                  <label for="club150">Which club do you hit from 150 yards?</label>
+                  <select id="club150">
+                    <option value="">Not sure, or I don&rsquo;t reach 150</option>
+                    <option value="Driver">Driver</option>
+                    <option value="3-wood">3-wood</option>
+                    <option value="5-wood">5-wood</option>
+                    <option value="Hybrid">Hybrid</option>
+                    <option value="4-iron">4-iron</option>
+                    <option value="5-iron">5-iron</option>
+                    <option value="6-iron">6-iron</option>
+                    <option value="7-iron">7-iron</option>
+                    <option value="8-iron">8-iron</option>
+                    <option value="9-iron">9-iron</option>
+                    <option value="PW">Pitching wedge</option>
+                  </select>
+                  <p class="hint"><b>The most useful answer on this page.</b> It&rsquo;s how you actually think on the
+                    course, most courses have a 150 marker, and unlike a yardage it&rsquo;s very hard to flatter
+                    yourself with. We&rsquo;ll work your speed back from it.</p>
+                </div>
                 <div class="field">
                   <label for="ironCarry">7-iron carry distance</label>
                   <input type="number" id="ironCarry" min="40" max="230" step="1" placeholder="150" inputmode="numeric">
-                  <p class="hint">Yards <b>in the air</b>, on a good strike, not your best ever, and not including roll.</p>
+                  <p class="hint">Yards <b>in the air</b>, on a good strike, not your best ever, and not including
+                    roll. Only used if you skip the question above.</p>
                 </div>
                 <div class="field">
                   <label for="ironSpeed">7-iron clubhead speed</label>
@@ -645,8 +666,8 @@
   </div>
 </footer>
 
-<script src="js/fitting-engine.js?v=c2864dbc"></script>
-<script src="js/app.js?v=b000e24d"></script>
+<script src="js/fitting-engine.js?v=551c8d65"></script>
+<script src="js/app.js?v=28b7db62"></script>
 <script src="js/lie-bench.js?v=cfdf8049"></script>
 </body>
 </html>

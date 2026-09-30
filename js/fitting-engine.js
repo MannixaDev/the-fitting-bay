@@ -335,13 +335,70 @@
      Anchors: TrackMan average male amateur (driver 93 mph / 214 yd carry,
      7-iron 133 yd carry) and PGA Tour (driver 113 mph / 275 yd carry,
      7-iron 172 yd carry). */
+  /* Recalibrated against TrackMan's published tour averages, which give
+     MEASURED club speed and MEASURED carry for every club, so no assumed
+     ratio is involved:
+
+       PGA Tour   driver 113 mph / 275 yd,  7-iron 90 mph / 172 yd
+       LPGA Tour  driver  94 mph / 220 yd,  7-iron 76 mph / 141 yd
+       Avg male amateur  driver 93 mph / 214 yd, 7-iron 133 yd carry
+
+     Which works out at:
+
+       ironEff          PGA 1.911   LPGA 1.855   amateur 1.788
+       driverYdsPerMph  PGA 2.434   LPGA 2.340   amateur 2.301
+
+     The old table ran to 2.00 for scratch and 1.94 for a single-figure
+     player, both of which are better ball-striking efficiency than the PGA
+     Tour average, and put a 10-18 handicapper above an LPGA professional.
+     That was not a rounding error, it was a scale stretched past the best
+     golfers who have ever been measured.
+
+     It mattered in a specific direction. ironSS = carry / eff, so an
+     inflated efficiency UNDER-reads speed, and under-read speed under-flexes
+     the shaft. The tool was softening shafts for everyone from mid-handicap
+     upward.
+
+     The two elite rows are now the measured figures. The amateur row is the
+     measured amateur figure. beginner and high are extrapolated below it,
+     which is the part still resting on judgement rather than data. */
   var SKILL_EFF = {
-    beginner: { ironEff: 1.72, driverYdsPerMph: 2.05 },
-    high:     { ironEff: 1.80, driverYdsPerMph: 2.20 },
-    mid:      { ironEff: 1.88, driverYdsPerMph: 2.30 },
-    low:      { ironEff: 1.94, driverYdsPerMph: 2.38 },
-    scratch:  { ironEff: 2.00, driverYdsPerMph: 2.45 }
+    beginner: { ironEff: 1.64, driverYdsPerMph: 2.05 },
+    high:     { ironEff: 1.72, driverYdsPerMph: 2.20 },
+    mid:      { ironEff: 1.79, driverYdsPerMph: 2.30 },
+    low:      { ironEff: 1.86, driverYdsPerMph: 2.36 },
+    scratch:  { ironEff: 1.91, driverYdsPerMph: 2.43 }
   };
+
+  /* --------------------------------------------------------------------
+     "Which club do you hit from 150 yards?"
+
+     Carry distance is the most inflated number people give us: the form
+     warns that most golfers over-read it by 15-20 yards, and a real user
+     read that warning and then claimed a 250-yard driver carry anyway.
+
+     Club selection is much harder to inflate. You either get there with a
+     7-iron or you don't, there is no best-ever version of it, and 150-yard
+     markers physically exist on most courses so the reference point is
+     already in the player's memory attached to a real place.
+
+     The ratios are each club's carry as a multiple of the same player's
+     7-iron, averaged across the two TrackMan tour tables. They are ratios
+     rather than fixed gaps, so they scale with the player instead of
+     assuming everyone's clubs sit 11 yards apart.
+     ----------------------------------------------------------------- */
+  var CLUB_RATIO = {
+    'Driver': 1.58, '3-wood': 1.40, '5-wood': 1.30, 'Hybrid': 1.29,
+    '4-iron': 1.19, '5-iron': 1.14, '6-iron': 1.07, '7-iron': 1.00,
+    '8-iron': 0.93, '9-iron': 0.85, 'PW': 0.78
+  };
+
+  /* Given "I hit <club> <yards> yards", what does that make the 7-iron? */
+  function ironCarryFromClub(club, yards) {
+    var r = CLUB_RATIO[club];
+    if (!r || !isNum(yards)) return null;
+    return Math.round(yards / r);
+  }
 
   function skillEff(skill) { return SKILL_EFF[skill] || SKILL_EFF.mid; }
   function ironEfficiency(skill) { return skillEff(skill).ironEff; }
@@ -350,6 +407,7 @@
     var se = skillEff(input.skill);
     var eff = se.ironEff;
     var driverSS = null, ironSS = null, source = null, confidence = 'low';
+    var carryFrom150 = ironCarryFromClub(input.club150, 150);
 
     if (isNum(input.driverSpeed)) {
       driverSS = input.driverSpeed;
@@ -361,6 +419,14 @@
       driverSS = ironSS / 0.80;
       source = 'measured 7-iron clubhead speed';
       confidence = 'high';
+    } else if (carryFrom150) {
+      /* Above the self-reported carry deliberately. It is quantised to whole
+         clubs, so it is less precise, but it is not systematically inflated,
+         and an unbiased coarse answer beats a biased fine one. */
+      ironSS = carryFrom150 / eff;
+      driverSS = ironSS / 0.80;
+      source = 'the club you hit 150 yards';
+      confidence = 'medium';
     } else if (isNum(input.ironCarry)) {
       ironSS = input.ironCarry / eff;
       driverSS = ironSS / 0.80;
@@ -400,9 +466,14 @@
     var driverModel = Math.round(driverSS * se.driverYdsPerMph);
     var conflict = null;
 
+    /* 7%, not 10%. The threshold was set against the old efficiency table,
+       which read speeds low and so produced models that were closer to an
+       inflated carry than they should have been. The form documents the
+       error we are trying to catch as 15-20 yards, and 7% of a typical
+       driver carry is about 16 of them, so 10% was set to miss it. */
     function reconcile(entered, model, club) {
       if (!isNum(entered) || !model) return model;
-      if (Math.abs(entered - model) / model < 0.10) return entered;
+      if (Math.abs(entered - model) / model < 0.07) return entered;
       /* Keep the worse disagreement if somehow both are off. */
       if (!conflict || Math.abs(entered - model) > Math.abs(conflict.entered - conflict.implied)) {
         conflict = { club: club, entered: entered, implied: model, source: source };
@@ -2279,6 +2350,8 @@
     lengthBands: LENGTH_BANDS,
     wtfLengthCheck: wtfLengthCheck,
     estimateSpeeds: estimateSpeeds,
+    ironCarryFromClub: ironCarryFromClub,
+    clubRatios: CLUB_RATIO,
     ballFit: ballFit,
     standardSpecs: STD_SPECS,
     fit: fit,
