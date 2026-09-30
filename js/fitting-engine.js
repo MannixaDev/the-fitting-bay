@@ -1104,27 +1104,141 @@
   /* ---------------------------------------------------------------------
      11. BALL
      ------------------------------------------------------------------ */
-  function ballFit(speeds, input) {
-    var d = speeds.driver, type, compression, why;
-    var key;
-    if (d < 85) {
-      key = 'soft2p'; type = '2-piece / low-compression soft ball'; compression = '35–65';
-      why = 'Below 85 mph you can’t fully compress a tour ball, and you lose both distance and feel trying. A soft, low-compression ball gives you more ball speed and a softer feel at your speed.';
-    } else if (d < 95) {
-      key = 'mid3p'; type = '3-piece mid-compression, ionomer or soft urethane cover'; compression = '65–85';
-      why = 'This is the biggest and best-served speed band in golf. A mid-compression 3-piece gives you most of the greenside spin of a tour ball without the driver-spin penalty.';
-    } else if (d < 105) {
-      key = 'tour3p'; type = '3-piece urethane (tour performance)'; compression = '85–95';
-      why = 'You’ve the speed to compress a urethane cover and to actually use its wedge spin. This is where the standard tour ball starts to make sense.';
-    } else {
-      key = 'tourfirm'; type = '3- or 4-piece tour urethane, firm'; compression = '95–105';
-      why = 'At 105+ mph a soft ball spins too much off the driver and goes short. A firm, multi-layer tour ball is the fit.';
+  /* ---------------------------------------------------------------------
+     THE BALL
+
+     This used to band purely on compression and told anyone under 85 mph
+     that they could not compress a tour ball and that a soft low-compression
+     ball would give them more ball speed. Robot testing says otherwise at
+     exactly that speed: at an 86 mph driver the fastest balls were the firmer
+     ones, and the longest ball in the field on total distance was a premium
+     tour ball. "Soft is slow" is MyGolfSpy’s standing finding across five
+     years of it, and we were repeating the marketing instead.
+
+     So the axis is cover and price, not compression. What the evidence
+     actually supports:
+
+       - Price tracks greenside spin closely and barely tracks distance.
+         What the extra money buys is wedge performance.
+       - Firm ionomer keeps up with urethane on full shots. The gap opens
+         around the green, and it opens much wider in the wet: on a wet full
+         wedge, ionomer gave up about a third of its spin against about a
+         tenth for urethane.
+       - At slow speeds the whole field compresses into a few yards, and
+         ionomer makes some of its total back as roll rather than carry.
+
+     Source: MyGolfSpy 2026 ball test. The findings inform this; the data is
+     theirs and stays on their site, which is linked from the ball section of
+     the reference page.
+     ------------------------------------------------------------------ */
+  var BALL_TIERS = [
+    {
+      key: 'urethanePremium', tier: 'premium',
+      label: 'Premium urethane', price: '£40–£55 a dozen',
+      what: 'The most greenside spin available, and the least affected by wet conditions.',
+      picks: {
+        low:  ['Titleist AVX', 'Callaway Chrome Tour'],
+        mid:  ['Titleist Pro V1', 'Srixon Z-Star', 'Wilson Staff Model'],
+        high: ['TaylorMade TP5', 'Bridgestone Tour B XS', 'Callaway Chrome Tour X']
+      }
+    },
+    {
+      key: 'urethaneMid', tier: 'mid',
+      label: 'Mid-price urethane', price: '£25–£40 a dozen',
+      what: 'A urethane cover without the tour-ball price. Most of the short-game performance for roughly half the money.',
+      picks: {
+        low:  ['Srixon Q-Star Tour', 'Vice Pro'],
+        mid:  ['Wilson Staff Model', 'Kirkland Signature', 'Mizuno RB Tour'],
+        high: ['Vice Pro Plus', 'Srixon Q-Star Tour']
+      }
+    },
+    {
+      key: 'ionomerFirm', tier: 'value',
+      label: 'Firm ionomer', price: '£15–£25 a dozen',
+      what: 'Keeps up with urethane on full shots. Gives up spin around the green, and gives up a lot more of it in the wet.',
+      picks: {
+        low:  ['Srixon Q-Star Ultispeed', 'Titleist TruFeel'],
+        mid:  ['Titleist Tour Soft', 'Wilson Duo Soft'],
+        high: ['Titleist Tour Soft']
+      }
     }
+  ];
+  var BALL_REVIEWED = 'September 2026';
+
+  function ballFit(speeds, input) {
+    var d = speeds.driver;
+    var skill = input.skill;
+    var curving = input.shotShape === 'slice' || input.shotShape === 'hook';
+    var learning = skill === 'beginner' || skill === 'high';
+    var wet = input.turf === 'soft';
+
+    /* Spin profile. Someone still fighting a curve does not want the ball
+       adding to it; someone who plays a lot of wet golf and can use a wedge
+       does. */
+    var profile = curving || input.priority === 'accuracy' ? 'low'
+      : (skill === 'low' || skill === 'scratch') && input.priority !== 'distance' ? 'high'
+      : 'mid';
+    var profileWhy = profile === 'low'
+      ? 'A lower-spinning ball curves less, which matters more to you right now than wedge spin.'
+      : profile === 'high'
+        ? 'You have the short game to use greenside spin, so it is worth buying.'
+        : 'A middle spin profile: enough bite into greens without adding to any curve.';
+
+    /* Which tier the money is actually worth to this player. The premium
+       tier buys wedge spin, so it is worth it to the extent they hit wedges
+       they expect to stop, and in the wet. */
+    var tier, why;
+    if (learning && !wet) {
+      tier = 'value';
+      why = 'Most of what a premium ball buys is greenside spin, and most of your shots into greens are still running up rather than stopping. A firm ionomer ball keeps up on full shots and costs a third as much. Spend the difference on lessons or range balls.';
+    } else if (learning && wet) {
+      tier = 'mid';
+      why = 'You would normally be fine on a value ball at this stage, but you have told us you play soft turf. Wet is where ionomer falls furthest behind: on a wet full wedge it gives up roughly a third of its spin against about a tenth for urethane. A mid-price urethane is the cheap way to buy that back.';
+    } else if (skill === 'mid') {
+      tier = 'mid';
+      why = 'You hit enough wedges that expect to stop for a urethane cover to earn its place, but the jump from mid-price urethane to a tour ball is mostly the last few percent of spin. Start here and only move up if you can feel the difference.';
+    } else {
+      tier = 'premium';
+      why = 'You are playing well enough to use everything a tour ball does around the green, which is what the extra money actually buys.';
+    }
+
+    var chosen = null;
+    BALL_TIERS.forEach(function (t) { if (t.tier === tier) chosen = t; });
+
+    var tiers = BALL_TIERS.map(function (t) {
+      return {
+        key: t.key, tier: t.tier, label: t.label, price: t.price, what: t.what,
+        picks: t.picks[profile] || t.picks.mid,
+        recommended: t.tier === tier
+      };
+    });
+
     var extra = [];
-    if (input.skill === 'beginner' || input.skill === 'high') extra.push('Be honest about how much greenside spin you actually use. If most of your shots into greens are running approaches, a low-spin distance ball will save you strokes and a lot of money.');
-    if (input.shotShape === 'slice' || input.shotShape === 'hook') extra.push('A lower-spin ball also curves less. Until the curve is under control, that’s worth more to you than wedge spin.');
-    if (input.priority === 'accuracy') extra.push('Firmer, lower-spin covers curve less, which is consistent with your stated accuracy priority.');
-    return { type: type, key: key, compression: compression, why: why, extra: extra };
+    extra.push('Price buys greenside spin. It barely buys distance. Across a robot test of 48 balls, price and wedge spin tracked each other closely while price and driver distance did not, and at slower speeds the distance gap between the cheapest and dearest balls all but disappears.');
+    if (d < 95) {
+      extra.push('At your speed the whole field is close together off the driver, and some of what a cheaper ball gives up in carry it makes back as roll. Choose on how it behaves around the green, because that is where balls genuinely differ for you.');
+    }
+    if (wet) {
+      extra.push('You play soft turf, so the wet-weather gap matters more to you than to most: a urethane cover holds its wedge spin far better once there is water in the impact.');
+    }
+    if (curving) {
+      extra.push('Until the curve is under control, ball choice is a small lever compared with the clubface. Do not expect a ball to straighten a slice.');
+    }
+    extra.push('Test it around the green, not on the range. A sleeve of three costs a few pounds, and the difference between these balls lives in chipping and pitching, where you can feel it immediately.');
+
+    return {
+      key: chosen.key,
+      tier: tier,
+      type: chosen.label,
+      price: chosen.price,
+      profile: profile,
+      profileWhy: profileWhy,
+      picks: chosen.picks[profile] || chosen.picks.mid,
+      tiers: tiers,
+      reviewed: BALL_REVIEWED,
+      why: why,
+      extra: extra
+    };
   }
 
   /* ---------------------------------------------------------------------
@@ -1641,11 +1755,14 @@
   var SET_BENCHMARK_NOTE = 'a custom-built 7-club set from a direct-to-consumer brand such as Takomo';
   var FLEX_IDX = { L: 0, A: 1, R: 2, S: 3, X: 4, XX: 5 };
   var GRIP_IDX = { Undersize: 0, Standard: 1, Midsize: 2, Jumbo: 3 };
+  /* Keyed on cover and price, because that is the axis the testing supports.
+     The old keys banded on compression, which is the thing the marketing
+     sells and the robots find least predictive. */
   var BALL_NAME = {
-    soft2p: '2-piece low-compression',
-    mid3p: '3-piece mid-compression',
-    tour3p: '3-piece tour urethane',
-    tourfirm: 'firm tour urethane'
+    ionomerSoft: 'soft ionomer',
+    ionomerFirm: 'firm ionomer',
+    urethaneMid: 'mid-price urethane',
+    urethanePremium: 'premium urethane'
   };
   var SEV_RANK = { high: 3, medium: 2, low: 1, unknown: 0.5, ok: 0 };
 
@@ -2010,7 +2127,19 @@
         add({
           area: 'Golf ball', severity: 'ok', costLo: 0, costHi: 0,
           current: BALL_NAME[cur.ball], recommended: BALL_NAME[result.ball.key],
-          detail: 'Right category for your speed.'
+          detail: 'Right category for how you play.'
+        });
+      } else if (cur.ball === 'ionomerSoft') {
+        /* The one ball answer that is wrong for everybody. Soft two-piece
+           ionomer exists to serve a stated preference for soft feel; it is
+           slower than the firm ionomer sitting beside it at the same price,
+           and it gives up the most around the green. */
+        add({
+          area: 'Golf ball', severity: 'medium', costLo: 0, costHi: 0,
+          costLabel: 'No extra cost. You buy balls anyway', quickWin: true,
+          current: BALL_NAME[cur.ball], recommended: BALL_NAME[result.ball.key],
+          detail: 'A soft two-piece ball is the one category that is hard to justify at any speed. Soft is slow: in robot testing the fastest balls at an 86 mph driver were the firmer ones, and a firm ionomer costs the same as the soft one you are playing.',
+          fix: 'Switch to a firm ionomer at the same money before you spend anything else. It is the cheapest change in this whole list.'
         });
       } else {
         add({

@@ -1003,10 +1003,26 @@
       '<div class="note">' + esc(p.check) + '</div>'));
 
     /* ---- ball ---- */
+    /* All three tiers are shown, not just the recommended one. The whole
+       point of the ball section is that the money is a choice with a known
+       trade-off, so hiding the other two would be making it for them. */
+    var b = r.ball;
     cards.push(card('Golf ball',
-      kv('Type', esc(r.ball.type)) +
-      kv('Compression', esc(r.ball.compression)) +
-      '<div class="why">' + esc(r.ball.why) + '</div>' + list(r.ball.extra)));
+      kv('Buy', esc(b.type), esc(b.price)) +
+      kv('Spin profile', esc(b.profile === 'low' ? 'Lower spin' : b.profile === 'high' ? 'Higher spin' : 'Mid spin')) +
+      '<div class="why">' + esc(b.why) + '</div>' +
+      '<div class="why" style="border-top:0;padding-top:0">' + esc(b.profileWhy) + '</div>' +
+      '<div class="ball-tiers">' + b.tiers.map(function (t) {
+        return '<div class="ball-tier' + (t.recommended ? ' is-pick' : '') + '">' +
+          '<div class="ball-tier-head"><b>' + esc(t.label) + '</b>' +
+          (t.recommended ? '<span class="pill">your pick</span>' : '') +
+          '<i>' + esc(t.price) + '</i></div>' +
+          '<p class="tiny">' + esc(t.what) + '</p>' +
+          '<p class="ball-picks">' + t.picks.map(esc).join(' \u00b7 ') + '</p></div>';
+      }).join('') + '</div>' +
+      '<p class="tiny" style="margin-top:10px">Widely stocked examples, reviewed ' + esc(b.reviewed) +
+      '. Names are a starting point, not a ranking \u2014 balls change between releases more than anyone expects.</p>' +
+      list(b.extra)));
 
     /* ---- shaft shortlist ---- */
     var sp = r.shaftPicks;

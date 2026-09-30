@@ -78,7 +78,7 @@ module.exports = function () {
       const a = G.audit(fit({}), {
         ironLie: fit({}).lie.code.deg, ironLength: fit({}).length.adj,
         ironFlex: fit({}).shafts.ironFlex, gripSize: fit({}).grip.key,
-        ball: 'soft2p'
+        ball: 'ionomerSoft'
       });
       assert(!/for No extra cost/.test(a.headline), a.headline);
     });

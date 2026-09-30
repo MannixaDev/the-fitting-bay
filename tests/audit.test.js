@@ -85,7 +85,7 @@ module.exports = function () {
       assert(!/Free/.test(f.costLabel), 'must not offer a free fix: ' + f.costLabel);
     });
     test('the wrong ball costs nothing to change', () => {
-      const f = audit({ ball: 'soft2p' }).actions.find((x) => x.area === 'Golf ball');
+      const f = audit({ ball: 'ionomerSoft' }).actions.find((x) => x.area === 'Golf ball');
       equal(f.costHi, 0);
       assert(f.quickWin);
     });
@@ -111,7 +111,7 @@ module.exports = function () {
   suite('Audit — replace rather than repair', () => {
     const WRECK = {
       ironLie: 0, ironLength: 0, ironFlex: 'R', ironMaterial: 'Steel',
-      gripSize: 'Standard', longestIron: 3, wedgeLofts: [56], ball: 'soft2p',
+      gripSize: 'Standard', longestIron: 3, wedgeLofts: [56], ball: 'ionomerSoft',
       driverLoft: 9, driverAdjustable: true
     };
     test('past the benchmark it recommends replacing the set', () => {
@@ -145,7 +145,7 @@ module.exports = function () {
   suite('Audit — budget planning', () => {
     const WRECK = {
       ironLie: 0, ironFlex: 'R', gripSize: 'Standard',
-      driverLoft: 9, driverAdjustable: true, longestIron: 3, ball: 'soft2p'
+      driverLoft: 9, driverAdjustable: true, longestIron: 3, ball: 'ionomerSoft'
     };
     test('no budget means no plan', () => {
       assert(!audit(WRECK).plan, 'plan should be absent');
@@ -275,7 +275,7 @@ module.exports = function () {
       const cur = Object.assign({}, c);
       delete cur.budget;
       const a = G.audit(FIT, Object.assign({
-        ironMaterial: 'Steel', longestIron: 4, wedgeLofts: [50, 54, 58], ball: 'tourfirm',
+        ironMaterial: 'Steel', longestIron: 4, wedgeLofts: [50, 54, 58], ball: 'urethanePremium',
         driverLength: 45.5
       }, cur), budget);
 

@@ -648,6 +648,65 @@ module.exports = function () {
     });
   });
 
+  /* The old logic told anyone under 85 mph that a soft low-compression ball
+     would give them more ball speed. Robot testing at an 86 mph driver found
+     the opposite: the firmer balls were faster and a premium tour ball was
+     longest in the field. We were repeating the marketing. */
+  suite('The ball', () => {
+    const ball = (o) => fit(Object.assign({ heightIn: 70, wtfIn: 34, ironCarry: 150 }, o)).ball;
+
+    test('a slow swinger is never told that soft is faster', () => {
+      const b = ball({ skill: 'high', driverSpeed: 80 });
+      const all = [b.why, b.profileWhy].concat(b.extra).join(' ');
+      assert(!/more ball speed/i.test(all), all);
+      assert(!/cannot fully compress|can.t fully compress/i.test(all), all);
+    });
+
+    test('all three price tiers are offered, with exactly one picked', () => {
+      const b = ball({ skill: 'mid' });
+      equal(b.tiers.length, 3);
+      equal(b.tiers.filter((t) => t.recommended).length, 1);
+      b.tiers.forEach((t) => {
+        assert(t.picks.length > 0, t.label + ' needs at least one example');
+        assert(/£/.test(t.price), t.label + ' needs a price band');
+      });
+    });
+
+    test('the recommended tier is the one the key points at', () => {
+      ['beginner', 'high', 'mid', 'low', 'scratch'].forEach((skill) => {
+        const b = ball({ skill });
+        const pick = b.tiers.find((t) => t.recommended);
+        equal(pick.key, b.key, skill);
+        equal(pick.tier, b.tier, skill);
+      });
+    });
+
+    test('a learner on firm turf is not sold a tour ball', () => {
+      equal(ball({ skill: 'beginner', turf: 'firm' }).tier, 'value');
+      equal(ball({ skill: 'high', turf: 'firm' }).tier, 'value');
+    });
+
+    test('wet turf moves a learner up, because that is where ionomer loses most', () => {
+      equal(ball({ skill: 'beginner', turf: 'soft' }).tier, 'mid');
+    });
+
+    test('a player fighting a curve is steered to lower spin', () => {
+      equal(ball({ skill: 'mid', shotShape: 'slice' }).profile, 'low');
+      equal(ball({ skill: 'mid', shotShape: 'hook' }).profile, 'low');
+    });
+
+    test('every skill and turf combination produces a usable answer', () => {
+      ['beginner', 'high', 'mid', 'low', 'scratch'].forEach((skill) => {
+        ['soft', 'normal', 'firm'].forEach((turf) => {
+          const b = ball({ skill, turf });
+          assert(b.type && b.price && b.why, skill + '/' + turf);
+          assert(b.picks.length > 0, skill + '/' + turf + ' picks');
+          assert(['premium', 'mid', 'value'].indexOf(b.tier) !== -1, b.tier);
+        });
+      });
+    });
+  });
+
   suite('Shaft shortlist', () => {
     test('suggestions match the recommended flex', () => {
       const r = fit({ driverSpeed: 100, ironCarry: null });

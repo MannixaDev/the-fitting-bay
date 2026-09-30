@@ -932,3 +932,22 @@ h3, h4 { font-weight: 650; }
   border-color: var(--red);
   background: rgba(227, 93, 79, .07);
 }
+
+
+/* ---------- the three ball tiers ---------- */
+.ball-tiers { display: flex; flex-direction: column; gap: 8px; margin: 14px 0 0; }
+.ball-tier {
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--bg); padding: 11px 13px;
+}
+.ball-tier.is-pick { border-color: var(--green-deep); background: rgba(52, 192, 122, .05); }
+.ball-tier-head { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+.ball-tier-head b { font-size: .92rem; }
+.ball-tier-head i {
+  font-style: normal; margin-left: auto; font-size: .8rem; color: var(--ink-3);
+  white-space: nowrap;
+}
+.ball-tier p.tiny { margin: 5px 0 0; }
+.ball-picks {
+  margin: 7px 0 0; font-size: .84rem; color: var(--ink-2); font-weight: 550;
+}
